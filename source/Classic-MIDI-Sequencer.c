@@ -68,7 +68,7 @@ typedef struct {
 static void 
 connect_port(LV2_Handle instance, uint32_t port, void* data)
 {
-  Clock* self = (Clock*)instance;
+  //Clock* self = (Clock*)instance;
 
   //switch ((PortIndex)Port) {
   //  case //PORT
@@ -81,10 +81,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 static void 
 activate(LV2_Handle instance)
 {
-  Clock* self = (Clock*)instance;
-  
-
-
+  //Clock* self = (Clock*)instance;
 }
 
 static LV2_Handle
@@ -100,11 +97,11 @@ instantiate(const LV2_Descriptor*     descriptor,
   }
 
   for (uint32_t i=0; features[i]; ++i) {
-    if (!strcmp (features[i]->URI, LV2_URID_map)) 
+    if (!strcmp (features[i]->URI, LV2_URID__map)) 
     {
       self->map = (LV2_URID_Map*)features[i]->data;
     } 
-    else if (!strcmp (features[i]->URI, LV2_LOG_log)) 
+    else if (!strcmp (features[i]->URI, LV2_LOG__log)) 
     {
       self->log = (LV2_Log_Log*)features[i]->data;
     }
