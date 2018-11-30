@@ -1,0 +1,134 @@
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#>.
+@prefix doap: <http://usefulinc.com/ns/doap#>.
+@prefix epp: <http://lv2plug.in/ns/ext/port-props#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix mod: <http://moddevices.com/ns/modgui#>.
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+
+<http://moddevices.com/plugins/mod-devel/mod-classic-midi-sequencer>
+a lv2:Plugin, lv2:UtilityPlugin;
+
+doap:name "Classic MIDI Sequencer";
+
+doap:developer [
+    foaf:name "Bram Giesen";
+    foaf:homepage "bramgiesen.com";
+    ];
+
+doap:maintainer [
+    foaf:name "MOD";
+    foaf:homepage <http://moddevices.com>;
+    ];
+
+rdfs:comment """
+This plugin is a classic MIDI sequencer.
+""";
+
+lv2:port
+[
+    a lv2:InputPort, MIDI
+],
+[
+    a lv2:OutputPort, MIDI
+],
+[     
+    lv2:InputPort, atom:AtomPort ;
+    atom:bufferType atom:Sequence ;
+    atom:supports time:Position ;
+    lv2:index 2 ;
+    lv2:symbol "control" ;
+    lv2:name "Control" ;
+],
+[
+    a lv2:InputPort, lv2:controlPort ;
+    lv2:index 3 ;
+    lv2:symbol "Mode"
+    lv2:name "Mode"
+    lv2:default 3 ;
+    lv2:minimum 1 ;
+    lv2:maximum 5 ;
+    lv2:scalepoint [ rdfs:label "clear sequence";    rdf:value 1; ] ; 
+    lv2:scalepoint [ rdfs:label "record mode";       rdf:value 2; ] ; 
+    lv2:scalepoint [ rdfs:label "play mode";         rdf:value 3; ] ; 
+    lv2:scalepoint [ rdfs:label "record append mode";rdf:value 4; ] ;    
+    lv2:scalepoint [ rdfs:label "undo last";         rdf:value 5; ] ; 
+],
+[
+    a lv2:InputPort, lv2:ControlPort ;
+    lv2:index 4 ;
+    lv2:symbol "Divisions" ;
+    lv2:name "Divisions" ;
+    lv2:default 4 ;
+    lv2:minimum 0.1 ;
+    lv2:maximum 32 ;
+    lv2:scalePoint [ rdfs:label "10 Notes";     rdf:value 0.1; ] ;
+    lv2:scalePoint [ rdfs:label "8 Notes";      rdf:value 0.125; ] ;
+    lv2:scalePoint [ rdfs:label "6 Notes";      rdf:value 0.1875; ] ;
+    lv2:scalePoint [ rdfs:label "4 Notes";      rdf:value 0.25; ] ;
+    lv2:scalePoint [ rdfs:label "3 Notes";      rdf:value 0.375 ; ] ;
+    lv2:scalePoint [ rdfs:label "2 Notes";      rdf:value 0.5 ; ] ;
+    lv2:scalePoint [ rdfs:label "Whole Note";   rdf:value 1 ; ] ;
+    lv2:scalePoint [ rdfs:label "Half Note";    rdf:value 2 ; ] ;
+    lv2:scalePoint [ rdfs:label "third Note";   rdf:value 3; ] ;
+    lv2:scalePoint [ rdfs:label "Quarter";      rdf:value 4 ; ] ;
+    lv2:scalePoint [ rdfs:label "Dotted 4th";   rdf:value 2.66666 ; ] ;
+    lv2:scalePoint [ rdfs:label "Triplet 4th";  rdf:value 6; ] ;
+    lv2:scalePoint [ rdfs:label "8th";          rdf:value 8 ; ] ;
+    lv2:scalePoint [ rdfs:label "Dotted 8th";   rdf:value 5.33333; ] ;
+    lv2:scalePoint [ rdfs:label "Triplet 8th";  rdf:value 12; ] ;
+    lv2:scalePoint [ rdfs:label "16th";         rdf:value 16 ; ] ;
+    lv2:scalePoint [ rdfs:label "Dotted 16th";  rdf:value 10.66666; ] ;
+    lv2:scalePoint [ rdfs:label "Triplet 16th"; rdf:value  24; ] ;
+    lv2:scalePoint [ rdfs:label "32th";         rdf:value 32 ; ] ;
+    lv2:portProperty lv2:enumeration;
+],
+[
+    a lv2:InputPort, lv2:ControlPort ; 
+    lv2:index 5;
+    lv2:symbol "InputMode" ;
+    lv2:name "InputMode" ;
+    lv2:default 1 ; 
+    lv2:minimum 0 ;
+    lv2:maximum 3 ; 
+    lv2:scalePoint [ rdfs:label "Rest";     rdf:value 0; ] ;
+    lv2:scalePoint [ rdfs:label "Normal";   rdf:value 1; ] ; 
+    lv2:scalePoint [ rdfs:label "Note-tie"; rdf:value 2; ] ;
+    lv2:scalePoint [ rdfs:label "Accent";   rdf:value 3; ] ;
+    lv2:portProperty lv2:enumeration ;
+],
+[
+    a lv2:InputPort, lv2:ControlPort ;
+    lv2:index 5 ;
+    lv2:symbol "NoteLength" ;
+    lv2:name "NoteLength" ;
+    lv2:default 1 ;
+    lv2:minimum 0.1 ;
+    lv2:maximum 1 ;
+],    
+[
+    a lv2:InputPort, lv2:ControlPort ;
+    lv2:index 6 ;
+    lv2:symbol "OctaveSpread" ;
+    lv2:name "OctaveSpread" ;
+    lv2:default 0 ; 
+    lv2:minimum -4 ;
+    lv2:maximum 4 ;
+    lv2:portProperty lv2:integer ;
+],
+[
+    a lv2:InputPort, lv2:ControlPort ;
+    lv2:index 7;
+    lv2:symbol "Latch"
+    lv2:name "Latch"
+    lv2:default 0;
+    lv2:minimum 0;
+    lv2:maximum 1;
+    lv2:portProperty lv2:integer ; 
+]
+.
+                          
