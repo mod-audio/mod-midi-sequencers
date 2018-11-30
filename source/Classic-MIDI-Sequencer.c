@@ -133,7 +133,7 @@ instantiate(const LV2_Descriptor*     descriptor,
 }
 
 static void 
-run(LV2_Handle instace, uint32_t n_samples)
+run(LV2_Handle instance, uint32_t n_samples)
 {
   Clock* self = (Clock*)instance;
   const ClockURIs* uris = &self->uris;
