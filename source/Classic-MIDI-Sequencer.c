@@ -149,7 +149,7 @@ deactivate(LV2_Handle instance)
 }
 
 static void
-cleanup(LV2_Handel instance)
+cleanup(LV2_Handle instance)
 {
   free(instance)
 }
