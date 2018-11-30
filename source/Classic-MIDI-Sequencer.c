@@ -99,7 +99,7 @@ instantiate(const LV2_Descriptor*     descriptor,
     return NULL;
   }
 
-  for (uint32_t i=0; features[i]; ++i;) {
+  for (uint32_t i=0; features[i]; ++i) {
     if (!strcmp (features[i]->URI, LV2_URID_map)) 
     {
       self->map = (LV2_URID_Map*)features[i]->data;
