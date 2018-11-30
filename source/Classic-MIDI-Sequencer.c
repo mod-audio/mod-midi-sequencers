@@ -47,9 +47,9 @@ typedef struct {
   LV2_URID atom_Path;
   LV2_URID atom_Resource;
   LV2_URID atom_Sequence;
-  LV2_URID atom_Position;
-  LV2_URID atom_barBeat;
-  LV2_URID atom_beatsPerMinute;
+  LV2_URID time_Position;
+  LV2_URID time_barBeat;
+  LV2_URID time_beatsPerMinute;
   LV2_URID time_speed;
 } ClockURIs;
 
@@ -151,7 +151,7 @@ deactivate(LV2_Handle instance)
 static void
 cleanup(LV2_Handle instance)
 {
-  free(instance)
+  free(instance);
 }
 
 static const void*
