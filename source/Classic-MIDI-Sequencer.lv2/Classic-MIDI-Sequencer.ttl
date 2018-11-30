@@ -32,9 +32,15 @@ This plugin is a classic MIDI sequencer.
 lv2:port
 [
     a lv2:InputPort, MIDI
+    lv2:index 0 ;
+    lv2:symbol "MIDI-In" ;
+    lv2:name "MIDI-In" ;
 ],
 [
     a lv2:OutputPort, MIDI
+    lv2:index 1 ; 
+    lv2:symbol "MIDI-Out" ;
+    lv2:symbol "MIDI-Out" ;
 ],
 [     
     lv2:InputPort, atom:AtomPort ;
@@ -103,7 +109,7 @@ lv2:port
 ],
 [
     a lv2:InputPort, lv2:ControlPort ;
-    lv2:index 5 ;
+    lv2:index 6 ;
     lv2:symbol "NoteLength" ;
     lv2:name "NoteLength" ;
     lv2:default 1 ;
@@ -112,7 +118,7 @@ lv2:port
 ],    
 [
     a lv2:InputPort, lv2:ControlPort ;
-    lv2:index 6 ;
+    lv2:index 7 ;
     lv2:symbol "OctaveSpread" ;
     lv2:name "OctaveSpread" ;
     lv2:default 0 ; 
@@ -122,7 +128,7 @@ lv2:port
 ],
 [
     a lv2:InputPort, lv2:ControlPort ;
-    lv2:index 7;
+    lv2:index 8;
     lv2:symbol "Latch"
     lv2:name "Latch"
     lv2:default 0;

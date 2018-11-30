@@ -29,7 +29,15 @@
 #define PLUGIN_URI "http://moddevices.com/plugins/mod-devel/mod-classic-midi-sequencer"
 
 typedef enum {
-
+  MIDI_IN      = 0,
+  MIDI_OUT     = 1,
+  CONTROL      = 2,
+  MODE         = 3, 
+  DIVISIONS    = 4,
+  INPUTMODE    = 5, 
+  NOTELENGTH   = 6,
+  OCTAVESPREAD = 7,
+  LATCH        = 8
 } PortIndex;
 
 typedef struct {
