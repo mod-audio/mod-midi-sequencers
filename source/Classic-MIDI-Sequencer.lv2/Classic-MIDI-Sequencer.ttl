@@ -1,10 +1,10 @@
-@prefix lv2:  <http://lv2plug.in/ns/lv2core#>.
-@prefix doap: <http://usefulinc.com/ns/doap#>.
-@prefix epp: <http://lv2plug.in/ns/ext/port-props#>.
-@prefix foaf: <http://xmlns.com/foaf/0.1/>.
-@prefix mod: <http://moddevices.com/ns/modgui#>.
-@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix epp: <http://lv2plug.in/ns/ext/port-props#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix mod: <http://moddevices.com/ns/modgui#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix atom: <http://lv2plug.in/ns/ext/atom#> .
 @prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 @prefix urid: <http://lv2plug.in/ns/ext/urid#> .
@@ -17,52 +17,86 @@ doap:name "Classic MIDI Sequencer";
 
 doap:developer [
     foaf:name "Bram Giesen";
-    foaf:homepage "bramgiesen.com";
+    foaf:homepage <http://bramgiesen.com>;
+    foaf:mbox <>;
     ];
 
 doap:maintainer [
     foaf:name "MOD";
     foaf:homepage <http://moddevices.com>;
+    foaf:mbox <>;
     ];
+
+lv2:minorVersion 0.1;
+lv2:microVersion 0;
+
 
 rdfs:comment """
 This plugin is a classic MIDI sequencer.
 """;
 
-lv2:port
-[
-    a lv2:InputPort, MIDI
-    lv2:index 0 ;
-    lv2:symbol "MIDI-In" ;
-    lv2:name "MIDI-In" ;
+
+lv2:port [ a atom:AtomPort , lv2:InputPort ;  
+ atom:bufferType atom:Sequence ;  
+ atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;  
+ lv2:index 0 ;  
+ lv2:symbol "midiin" ;  
+ lv2:name "MIDI In"  
 ],
-[
-    a lv2:OutputPort, MIDI
-    lv2:index 1 ; 
-    lv2:symbol "MIDI-Out" ;
-    lv2:symbol "MIDI-Out" ;
-],
-[     
-    lv2:InputPort, atom:AtomPort ;
+[ a atom:AtomPort , lv2:OutputPort ;  
+atom:bufferType atom:Sequence ;  
+atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;  
+lv2:index 1 ;  
+lv2:symbol "midiout" ;  
+lv2:name "MIDI Out";  
+] ;
+
+
+#lv2:port [
+#        a lv2:InputPort, atom:AtomPort ;
+#        atom:bufferType atom:Sequence ;
+#        atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+#        atom:supports <http://lv2plug.in/ns/ext/time#Position> ;
+#        lv2:index 0 ;
+#        lv2:symbol "lv2_events_in" ;
+#        lv2:name "Events Input" ;
+#        lv2:designation lv2:control ;
+#] ;
+#
+#lv2:port [
+#        a lv2:InputPort, atom:AtomPort ;
+#        atom:bufferType atom:Sequence ;
+#        atom:supports <http://lv2plug.in/ns/ext/midi#MidiEvent> ;
+#        atom:supports <http://lv2plug.in/ns/ext/time#Position> ;
+#        lv2:index 1 ;
+#        lv2:symbol "lv2_events_in" ;
+#        lv2:name "Events Input" ;
+#        lv2:designation lv2:control ;
+#] ;
+#
+lv2:port [     
+    a lv2:InputPort, atom:AtomPort ;
     atom:bufferType atom:Sequence ;
     atom:supports time:Position ;
     lv2:index 2 ;
     lv2:symbol "control" ;
     lv2:name "Control" ;
-],
-[
+] ;
+
+lv2:port [
     a lv2:InputPort, lv2:controlPort ;
     lv2:index 3 ;
-    lv2:symbol "Mode"
-    lv2:name "Mode"
+    lv2:symbol "Mode" ;
+    lv2:name "Mode" ;
     lv2:default 3 ;
     lv2:minimum 1 ;
     lv2:maximum 5 ;
-    lv2:scalepoint [ rdfs:label "clear sequence";    rdf:value 1; ] ; 
-    lv2:scalepoint [ rdfs:label "record mode";       rdf:value 2; ] ; 
-    lv2:scalepoint [ rdfs:label "play mode";         rdf:value 3; ] ; 
-    lv2:scalepoint [ rdfs:label "record append mode";rdf:value 4; ] ;    
-    lv2:scalepoint [ rdfs:label "undo last";         rdf:value 5; ] ; 
+    lv2:scalepoint [ rdfs:label "clear sequence";     rdf:value 1; ] ; 
+    lv2:scalepoint [ rdfs:label "record mode";        rdf:value 2; ] ; 
+    lv2:scalepoint [ rdfs:label "play mode";          rdf:value 3; ] ; 
+    lv2:scalepoint [ rdfs:label "record append mode"; rdf:value 4; ] ;    
+    lv2:scalepoint [ rdfs:label "undo last";          rdf:value 5; ] ; 
+    lv2:portProperty lv2:enumeration;
 ],
 [
     a lv2:InputPort, lv2:ControlPort ;
@@ -129,8 +163,8 @@ lv2:port
 [
     a lv2:InputPort, lv2:ControlPort ;
     lv2:index 8;
-    lv2:symbol "Latch"
-    lv2:name "Latch"
+    lv2:symbol "Latch" ;
+    lv2:name "Latch" ;
     lv2:default 0;
     lv2:minimum 0;
     lv2:maximum 1;
