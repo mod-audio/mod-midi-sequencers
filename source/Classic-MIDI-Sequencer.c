@@ -33,7 +33,6 @@ typedef enum {
   PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
   METRO_CONTROL,
-  MODE  
 } PortEnum;
 
 
@@ -139,9 +138,6 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
       break;
     case METRO_CONTROL:
       self->control = (LV2_Atom_Sequence*)data;
-      break;
-    case MODE:
-      self->mode = (const int*)data;
       break;
   }
 }
