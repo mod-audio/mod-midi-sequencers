@@ -156,13 +156,10 @@ static void activate(LV2_Handle instance)
 //phase oscillator to use for timing of the beatsync 
 static float* phaseOsc(float frequency, float* phase, float rate)
 {
-  //static float phase = 0;
-  //static float samplerate = 44100; //TODO make this dynamic!!!
-  
   *phase += frequency / rate;
   //wrap phase 
   if(*phase >= 1) *phase = *phase - 1; 
-  printf("rate = %f\n", rate); 
+  
   return phase;
 }
 
