@@ -76,7 +76,7 @@ This switch box receives a MIDI input and channels it through one of its two out
 					      lv2:scalepoint [ rdfs:label "play mode";          rdf:value 2; ] ;
 					      lv2:scalepoint [ rdfs:label "record append mode"; rdf:value 3; ] ;
 					      lv2:scalepoint [ rdfs:label "undo last";          rdf:value 4; ] ;
-					      lv2:portProperty lv2:enumeration, lv2:integer; 
+					      lv2:portProperty, lv2:integer; 
         ] ;
 
         doap:developer [

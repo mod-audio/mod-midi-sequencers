@@ -3,5 +3,5 @@
 
 <http://moddevices.com/plugins/mod-devel/Classic-MIDI-Sequencer>
     a lv2:Plugin ;
-    lv2:binary <classic-midi-seq.so>  ;
-    rdfs:seeAlso <classic-midi-seq.ttl> .
+    lv2:binary <Classic-MIDI-Sequencer.so>  ;
+    rdfs:seeAlso <Classic-MIDI-Sequencer.ttl> .
