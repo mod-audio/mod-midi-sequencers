@@ -33,7 +33,8 @@ typedef enum {
   PORT_CONTROL_TARGET = 0,
   PORT_ATOM_IN,
   PORT_ATOM_OUT1,
-  METRO_CONTROL  
+  METRO_CONTROL,
+  MODE  
 } PortEnum;
 
 
