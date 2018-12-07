@@ -71,12 +71,23 @@ This switch box receives a MIDI input and channels it through one of its two out
 					      lv2:default 1 ;
 					      lv2:minimum 0 ;
 					      lv2:maximum 4 ;
-					      lv2:scalepoint [ rdfs:label "clear sequence";     rdf:value 0; ] ;
-					      lv2:scalepoint [ rdfs:label "record mode";        rdf:value 1; ] ;
-					      lv2:scalepoint [ rdfs:label "play mode";          rdf:value 2; ] ;
-					      lv2:scalepoint [ rdfs:label "record append mode"; rdf:value 3; ] ;
-					      lv2:scalepoint [ rdfs:label "undo last";          rdf:value 4; ] ;
-					      lv2:portProperty lv2:integer; 
+                lv2:portProperty lv2:integer ;
+                lv2:scalePoint [
+                        rdfs:label "Clear All" ;
+                        rdf:value 0 ;
+                ] , [
+                        rdfs:label "Record" ;
+                        rdf:value 1 ;
+                ] , [
+                        rdfs:label "Play" ;
+                        rdf:value 2 ;
+                ] , [
+                        rdfs:label "Record Append" ;
+                        rdf:value 3 ;
+                ] , [
+                        rdfs:label "Undo Last" ;
+                        rdf:value 4 ;
+                ];
         ] ;
 
         doap:developer [

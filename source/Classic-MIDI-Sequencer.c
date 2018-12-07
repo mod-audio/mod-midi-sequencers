@@ -30,8 +30,7 @@ typedef struct {
 
 
 typedef enum {
-  PORT_CONTROL_TARGET = 0,
-  PORT_ATOM_IN,
+  PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
   METRO_CONTROL,
   MODE  
@@ -61,6 +60,7 @@ typedef struct {
   // aray to save midi events
   uint8_t midiEventsOn[64];
 
+  const int* mode;
   // control ports
   const float* port_target;
 
@@ -131,9 +131,6 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
 
   switch (port)
   {
-    case PORT_CONTROL_TARGET:
-      self->port_target = (const float*)data;
-      break;
     case PORT_ATOM_IN:
       self->port_events_in = (const LV2_Atom_Sequence*)data;
       break;
@@ -142,6 +139,10 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
       break;
     case METRO_CONTROL:
       self->control = (LV2_Atom_Sequence*)data;
+      break;
+    case MODE:
+      self->mode = (const int*)data;
+      break;
   }
 }
 
