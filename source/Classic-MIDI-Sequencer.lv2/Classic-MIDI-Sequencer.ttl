@@ -23,24 +23,6 @@ This switch box receives a MIDI input and channels it through one of its two out
         lv2:optionalFeature lv2:hardRTCapable ;
         lv2:port [
                 a lv2:InputPort ,
-                        lv2:ControlPort ;
-                lv2:index 0 ;
-                lv2:symbol "target" ;
-                lv2:name "Target" ;
-                lv2:default 0 ;
-                lv2:minimum 0 ;
-                lv2:maximum 1 ;
-                lv2:portProperty lv2:integer ,
-                                 lv2:enumeration ;
-                lv2:scalePoint [
-                        rdfs:label "Port 1" ;
-                        rdf:value 0 ;
-                ] , [
-                        rdfs:label "Port 2" ;
-                        rdf:value 1 ;
-                ] ;
-        ] , [
-                a lv2:InputPort ,
                         atom:AtomPort ;
                 atom:bufferType atom:Sequence ;
                 atom:supports midi:MidiEvent ;
