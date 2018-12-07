@@ -154,15 +154,15 @@ static void activate(LV2_Handle instance)
 
 
 //phase oscillator to use for timing of the beatsync 
-static float* phaseOsc(float frequency, float* phase)
+static float* phaseOsc(float frequency, float* phase, float rate)
 {
   //static float phase = 0;
-  static float samplerate = 44100; //TODO make this dynamic!!!
+  //static float samplerate = 44100; //TODO make this dynamic!!!
   
-  *phase += frequency / samplerate;
+  *phase += frequency / rate;
   //wrap phase 
   if(*phase >= 1) *phase = *phase - 1; 
-  //printf("phase = %f\n", *phase); 
+  printf("rate = %f\n", rate); 
   return phase;
 }
 
@@ -281,7 +281,7 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 
     //a phase Oscillator that we use for the tempo of the midi-sequencer 
     for (uint32_t pos = 0; pos < n_samples; pos++) {
-      self->phase = *phaseOsc(frequency, &self->phase);
+      self->phase = *phaseOsc(frequency, &self->phase, self->rate);
     }
   
     //const bool target_second = (*self->port_target) > 0.5f;
