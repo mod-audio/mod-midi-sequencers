@@ -58,9 +58,13 @@ typedef struct {
   LV2_URID urid_midiEvent;
 
   // aray to save midi events
-  uint8_t midiEventsOn[64];
-
-  const float* mode;
+  //uint8_t midiEventsOn[64];
+  
+	uint8_t *midiEventsOn;
+  size_t used;
+  size_t size; 
+  
+	const int* mode;
   // control ports
   const float* port_target;
 
@@ -118,6 +122,10 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->rate       = rate;
     self->bpm        = 120.0f;
      
+    //init midi event list
+    self->midiEventsOn = (uint8_t *)malloc(1 * sizeof(uint8_t));
+    self->used = 0;
+    self->size = 1;
 
 
     return self;
@@ -141,7 +149,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
       self->control = (LV2_Atom_Sequence*)data;
       break;
     case MODE:
-      self->mode = (const float*)data;
+      self->mode = (const int*)data;
   }
 }
 
@@ -181,6 +189,20 @@ static LV2_Atom_MIDI createMidiEvent(Data* self, uint8_t status, uint8_t note, u
 }
 
 
+static void insertNote(Data* self, uint8_t note) {
+  if (self->used == self->size) {
+    self->size *= 2;
+    self->midiEventsOn = (uint8_t *)realloc(self->midiEventsOn, self->size * sizeof(uint8_t));
+  }
+  self->midiEventsOn[self->used++] = note;
+}
+
+static void clearSequence(Data* self)
+{
+  free(self->midiEventsOn);
+  self->midiEventsOn = NULL;
+  self->used = self->size = 0;
+}
 //sequence the MIDI notes that are written into an array
 static void sequence(Data* self)
 {
@@ -297,7 +319,8 @@ static void run(LV2_Handle instance, uint32_t n_samples)
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
-            self->midiEventsOn[count % 4] = msg[1];
+            insertNote(self, msg[1]);
+            //self->midiEventsOn[count % 4] = msg[1];
             count++;
             if (count >= 4) {
               self->playing = true;
