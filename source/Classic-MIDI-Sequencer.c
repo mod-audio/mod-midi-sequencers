@@ -208,6 +208,7 @@ static void sequence(Data* self)
 {
   static bool first = false;
   static bool trigger = false;
+  static bool cleared = true;
   static int i = 0;
 
   // Get the capacity
@@ -219,28 +220,44 @@ static void sequence(Data* self)
   // LV2 is so nice...
   self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
+  if (self->playing == true) {
 
-  if (self->phase < 0.2 && !trigger && self->playing == true) {
-    //create note on message
-    LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % self->used], 127);
-
-    lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
-
-    //send note off
-    if ( first == true ) {
-
-      LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[(i + 3) % self->used], 0);
+    if (self->phase < 0.2 && !trigger) {
+      //create note on message
+      LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % self->used], 127);
 
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
 
+      //send note off
+      if ( first == true ) {
+
+        LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[(i + (self->used - 1)) % self->used], 0);
+
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+
+      }
+      cleared = false;
+      trigger = true;
+      first = true;
+      i++;
+    } else {
+      if (self->phase > 0.2 ) {
+        trigger = false;    
+      }   
     }
-    trigger = true;
-    first = true;
-    i++;
-  } else {
-    if (self->phase > 0.2 ) {
-      trigger = false;    
-    }   
+  } else { // self->playing = false, send note offs of current notes.
+    
+    if ( !cleared && *self->mode == 1 ) {
+      printf("clearing notes\n"); 
+      for (size_t i = 0; i < self->used; i++) {
+        LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[i], 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+      }
+
+      clearSequence(self);    
+      cleared = true;
+
+    }
   }
 }
 
@@ -270,7 +287,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
   if (beat && beat->type == uris->atom_Float) {
     // Received a beat position, synchronise
     // This hard sync may cause clicks, a real plugin would be more graceful
-    const float frames_per_beat = 60.0f / self->bpm * self->rate;
+    // const float frames_per_beat = 60.0f / self->bpm * self->rate;
     const float bar_beats       = ((LV2_Atom_Float*)beat)->body;
     const float beat_beats      = bar_beats - floorf(bar_beats);  
    
@@ -289,7 +306,6 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
     static float prevMod = 1;
-    static bool cleared = false;
     static bool recording = false;
 
     //switch between the play/recording modes ====
