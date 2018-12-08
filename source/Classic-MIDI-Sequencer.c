@@ -64,7 +64,7 @@ typedef struct {
   size_t used;
   size_t size; 
   
-	const int* mode;
+	const float* mode;
   // control ports
   const float* port_target;
 
@@ -149,7 +149,7 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
       self->control = (LV2_Atom_Sequence*)data;
       break;
     case MODE:
-      self->mode = (const int*)data;
+      self->mode = (const float*)data;
   }
 }
 
@@ -222,14 +222,14 @@ static void sequence(Data* self)
 
   if (self->phase < 0.2 && !trigger && self->playing == true) {
     //create note on message
-    LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % 4], 127);
+    LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % self->used], 127);
     
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
 
     //send note off
     if ( first == true ) {
 
-      LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[(i + 3) % 4 ], 0);
+      LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[(i + 3) % self->used], 0);
 
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
 
@@ -288,12 +288,18 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 static void run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
-    static bool init = 0;
+    static float previousMode = 1;
     
-    //set playing to false when opening the plugin to prevent it from looping from the start
-    if ( init == 0 ) {
-      self->playing = false;
-      init = 1;
+    if (*self->mode != previousMode) {
+      //set playing to false when opening the plugin to prevent it from looping from the start
+      if (*self->mode == 2 && self->used > 0) {
+        self->playing = true;
+      }
+      else if (*self->mode == 0) {
+        self->playing = false;
+        clearSequence(self);
+      }
+      previousMode = *self->mode;
     }
     
     float frequency = self->bpm / 60;
@@ -302,8 +308,6 @@ static void run(LV2_Handle instance, uint32_t n_samples)
     for (uint32_t pos = 0; pos < n_samples; pos++) {
       self->phase = *phaseOsc(frequency, &self->phase, self->rate);
     }
-  
-    //const bool target_second = (*self->port_target) > 0.5f;
 
     // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
@@ -314,16 +318,11 @@ static void run(LV2_Handle instance, uint32_t n_samples)
         const uint8_t* const msg = (const uint8_t*)(ev + 1);
         const uint8_t status  = msg[0] & 0xF0;
 
-        static int count = 0;
-
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
-            insertNote(self, msg[1]);
-            //self->midiEventsOn[count % 4] = msg[1];
-            count++;
-            if (count >= 4) {
-              self->playing = true;
+            if (*self->mode > 0 && *self->mode < 5 && *self->mode != 2){
+              insertNote(self, msg[1]);
             }
             break;
           default:
@@ -344,10 +343,6 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 				 !lv2_atom_sequence_is_end(&in->body, in->atom.size, ev);
 				 ev = lv2_atom_sequence_next(ev)) {
 
-			 // Play the click for the time slice from last_t until now
-			 //play(self, last_t, ev->time.frames);
-
-
 			 // Check if this event is an Object
 			 // (or deprecated Blank to tolerate old hosts)
 			 if (ev->body.type == uris->atom_Object ||
@@ -358,17 +353,7 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 					 update_position(self, obj);
 				 }
 			 }
-
-    // Update time for next iteration and move to next event
-   // last_t = ev->time.frames;
-  }
-
-
-
-
-
-
-
+     }
     sequence(self);
 }
 
