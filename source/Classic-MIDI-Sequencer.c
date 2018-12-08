@@ -289,16 +289,22 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
     static float previousMode = 1;
-    
+    static bool cleared = false;
+
     if (*self->mode != previousMode) {
       //set playing to false when opening the plugin to prevent it from looping from the start
       if (*self->mode == 2 && self->used > 0) {
         self->playing = true;
+        cleared = false;
       }
-      else if (*self->mode == 0) {
-        self->playing = false;
-        clearSequence(self);
-      }
+      else if (*self->mode == 0 || *self->mode == 1) {
+        //do only once 
+        if ( !cleared ) {
+          self->playing = false;
+          clearSequence(self);
+          cleared = true;
+        }
+      } 
       previousMode = *self->mode;
     }
     
