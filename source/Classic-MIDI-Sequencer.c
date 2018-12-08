@@ -215,15 +215,15 @@ static void sequence(Data* self)
 
   // Write an empty Sequence header to the outputs
   lv2_atom_sequence_clear(self->port_events_out1);
-  
+
   // LV2 is so nice...
   self->port_events_out1->atom.type = self->port_events_in->atom.type;
-  
+
 
   if (self->phase < 0.2 && !trigger && self->playing == true) {
     //create note on message
     LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % self->used], 127);
-    
+
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
 
     //send note off
@@ -288,25 +288,49 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 static void run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
-    static float previousMode = 1;
+    static float prevMod = 1;
     static bool cleared = false;
+    static bool recording = false;
 
-    if (*self->mode != previousMode) {
-      //set playing to false when opening the plugin to prevent it from looping from the start
-      if (*self->mode == 2 && self->used > 0) {
-        self->playing = true;
-        cleared = false;
-      }
-      else if (*self->mode == 0 || *self->mode == 1) {
-        //do only once 
-        if ( !cleared ) {
+    //switch between the play/recording modes ====
+
+    int modeStatus = (int)*self->mode;
+
+    if (*self->mode != prevMod) {
+      switch (modeStatus)
+      {
+        case 0:
+          printf("clear all\n");
+          break;
+        case 1:
+          printf("record\n");
           self->playing = false;
-          clearSequence(self);
-          cleared = true;
-        }
-      } 
-      previousMode = *self->mode;
+          //TODO need to clear array here
+          recording = true;
+          break;
+        case 2:
+          printf("play\n");
+          recording = false;
+          if (self->used > 0)
+            self->playing = true;
+          break;
+        case 3: 
+          printf("record append\n");
+          recording = true;
+          break;
+        case 4:
+          printf("record overwrite\n");
+          recording = true;
+          break;
+        case 5:
+          printf("undo last\n");
+          break;
+      }
+      prevMod = *self->mode;
     }
+    
+    //==============================================
+    
     
     float frequency = self->bpm / 60;
 
@@ -327,7 +351,7 @@ static void run(LV2_Handle instance, uint32_t n_samples)
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
-            if (*self->mode > 0 && *self->mode < 5 && *self->mode != 2){
+            if (recording == true){
               insertNote(self, msg[1]);
             }
             break;
