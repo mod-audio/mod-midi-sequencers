@@ -257,7 +257,6 @@ sequence(Data* self)
   } else { // self->playing = false, send note offs of current notes.
     
     if ( !cleared && *self->mode < 2 ) {
-      printf("clearing notes\n"); 
       for (size_t i = 0; i < self->used; i++) {
         LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[i], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
@@ -328,26 +327,23 @@ run(LV2_Handle instance, uint32_t n_samples)
           self->playing = false;
           break;
         case 1:
-          printf("record\n");
           self->playing = false;
           recording = true;
           break;
         case 2:
-          printf("play\n");
           recording = false;
           if (self->used > 0)
             self->playing = true;
           break;
         case 3: 
-          printf("record append\n");
           recording = true;
+          self->playing = true;
           break;
         case 4:
-          printf("record overwrite\n");
           recording = true;
+          self->playing = true;
           break;
         case 5:
-          printf("undo last\n");
           break;
       }
       prevMod = *self->mode;
