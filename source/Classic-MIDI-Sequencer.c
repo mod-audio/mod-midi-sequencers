@@ -53,7 +53,8 @@ typedef struct {
   //==========================================================
   
   bool playing;
-
+  int latchTranspose;
+  int transpose;
   // URIDs
   LV2_URID urid_midiEvent;
 
@@ -123,6 +124,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->used = 0;
     self->size = 1;
 
+    self->transpose = 0;
+
 
     return self;
 }
@@ -180,9 +183,9 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 
   msg.event.body.size = 3;
   msg.event.body.type = self->urid_midiEvent;
-
+  
   msg.msg[0] = status;
-  msg.msg[1] = note;
+  msg.msg[1] = note + self->transpose;
   msg.msg[2] = velocity;
   
   return msg;
@@ -313,34 +316,42 @@ run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
     static float prevMod = 1;
-    static bool recording = false;
+
+    self->latchTranspose = 1;
 
     //TODO create seperate function for the switching
     //switch between the play/recording modes =========
   
     int modeStatus = (int)*self->mode;
+    static int modeHandle = 0;
 
     if (*self->mode != prevMod) {
       switch (modeStatus)
       {
         case 0:
           self->playing = false;
+          modeHandle = 0;
           break;
         case 1:
           self->playing = false;
-          recording = true;
+          modeHandle = 1;  
           break;
         case 2:
-          recording = false;
           if (self->used > 0)
             self->playing = true;
+          
+          if (self->latchTranspose == 1 && self->playing == true) {
+            modeHandle = 3;
+          } else {
+            modeHandle = 0;
+          }
           break;
         case 3: 
-          recording = true;
+          modeHandle = 1;
           self->playing = true;
           break;
         case 4:
-          recording = true;
+          modeHandle = 2;
           self->playing = true;
           break;
         case 5:
@@ -351,7 +362,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     
     //==============================================
     
-    
+    //TODO move to place where it is only culcalated when only calculated when there is change 
     float frequency = self->bpm / 60;
 
     //a phase Oscillator that we use for the tempo of the midi-sequencer 
@@ -373,14 +384,22 @@ run(LV2_Handle instance, uint32_t n_samples)
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
-            if (recording == true){
-
-              if (*self->mode == 1 || *self->mode == 3) {
+            
+            switch (modeHandle)
+            {
+              case 0:
+                break;
+              case 1:
                 insertNote(self, msg[1]);
-              } else {
+                break;
+              case 2:
                 self->midiEventsOn[count++ % self->used] = msg[1];
-              }
-            } 
+                break;
+              case 3:
+                self->transpose = msg[1] - self->midiEventsOn[0];
+                break;
+            }
+            
             break;
           default:
             break;
