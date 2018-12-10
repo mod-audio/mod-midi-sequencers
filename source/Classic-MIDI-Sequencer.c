@@ -444,13 +444,24 @@ run(LV2_Handle instance, uint32_t n_samples)
     static float previousDevision;
     static float frequency; 
     static float divisionRate = 4;
+    static bool resetPhase = true;
 
-    if (self->beatInMeasure < 0.5 && *self->division != previousDevision) {
+    if (self->beatInMeasure < 0.5 && resetPhase) {
       
-      divisionRate = *self->division;  
-      previousDevision = *self->division; 
+      if (*self->division != previousDevision) {
+        divisionRate = *self->division;  
+        previousDevision = *self->division; 
+      } 
+      
+      self->phase = 0.0;
+      resetPhase = false;
     
-    } 
+    } else {
+      if (self->beatInMeasure > 0.5) {
+        resetPhase = true;
+      } 
+    }
+
 
     frequency = calculateFrequency(self->bpm, divisionRate);
     //a phase Oscillator that we use for the tempo of the midi-sequencer 
