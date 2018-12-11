@@ -270,18 +270,34 @@ calculateFrequency(uint8_t bpm, float division)
   return frequency;
 }
 
+static bool 
+checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
+{
+  if (sizeof(arrayA) != sizeof(arrayB)) {
+    return true;
+  } else {
+    for (size_t index = 0; index < length; index++) {
+      if (arrayA[index] != arrayB[index]) { 
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
 
 //sequence the MIDI notes that are written into an array
 static void 
 sequence(Data* self)
 {
-  static size_t arrLength = 1;
   static uint8_t midiNote = 0;
   static uint8_t prevNote = 0;
+  static bool different;
   static bool first = false;
   static bool trigger = false;
   static bool cleared = true;
-  static int notePlayed = 0;
+  static size_t notePlayed = 0;
   
   // Get the capacity
   const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
@@ -294,24 +310,22 @@ sequence(Data* self)
   if (self->playing) 
   {
     
-    if (notePlayed % arrLength == 0)
+    different = checkDifference(self->copiedEvents, self->midiEventsOn, self->used);
+   
+    if (different)
     {
-      notePlayed = 0; 
-      arrLength = self->used;      
-      self->copiedEvents = (uint8_t *)realloc(self->copiedEvents, arrLength * sizeof(uint8_t));
-      
+      self->copiedEvents = (uint8_t *)realloc(self->copiedEvents, self->used * sizeof(uint8_t));
+ 
       for (size_t noteIndex = 0; noteIndex < self->used; noteIndex++) {
         self->copiedEvents[noteIndex] = self->midiEventsOn[noteIndex];
       }   
-    
+      different = false;
     }
 
-    if (self->phase < 0.2 && !trigger && arrLength > 0) 
+    if (self->phase < 0.2 && !trigger && self->used > 0) 
     {
       //create note on message
-      midiNote = self->copiedEvents[notePlayed % arrLength] + self->transpose;
-      size_t n = notePlayed % arrLength;
-       
+      midiNote = self->copiedEvents[notePlayed] + self->transpose;
       LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
 
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
@@ -324,19 +338,22 @@ sequence(Data* self)
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
 
       }
+      
       prevNote = midiNote;
       cleared = false;
       trigger = true;
       first = true;
+      
       notePlayed++;
-      //notePlayed = (notePlayed > self->used) ? 0 : notePlayed;
+      notePlayed = (notePlayed > (self->used - 1)) ? 0 : notePlayed;
+    
     } else {
       if (self->phase > 0.2 ) {
         trigger = false;    
       }   
     }
   } else { // self->playing = false, send note offs of current notes.
-    //TODO change this so that there is also a note off when the notes are transposed   
+    
     if ( !cleared && *self->mode < 2 ) {
       for (size_t noteOffIndex = 0; noteOffIndex < 127; noteOffIndex++) {
         LV2_Atom_MIDI msg = createMidiEvent(self, 128, noteOffIndex, 0);
