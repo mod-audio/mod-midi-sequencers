@@ -33,13 +33,15 @@ typedef enum {
   PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
   METRO_CONTROL,
-  MODE
+  MODE,
+  DIVISION
 } PortEnum;
 
 
 typedef struct {
 
   //syncVars=================================================
+  
   LV2_URID_Map*  map;     // URID map feature
   MetroURIs      uris;    // Cache of mapped URIDs
   LV2_Atom_Sequence* control;
@@ -48,29 +50,28 @@ typedef struct {
   float bpm;
   float speed; // Transport speed (usually 0=stop, 1=play)
   float phase;
+  float beatInMeasure;
+  const float* division;
   //==========================================================
   
-  // was last run on the 2nd output?
-  bool was_second;
   bool playing;
-
+  int latchTranspose;
+  int transpose;
   // URIDs
   LV2_URID urid_midiEvent;
 
-  // aray to save midi events
-  //uint8_t midiEventsOn[64];
   
 	uint8_t *midiEventsOn;
+  uint8_t *copiedEvents;
   size_t used;
   size_t size; 
   
 	const float* mode;
-  // control ports
-  const float* port_target;
 
   // atom ports
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence* port_events_out1;
+
 } Data;
 
 
@@ -107,7 +108,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->urid_midiEvent = map->map(map->handle, LV2_MIDI__MidiEvent);
 
     MetroURIs* const    uris  = &self->uris;
-    //LV2_URID_Map* const map   = self->map;
     uris->atom_Blank          = map->map(map->handle, LV2_ATOM__Blank);
     uris->atom_Float          = map->map(map->handle, LV2_ATOM__Float);
     uris->atom_Object         = map->map(map->handle, LV2_ATOM__Object);
@@ -118,14 +118,18 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     uris->time_barBeat        = map->map(map->handle, LV2_TIME__barBeat);
     uris->time_beatsPerMinute = map->map(map->handle, LV2_TIME__beatsPerMinute);
     uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
-   // Initialise instance fields
+   
     self->rate       = rate;
     self->bpm        = 120.0f;
+    self->beatInMeasure = 0;
      
     //init midi event list
     self->midiEventsOn = (uint8_t *)malloc(1 * sizeof(uint8_t));
+    self->copiedEvents = (uint8_t *)malloc(1 * sizeof(uint8_t));  
     self->used = 0;
     self->size = 1;
+
+    self->transpose = 0;
 
 
     return self;
@@ -133,7 +137,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
 
 
-static void connect_port(LV2_Handle instance, uint32_t port, void* data)
+static void 
+connect_port(LV2_Handle instance, uint32_t port, void* data)
 {
   Data* self = (Data*)instance;
 
@@ -150,22 +155,28 @@ static void connect_port(LV2_Handle instance, uint32_t port, void* data)
       break;
     case MODE:
       self->mode = (const float*)data;
+      break;
+    case DIVISION:
+      self->division = (const float*)data;
+      break;
   }
 }
 
 
 
-static void activate(LV2_Handle instance)
+static void 
+activate(LV2_Handle instance)
 {
-   // Data* self = (Data*)instance;
+
 }
 
 
 //phase oscillator to use for timing of the beatsync 
-static float* phaseOsc(float frequency, float* phase, float rate)
+static float* 
+phaseOsc(float frequency, float* phase, float rate)
 {
   *phase += frequency / rate;
-  //wrap phase 
+  
   if(*phase >= 1) *phase = *phase - 1; 
   
   return phase;
@@ -173,14 +184,15 @@ static float* phaseOsc(float frequency, float* phase, float rate)
 
 
 //create a midi message 
-static LV2_Atom_MIDI createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
+static LV2_Atom_MIDI 
+createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 { 
   LV2_Atom_MIDI msg;
   memset(&msg, 0, sizeof(LV2_Atom_MIDI));
 
   msg.event.body.size = 3;
   msg.event.body.type = self->urid_midiEvent;
-
+  
   msg.msg[0] = status;
   msg.msg[1] = note;
   msg.msg[2] = velocity;
@@ -189,7 +201,10 @@ static LV2_Atom_MIDI createMidiEvent(Data* self, uint8_t status, uint8_t note, u
 }
 
 
-static void insertNote(Data* self, uint8_t note) {
+
+static void 
+insertNote(Data* self, uint8_t note) 
+{ 
   if (self->used == self->size) {
     self->size *= 2;
     self->midiEventsOn = (uint8_t *)realloc(self->midiEventsOn, self->size * sizeof(uint8_t));
@@ -197,52 +212,17 @@ static void insertNote(Data* self, uint8_t note) {
   self->midiEventsOn[self->used++] = note;
 }
 
-static void clearSequence(Data* self)
+
+
+static void 
+clearSequence(Data* self)
 {
   free(self->midiEventsOn);
   self->midiEventsOn = NULL;
   self->used = self->size = 0;
 }
-//sequence the MIDI notes that are written into an array
-static void sequence(Data* self)
-{
-  static bool first = false;
-  static bool trigger = false;
-  static int i = 0;
 
-  // Get the capacity
-  const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
 
-  // Write an empty Sequence header to the outputs
-  lv2_atom_sequence_clear(self->port_events_out1);
-  
-  // LV2 is so nice...
-  self->port_events_out1->atom.type = self->port_events_in->atom.type;
-  
-
-  if (self->phase < 0.2 && !trigger && self->playing == true) {
-    //create note on message
-    LV2_Atom_MIDI msg = createMidiEvent(self, 144, self->midiEventsOn[i % self->used], 127);
-    
-    lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
-
-    //send note off
-    if ( first == true ) {
-
-      LV2_Atom_MIDI msg = createMidiEvent(self, 128, self->midiEventsOn[(i + 3) % self->used], 0);
-
-      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
-
-    }
-    trigger = true;
-    first = true;
-    i++;
-  } else {
-    if (self->phase > 0.2 ) {
-      trigger = false;    
-    }   
-  }
-}
 
 static void
 update_position(Data* self, const LV2_Atom_Object* obj)
@@ -268,47 +248,178 @@ update_position(Data* self, const LV2_Atom_Object* obj)
     self->speed = ((LV2_Atom_Float*)speed)->body;
   }
   if (beat && beat->type == uris->atom_Float) {
-    // Received a beat position, synchronise
-    // This hard sync may cause clicks, a real plugin would be more graceful
-    const float frames_per_beat = 60.0f / self->bpm * self->rate;
     const float bar_beats       = ((LV2_Atom_Float*)beat)->body;
     const float beat_beats      = bar_beats - floorf(bar_beats);  
-   
+    self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
     if (self->speed != previousSpeed) {
 
       self->phase = beat_beats;
       previousSpeed = self->speed;
-     // printf("beat_beats = %f\n", beat_beats);
-     // printf("phase = %f\n", self->phase);  
     }
   }
 }
 
 
-static void run(LV2_Handle instance, uint32_t n_samples)
+
+static float 
+calculateFrequency(uint8_t bpm, float division)
+{
+  float rateValues[11] = {15,20,30,40,60,80,120,160.0000000001,240,320.0000000002,480};
+  float frequency = bpm / rateValues[(int)division];
+ 
+  return frequency;
+}
+
+static bool 
+checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
+{
+  if (sizeof(arrayA) != sizeof(arrayB)) {
+    return true;
+  } else {
+    for (size_t index = 0; index < length; index++) {
+      if (arrayA[index] != arrayB[index]) { 
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+
+//sequence the MIDI notes that are written into an array
+static void 
+sequence(Data* self)
+{
+  static uint8_t midiNote = 0;
+  static uint8_t prevNote = 0;
+  static bool different;
+  static bool first = false;
+  static bool trigger = false;
+  static bool cleared = true;
+  static size_t notePlayed = 0;
+  
+  // Get the capacity
+  const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
+
+  // Write an empty Sequence header to the outputs
+  lv2_atom_sequence_clear(self->port_events_out1);
+
+  self->port_events_out1->atom.type = self->port_events_in->atom.type;
+
+  if (self->playing) 
+  {
+    
+    different = checkDifference(self->copiedEvents, self->midiEventsOn, self->used);
+   
+    if (different)
+    {
+      self->copiedEvents = (uint8_t *)realloc(self->copiedEvents, self->used * sizeof(uint8_t));
+ 
+      for (size_t noteIndex = 0; noteIndex < self->used; noteIndex++) {
+        self->copiedEvents[noteIndex] = self->midiEventsOn[noteIndex];
+      }   
+      different = false;
+    }
+
+    if (self->phase < 0.2 && !trigger && self->used > 0) 
+    {
+      //create note on message
+      midiNote = self->copiedEvents[notePlayed] + self->transpose;
+      LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
+
+      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+      
+      //send note off
+      if (first) {
+
+        LV2_Atom_MIDI msg = createMidiEvent(self, 128, prevNote, 0);
+
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+
+      }
+      
+      prevNote = midiNote;
+      cleared = false;
+      trigger = true;
+      first = true;
+      
+      notePlayed++;
+      notePlayed = (notePlayed > (self->used - 1)) ? 0 : notePlayed;
+    
+    } else {
+      if (self->phase > 0.2 ) {
+        trigger = false;    
+      }   
+    }
+  } else { // self->playing = false, send note offs of current notes.
+    
+    if ( !cleared && *self->mode < 2 ) {
+      for (size_t noteOffIndex = 0; noteOffIndex < 127; noteOffIndex++) {
+        LV2_Atom_MIDI msg = createMidiEvent(self, 128, noteOffIndex, 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+      }
+
+      clearSequence(self);    
+      cleared = true;
+
+    }
+  }
+}
+
+
+
+static void 
+run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
-    static float previousMode = 1;
-    
-    if (*self->mode != previousMode) {
-      //set playing to false when opening the plugin to prevent it from looping from the start
-      if (*self->mode == 2 && self->used > 0) {
-        self->playing = true;
+    static float prevMod = 1;
+
+    self->latchTranspose = 1;
+
+    //TODO create seperate function for the switching
+    //switch between the play/recording modes =========
+  
+    int modeStatus = (int)*self->mode;
+    static int modeHandle = 0;
+
+    if (*self->mode != prevMod) {
+      switch (modeStatus)
+      {
+        case 0:
+          self->playing = false;
+          modeHandle = 0;
+          break;
+        case 1:
+          self->playing = false;
+          modeHandle = 1;  
+          break;
+        case 2:
+          if (self->used > 0)
+            self->playing = true;
+          
+          if (self->latchTranspose == 1 && self->playing == true) {
+            modeHandle = 3;
+          } else {
+            modeHandle = 0;
+          }
+          break;
+        case 3: 
+          modeHandle = 1;
+          self->playing = true;
+          break;
+        case 4:
+          modeHandle = 2;
+          self->playing = true;
+          break;
+        case 5:
+          break;
       }
-      else if (*self->mode == 0) {
-        self->playing = false;
-        clearSequence(self);
-      }
-      previousMode = *self->mode;
+      prevMod = *self->mode;
     }
     
-    float frequency = self->bpm / 60;
-
-    //a phase Oscillator that we use for the tempo of the midi-sequencer 
-    for (uint32_t pos = 0; pos < n_samples; pos++) {
-      self->phase = *phaseOsc(frequency, &self->phase, self->rate);
-    }
-
+    //==============================================
+    
     // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
     {
@@ -318,12 +429,29 @@ static void run(LV2_Handle instance, uint32_t n_samples)
         const uint8_t* const msg = (const uint8_t*)(ev + 1);
         const uint8_t status  = msg[0] & 0xF0;
 
+        static size_t count = 0;
+        
+        //TODO add record current loop
+      
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
-            if (*self->mode > 0 && *self->mode < 5 && *self->mode != 2){
-              insertNote(self, msg[1]);
+            
+            switch (modeHandle)
+            {
+              case 0:
+                break;
+              case 1:
+                insertNote(self, msg[1]);
+                break;
+              case 2:
+                self->midiEventsOn[count++ % self->used] = msg[1];
+                break;
+              case 3:
+                self->transpose = msg[1] - self->midiEventsOn[0];
+                break;
             }
+            
             break;
           default:
             break;
@@ -333,18 +461,15 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 
 		//=========================================================================
 
-		 //Metro*           self = (Metro*)instance;
 		 const MetroURIs* uris = &self->uris;
 
 		 // Work forwards in time frame by frame, handling events as we go
 		 const LV2_Atom_Sequence* in     = self->control;
-		 uint32_t                 last_t = 0;
+		 
 		 for (const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&in->body);
 				 !lv2_atom_sequence_is_end(&in->body, in->atom.size, ev);
 				 ev = lv2_atom_sequence_next(ev)) {
 
-			 // Check if this event is an Object
-			 // (or deprecated Blank to tolerate old hosts)
 			 if (ev->body.type == uris->atom_Object ||
 					 ev->body.type == uris->atom_Blank) {
 				 const LV2_Atom_Object* obj = (const LV2_Atom_Object*)&ev->body;
@@ -354,6 +479,35 @@ static void run(LV2_Handle instance, uint32_t n_samples)
 				 }
 			 }
      }
+    
+    static float previousDevision;
+    static float frequency; 
+    static float divisionRate = 4;
+    static bool resetPhase = true;
+
+    if (self->beatInMeasure < 0.5 && resetPhase) {
+      
+      if (*self->division != previousDevision) {
+        divisionRate = *self->division;  
+        previousDevision = *self->division; 
+      } 
+      
+      self->phase = 0.0;
+      resetPhase = false;
+    
+    } else {
+      if (self->beatInMeasure > 0.5) {
+        resetPhase = true;
+      } 
+    }
+
+
+    frequency = calculateFrequency(self->bpm, divisionRate);
+    //a phase Oscillator that we use for the tempo of the midi-sequencer 
+    for (uint32_t pos = 0; pos < n_samples; pos++) {
+      self->phase = *phaseOsc(frequency, &self->phase, self->rate);
+    }
+    
     sequence(self);
 }
 
