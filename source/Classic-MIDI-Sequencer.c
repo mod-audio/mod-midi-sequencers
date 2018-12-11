@@ -270,6 +270,8 @@ calculateFrequency(uint8_t bpm, float division)
   return frequency;
 }
 
+
+
 static bool 
 checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
 {
