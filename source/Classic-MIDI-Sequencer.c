@@ -37,6 +37,11 @@ typedef enum {
   DIVISION
 } PortEnum;
 
+typedef struct {
+  uint8_t *array;
+  size_t used;
+  size_t size;
+} Array;
 
 typedef struct {
 
@@ -60,12 +65,11 @@ typedef struct {
   // URIDs
   LV2_URID urid_midiEvent;
 
-  
-	uint8_t *midiEventsOn;
-  uint8_t *copiedEvents;
-	uint8_t *recordEvents;
-  size_t used;
-  size_t size; 
+  Array *(midiEventsLists[3]);
+	//uint8_t *midiEventsLists[0]->array;
+  //uint8_t *midiEventsLists[1];
+  //size_t used;
+  //size_t size; 
   
 	const float* mode;
 
@@ -81,6 +85,15 @@ typedef struct {
     LV2_Atom_Event event;
     uint8_t        msg[3];
 } LV2_Atom_MIDI;
+
+
+static void 
+initArray(Array *arr, size_t initialSize)
+{
+  arr->array = (uint8_t*)malloc(initialSize * sizeof(uint8_t));
+  arr->used = 0;
+  arr->size = initialSize;
+}
 
 
 
@@ -124,14 +137,14 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->bpm        = 120.0f;
     self->beatInMeasure = 0;
      
-    //init midi event list
-    self->midiEventsOn = (uint8_t *)malloc(1 * sizeof(uint8_t));
-    self->copiedEvents = (uint8_t *)malloc(1 * sizeof(uint8_t));  
-    self->used = 0;
-    self->size = 1;
+    //init midi event lists:
+    //midiEventsLists[0] = midiEventsOn, midiEventsLists[1] = copiedEvents, midiEventsLists[2] = recordEvents		
+		for (int i = 0; i < 3; i++) {
+      self->midiEventsLists[i] = (Array*)malloc(sizeof(Array));
+      initArray(self->midiEventsLists[i], 1);
+    }    
 
     self->transpose = 0;
-
 
     return self;
 }
@@ -203,33 +216,24 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 
 
 
-//static void 
-//insertNote(Data* self, uint8_t note) 
-//{ 
-//  if (self->used == self->size) {
-//    self->size *= 2;
-//    self->midiEventsOn = (uint8_t *)realloc(self->midiEventsOn, self->size * sizeof(uint8_t));
-//  }
-//  self->midiEventsOn[self->used++] = note;
-//}
-
 static void 
-insertNote(uint8_t* array, uint8_t note, size_t used, size_t size) 
-{ 
-  if (used == size) {
-    size *= 2;
-    array = (uint8_t *)realloc(array, size * sizeof(uint8_t));
+insertNote(Array *arr, uint8_t note)
+{
+  if (arr->used == arr->size) {
+    arr->size *= 2;
+    arr->array = (uint8_t *)realloc(arr->array, arr->size * sizeof(uint8_t));
   }
-  array[used++] = note;
+  arr->array[arr->used++] = note;
 }
 
 
+
 static void 
-clearSequence(Data* self)
+clearSequence(Array *arr) 
 {
-  free(self->midiEventsOn);
-  self->midiEventsOn = NULL;
-  self->used = self->size = 0;
+  free(arr->array);
+  arr->array = NULL;
+  arr->used = arr->size = 0;
 }
 
 
@@ -297,26 +301,7 @@ checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
   return false;
 }
 
-//static void
-//recordMIDI(Data* self, uint8_t notes)
-//{ 
-//  int recording = param;
-//  
-//  if (!paramchanged && beatpos == 0 ) 
-//  {
-//    self->midiEventsOn = self->recordedEvents;       
-//  }
-//  
-//  switch (recording) 
-//  {
-//    case playing:
-//      break;
-//    case recording:
-//      midiArray->insertNotes(self->recordedEvents, note);
-//  }
-//
-//
-//}
+
 
 //sequence the MIDI notes that are written into an array
 static void 
@@ -340,23 +325,26 @@ sequence(Data* self)
 
   if (self->playing) 
   {
-    
-    different = checkDifference(self->copiedEvents, self->midiEventsOn, self->used);
+    //TODO write a update array function for the check different and updating the array
+ 
+    different = checkDifference(self->midiEventsLists[1]->array, self->midiEventsLists[0]->array, self->midiEventsLists[0]->used);
    
     if (different)
     {
-      self->copiedEvents = (uint8_t *)realloc(self->copiedEvents, self->used * sizeof(uint8_t));
+      self->midiEventsLists[1]->array = (uint8_t *)realloc(self->midiEventsLists[1], self->midiEventsLists[0]->used * sizeof(uint8_t));
  
-      for (size_t noteIndex = 0; noteIndex < self->used; noteIndex++) {
-        self->copiedEvents[noteIndex] = self->midiEventsOn[noteIndex];
+      for (size_t noteIndex = 0; noteIndex < self->midiEventsLists[0]->used; noteIndex++) {
+        self->midiEventsLists[1]->array[noteIndex] = self->midiEventsLists[0]->array[noteIndex];
       }   
       different = false;
     }
 
-    if (self->phase < 0.2 && !trigger && self->used > 0) 
+    if (self->phase < 0.2 && !trigger && self->midiEventsLists[0]->used > 0) 
     {
+      //TODO write this in other place of the code
       //create note on message
-      midiNote = self->copiedEvents[notePlayed] + self->transpose;
+      midiNote = self->midiEventsLists[1]->array[notePlayed] + self->transpose;
+
       LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
 
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
@@ -376,7 +364,7 @@ sequence(Data* self)
       first = true;
       
       notePlayed++;
-      notePlayed = (notePlayed > (self->used - 1)) ? 0 : notePlayed;
+      notePlayed = (notePlayed > (self->midiEventsLists[0]->used - 1)) ? 0 : notePlayed;
     
     } else {
       if (self->phase > 0.2 ) {
@@ -390,8 +378,10 @@ sequence(Data* self)
         LV2_Atom_MIDI msg = createMidiEvent(self, 128, noteOffIndex, 0);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
-
-      clearSequence(self);    
+      
+      for (size_t i = 0; i < 3; i++) {
+        clearSequence(self->midiEventsLists[i]);    
+      }
       cleared = true;
 
     }
@@ -426,7 +416,7 @@ run(LV2_Handle instance, uint32_t n_samples)
           modeHandle = 1;  
           break;
         case 2:
-          if (self->used > 0)
+          if (self->midiEventsLists[0]->used > 0)
             self->playing = true;
           
           if (self->latchTranspose == 1 && self->playing == true) {
@@ -462,24 +452,24 @@ run(LV2_Handle instance, uint32_t n_samples)
 
         static size_t count = 0;
         
-        //TODO add record current loop
-      
+
         switch (status)
         {
           case LV2_MIDI_MSG_NOTE_ON:
             
             switch (modeHandle)
             {
-              case 0:
+              case 0: // idle
                 break;
-              case 1:
-                insertNote(self->midiEventsOn, msg[1], self->used, self->size);
+              case 1: // record append
+                insertNote(self->midiEventsLists[0], msg[1]);
                 break;
-              case 2:
-                self->midiEventsOn[count++ % self->used] = msg[1];
+              case 2: // record overwrite
+                self->midiEventsLists[0]->array[count++ % self->midiEventsLists[0]->used] = msg[1];
                 break;
               case 3:
-                self->transpose = msg[1] - self->midiEventsOn[0];
+                //transpose value = current played note - first recorded note in sequence
+                self->transpose = msg[1] - self->midiEventsLists[0]->array[0];
                 break;
             }
             
