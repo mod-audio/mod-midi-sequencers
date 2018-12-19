@@ -63,6 +63,7 @@ typedef struct {
   
 	uint8_t *midiEventsOn;
   uint8_t *copiedEvents;
+	uint8_t *recordEvents;
   size_t used;
   size_t size; 
   
@@ -202,16 +203,25 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 
 
 
-static void 
-insertNote(Data* self, uint8_t note) 
-{ 
-  if (self->used == self->size) {
-    self->size *= 2;
-    self->midiEventsOn = (uint8_t *)realloc(self->midiEventsOn, self->size * sizeof(uint8_t));
-  }
-  self->midiEventsOn[self->used++] = note;
-}
+//static void 
+//insertNote(Data* self, uint8_t note) 
+//{ 
+//  if (self->used == self->size) {
+//    self->size *= 2;
+//    self->midiEventsOn = (uint8_t *)realloc(self->midiEventsOn, self->size * sizeof(uint8_t));
+//  }
+//  self->midiEventsOn[self->used++] = note;
+//}
 
+static void 
+insertNote(uint8_t* array, uint8_t note, size_t used, size_t size) 
+{ 
+  if (used == size) {
+    size *= 2;
+    array = (uint8_t *)realloc(array, size * sizeof(uint8_t));
+  }
+  array[used++] = note;
+}
 
 
 static void 
@@ -287,7 +297,26 @@ checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
   return false;
 }
 
-
+//static void
+//recordMIDI(Data* self, uint8_t notes)
+//{ 
+//  int recording = param;
+//  
+//  if (!paramchanged && beatpos == 0 ) 
+//  {
+//    self->midiEventsOn = self->recordedEvents;       
+//  }
+//  
+//  switch (recording) 
+//  {
+//    case playing:
+//      break;
+//    case recording:
+//      midiArray->insertNotes(self->recordedEvents, note);
+//  }
+//
+//
+//}
 
 //sequence the MIDI notes that are written into an array
 static void 
@@ -444,7 +473,7 @@ run(LV2_Handle instance, uint32_t n_samples)
               case 0:
                 break;
               case 1:
-                insertNote(self, msg[1]);
+                insertNote(self->midiEventsOn, msg[1], self->used, self->size);
                 break;
               case 2:
                 self->midiEventsOn[count++ % self->used] = msg[1];
