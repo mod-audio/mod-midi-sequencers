@@ -62,6 +62,7 @@ typedef struct {
   //==========================================================
   
   bool playing;
+  bool recording;
   int latchTranspose;
   int transpose;
   // URIDs
@@ -71,9 +72,11 @@ typedef struct {
 	//uint8_t *midiEventsOn;
 
   Array *midiEventsOn;
-  uint8_t *copiedEvents;
-  size_t used;
-  size_t size; 
+  Array *recordedEvents;
+  Array *copiedEvents;
+  //uint8_t *copiedEvents;
+  //size_t used;
+  //size_t size; 
   
 	const float* mode;
 
@@ -132,14 +135,21 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->bpm        = 120.0f;
     self->beatInMeasure = 0;
      
-    //init midi event list
-		self->midiEventsOn = (Array* )malloc(sizeof(Array));
-    self->midiEventsOn->eventList = (uint8_t *)malloc(1 * sizeof(uint8_t));
-    self->copiedEvents = (uint8_t *)malloc(1 * sizeof(uint8_t));  
+    //init objects
+    self->recordedEvents = (Array *)malloc(sizeof(Array));
+		self->midiEventsOn   = (Array* )malloc(sizeof(Array));
+    self->copiedEvents   = (Array* )malloc(sizeof(Array));
+    //init arrays
+    self->recordedEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
+    self->midiEventsOn->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
+    self->copiedEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
+    //init vars
     self->midiEventsOn->used = 0;
 		self->midiEventsOn->size = 1;
-		self->used = 0;
-    self->size = 1;
+		self->recordedEvents->used = 0;
+    self->recordedEvents->size = 1;
+    self->copiedEvents->used = 0;
+    self->copiedEvents->size = 1;
 
     self->transpose = 0;
 
@@ -214,7 +224,7 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 
 
 static void
-insertNote(Data *self, Array *arr, uint8_t note)
+insertNote(Array *arr, uint8_t note)
 {
   if (arr->used == arr->size) {
     arr->size *= 2;
@@ -279,7 +289,7 @@ calculateFrequency(uint8_t bpm, float division)
 }
 
 
-
+//check differnece between array A and B 
 static bool 
 checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
 {
@@ -295,7 +305,22 @@ checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
   return false;
 }
 
+//make copy of events from eventList A to eventList B
+static void
+copyEvents(Array* eventListA, Array* eventListB)
+{
+    eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
 
+    for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
+      eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
+    }   
+}
+
+static void
+recordNotes(Array* arr, uint8_t note)
+{
+  insertNote(arr, note);
+}
 
 //sequence the MIDI notes that are written into an array
 static void 
@@ -303,8 +328,8 @@ sequence(Data* self)
 {
   static uint8_t midiNote = 0;
   static uint8_t prevNote = 0;
-  static bool different;
   static bool first = false;
+  static bool different;
   static bool trigger = false;
   static bool cleared = true;
   static size_t notePlayed = 0;
@@ -319,29 +344,33 @@ sequence(Data* self)
 
   if (self->playing) 
   {
-    
-    different = checkDifference(self->copiedEvents, self->midiEventsOn->eventList, self->midiEventsOn->used);
-   
+    //makes a copy of the event list if the there are new events
+
+    different = checkDifference(self->copiedEvents->eventList, self->midiEventsOn->eventList, self->midiEventsOn->used);
+
     if (different)
     {
-      self->copiedEvents = (uint8_t *)realloc(self->copiedEvents, self->midiEventsOn->used * sizeof(uint8_t));
- 
-      for (size_t noteIndex = 0; noteIndex < self->midiEventsOn->used; noteIndex++) {
-        self->copiedEvents[noteIndex] = self->midiEventsOn->eventList[noteIndex];
-      }   
+      copyEvents(self->midiEventsOn, self->copiedEvents);  
       different = false;
     }
 
     if (self->phase < 0.2 && !trigger && self->midiEventsOn->used > 0) 
     {
       //create note on message
-      midiNote = self->copiedEvents[notePlayed] + self->transpose;
+      midiNote = self->copiedEvents->eventList[notePlayed] + self->transpose;
+      
+      if (self->recording) 
+      {
+      recordNotes(self->recordedEvents, midiNote);
+      }
+      
       LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
 
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       
       //send note off
-      if (first) {
+      if (first) 
+      {
 
         LV2_Atom_MIDI msg = createMidiEvent(self, 128, prevNote, 0);
 
@@ -357,12 +386,15 @@ sequence(Data* self)
       notePlayed++;
       notePlayed = (notePlayed > (self->midiEventsOn->used - 1)) ? 0 : notePlayed;
     
-    } else {
-      if (self->phase > 0.2 ) {
+    } else 
+    {
+      if (self->phase > 0.2 ) 
+      {
         trigger = false;    
       }   
     }
-  } else { // self->playing = false, send note offs of current notes.
+  } else 
+  { // self->playing = false, send note offs of current notes.
     
     if ( !cleared && *self->mode < 2 ) {
       for (size_t noteOffIndex = 0; noteOffIndex < 127; noteOffIndex++) {
@@ -370,12 +402,14 @@ sequence(Data* self)
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
 
-      clearSequence(self->midiEventsOn);    
-      cleared = true;
-
+    clearSequence(self->midiEventsOn);
+    clearSequence(self->recordedEvents);
+    clearSequence(self->copiedEvents);    
+    cleared = true;
     }
   }
 }
+
 
 
 
@@ -387,6 +421,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     self->latchTranspose = 1;
 
+    self->recording = false;
     //TODO create seperate function for the switching
     //switch between the play/recording modes =========
   
@@ -452,7 +487,7 @@ run(LV2_Handle instance, uint32_t n_samples)
               case 0:
                 break;
               case 1:
-                insertNote(self, self->midiEventsOn, msg[1]);
+                insertNote(self->midiEventsOn, msg[1]);
                 break;
               case 2:
                 self->midiEventsOn->eventList[count++ % self->midiEventsOn->used] = msg[1];
@@ -494,6 +529,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     static float frequency; 
     static float divisionRate = 4;
     static bool resetPhase = true;
+    static bool wasRecording = false;
 
     if (self->beatInMeasure < 0.5 && resetPhase) {
       
@@ -510,6 +546,30 @@ run(LV2_Handle instance, uint32_t n_samples)
         resetPhase = true;
       } 
     }
+
+    if (self->beatInMeasure < 0.5 && self->recording)
+    {
+      self->recording = true;
+      wasRecording    = true;
+    }
+    
+    if (!self->recording && wasRecording)
+    {
+      //get denumerator from host.
+      int countAmount = 0;
+      size_t numerator   = 4;
+
+      while (self->recordedEvents->size >= numerator)
+      {
+        self->recordedEvents->size = self->recordedEvents->size - numerator;
+        
+        ++countAmount;
+      }
+      
+      self->recordedEvents->size = countAmount * numerator;
+
+      copyEvents(self->recordedEvents, self->midiEventsOn);
+    }  
 
 
     frequency = calculateFrequency(self->bpm, divisionRate);
