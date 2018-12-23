@@ -14,6 +14,11 @@
 #include <stdio.h>
 #include <math.h>
 
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+#define debug_print(...) \
+((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
 typedef struct {
   LV2_URID atom_Blank;
@@ -138,7 +143,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->rate       = rate;
   self->bpm        = 120.0f;
   self->beatInMeasure = 0;
-
+	
+	debug_print("test debug\n");
   //init objects
   self->recordedEvents = (Array *)malloc(sizeof(Array));
   self->midiEventsOn   = (Array* )malloc(sizeof(Array));
@@ -164,7 +170,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
 
 
-  static void 
+static void 
 connect_port(LV2_Handle instance, uint32_t port, void* data)
 {
   Data* self = (Data*)instance;
@@ -194,7 +200,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 
 
 
-  static void 
+static void 
 activate(LV2_Handle instance)
 {
 
@@ -202,7 +208,7 @@ activate(LV2_Handle instance)
 
 
 //phase oscillator to use for timing of the beatsync 
-  static float* 
+static float* 
 phaseOsc(float frequency, float* phase, float rate)
 {
   *phase += frequency / rate;
@@ -214,7 +220,7 @@ phaseOsc(float frequency, float* phase, float rate)
 
 
 //create a midi message 
-  static LV2_Atom_MIDI 
+static LV2_Atom_MIDI 
 createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 { 
   LV2_Atom_MIDI msg;
@@ -231,7 +237,7 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 }
 
 
-  static void
+static void
 insertNote(Array *arr, uint8_t note)
 {
   if (arr->used == arr->size) {
@@ -242,7 +248,7 @@ insertNote(Array *arr, uint8_t note)
 }
 
 
-  static void
+static void
 clearSequence(Array *arr)
 {
   free(arr->eventList);
@@ -250,7 +256,7 @@ clearSequence(Array *arr)
   arr->used = arr->size = 0;
 }
 
-  static void
+static void
 update_position(Data* self, const LV2_Atom_Object* obj)
 {
   const MetroURIs* uris = &self->uris;
@@ -263,7 +269,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
       uris->time_speed, &speed,
       NULL);
 
-  static int previousSpeed = 0; 
+static int previousSpeed = 0; 
 
   if (bpm && bpm->type == uris->atom_Float) {
     // Tempo changed, update BPM
@@ -287,7 +293,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 
 
 
-  static float 
+static float 
 calculateFrequency(uint8_t bpm, float division)
 {
   float rateValues[11] = {15,20,30,40,60,80,120,160.0000000001,240,320.0000000002,480};
@@ -298,7 +304,7 @@ calculateFrequency(uint8_t bpm, float division)
 
 
 //check differnece between array A and B 
-  static bool 
+static bool 
 checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
 {
   if (sizeof(arrayA) != sizeof(arrayB)) {
@@ -314,7 +320,7 @@ checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
 }
 
 //make copy of events from eventList A to eventList B
-  static void
+static void
 copyEvents(Array* eventListA, Array* eventListB)
 {
   eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
@@ -324,14 +330,14 @@ copyEvents(Array* eventListA, Array* eventListB)
   }   
 }
 
-  static void
-recordNotes(Array* arr, uint8_t note)
-{
-  insertNote(arr, note);
-}
+//static void
+//recordNotes(Array* arr, uint8_t note)
+//{
+//  insertNote(arr, note);
+//}
 
 //sequence the MIDI notes that are written into an array
-  static void 
+static void 
 sequence(Data* self)
 {
   static uint8_t midiNote = 0;
