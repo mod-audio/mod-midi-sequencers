@@ -82,9 +82,9 @@ typedef struct {
   // URIDs
   LV2_URID urid_midiEvent;
 
-  Array *midiEventsOn;
-  Array *recordedEvents;
-  Array *copiedEvents;
+  Array *writeEvents;
+  Array *recordEvents;
+  Array *playEvents;
 
   const float* mode;
   const float* recordBars;
@@ -146,20 +146,20 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 	
 	debug_print("test debug\n");
   //init objects
-  self->recordedEvents = (Array *)malloc(sizeof(Array));
-  self->midiEventsOn   = (Array* )malloc(sizeof(Array));
-  self->copiedEvents   = (Array* )malloc(sizeof(Array));
+  self->recordEvents = (Array *)malloc(sizeof(Array));
+  self->writeEvents   = (Array* )malloc(sizeof(Array));
+  self->playEvents   = (Array* )malloc(sizeof(Array));
   //init arrays
-  self->recordedEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
-  self->midiEventsOn->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
-  self->copiedEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
+  self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
+  self->writeEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
+  self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
   //init vars
-  self->midiEventsOn->used = 0;
-  self->midiEventsOn->size = 1;
-  self->recordedEvents->used = 0;
-  self->recordedEvents->size = 1;
-  self->copiedEvents->used = 0;
-  self->copiedEvents->size = 1;
+  self->writeEvents->used = 0;
+  self->writeEvents->size = 1;
+  self->recordEvents->used = 0;
+  self->recordEvents->size = 1;
+  self->playEvents->used = 0;
+  self->playEvents->size = 1;
 
   self->transpose = 0;
   self->latchTranspose = 1;
@@ -360,22 +360,22 @@ sequence(Data* self)
   {
     //makes a copy of the event list if the there are new events
 
-    different = checkDifference(self->copiedEvents->eventList, self->midiEventsOn->eventList, self->midiEventsOn->used);
+    different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->writeEvents->used);
 
     if (different)
     {
-      copyEvents(self->midiEventsOn, self->copiedEvents);  
+      copyEvents(self->writeEvents, self->playEvents);  
       different = false;
     }
 
-    if (self->phase < 0.2 && !trigger && self->midiEventsOn->used > 0) 
+    if (self->phase < 0.2 && !trigger && self->writeEvents->used > 0) 
     {
       //create note on message
-      midiNote = self->copiedEvents->eventList[notePlayed] + self->transpose;
+      midiNote = self->playEvents->eventList[notePlayed] + self->transpose;
 
       if (self->recording) 
       {
-        insertNote(self->recordedEvents, midiNote);
+        insertNote(self->recordEvents, midiNote);
       }
 
       LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
@@ -396,7 +396,7 @@ sequence(Data* self)
 
       //increment sequence index 
       notePlayed++;
-      notePlayed = (notePlayed > (self->midiEventsOn->used - 1)) ? 0 : notePlayed;
+      notePlayed = (notePlayed > (self->writeEvents->used - 1)) ? 0 : notePlayed;
 
     } else 
     {
@@ -414,9 +414,9 @@ sequence(Data* self)
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
 
-      clearSequence(self->midiEventsOn);
-      clearSequence(self->recordedEvents);
-      clearSequence(self->copiedEvents);    
+      clearSequence(self->writeEvents);
+      clearSequence(self->recordEvents);
+      clearSequence(self->playEvents);    
       cleared = true;
     }
   }
@@ -445,7 +445,7 @@ switchMode(Data* self)
         modeHandle = 1;  
         break;
       case PLAY:
-        if (self->midiEventsOn->used > 0)
+        if (self->writeEvents->used > 0)
           self->playing = true;
 
         if (self->latchTranspose == 1 && self->playing == true) {
@@ -500,13 +500,13 @@ run(LV2_Handle instance, uint32_t n_samples)
             case 0:
               break;
             case 1:
-              insertNote(self->midiEventsOn, msg[1]);
+              insertNote(self->writeEvents, msg[1]);
               break;
             case 2:
-              self->midiEventsOn->eventList[count++ % self->midiEventsOn->used] = msg[1];
+              self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
               break;
             case 3:
-              self->transpose = msg[1] - self->midiEventsOn->eventList[0];
+              self->transpose = msg[1] - self->writeEvents->eventList[0];
               break;
           }
 
@@ -580,16 +580,16 @@ run(LV2_Handle instance, uint32_t n_samples)
     int countAmount = 0;
     size_t numerator   = 4;
 
-    while (self->recordedEvents->size >= numerator)
+    while (self->recordEvents->size >= numerator)
     {
-      self->recordedEvents->size = self->recordedEvents->size - numerator;
+      self->recordEvents->size = self->recordEvents->size - numerator;
 
       ++countAmount;
     }
 
-    self->recordedEvents->size = countAmount * numerator;
+    self->recordEvents->size = countAmount * numerator;
 
-    copyEvents(self->recordedEvents, self->midiEventsOn);
+    copyEvents(self->recordEvents, self->writeEvents);
 
     wasRecording = false;
   }  
