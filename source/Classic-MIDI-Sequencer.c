@@ -1,18 +1,8 @@
 /*
 */
 
-#include <lv2/lv2plug.in/ns/lv2core/lv2.h>
-#include <lv2/lv2plug.in/ns/ext/atom/util.h>
-#include <lv2/lv2plug.in/ns/ext/midi/midi.h>
-#include <lv2/lv2plug.in/ns/ext/urid/urid.h>
-#include "lv2/lv2plug.in/ns/ext/atom/atom.h"
-#include "lv2/lv2plug.in/ns/ext/time/time.h"
+#include "sequencer_utils.h"
 
-
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -51,12 +41,6 @@ typedef enum {
   RECORD_OVERWRITE,
   UNDO_LAST
 } ModeEnum;
-
-typedef struct {
-  uint8_t *eventList;
-  size_t used;
-  size_t size;
-} Array;
 
 
 typedef struct {
@@ -199,23 +183,10 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 }
 
 
-
 static void 
 activate(LV2_Handle instance)
 {
 
-}
-
-
-//phase oscillator to use for timing of the beatsync 
-static float* 
-phaseOsc(float frequency, float* phase, float rate)
-{
-  *phase += frequency / rate;
-
-  if(*phase >= 1) *phase = *phase - 1; 
-
-  return phase;
 }
 
 
@@ -236,25 +207,6 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
   return msg;
 }
 
-
-static void
-insertNote(Array *arr, uint8_t note)
-{
-  if (arr->used == arr->size) {
-    arr->size *= 2;
-    arr->eventList = (uint8_t *)realloc(arr->eventList, arr->size * sizeof(uint8_t));
-  }
-  arr->eventList[arr->used++] = note;
-}
-
-
-static void
-clearSequence(Array *arr)
-{
-  free(arr->eventList);
-  arr->eventList = NULL;
-  arr->used = arr->size = 0;
-}
 
 static void
 update_position(Data* self, const LV2_Atom_Object* obj)
@@ -291,50 +243,6 @@ static int previousSpeed = 0;
   }
 }
 
-
-
-static float 
-calculateFrequency(uint8_t bpm, float division)
-{
-  float rateValues[11] = {15,20,30,40,60,80,120,160.0000000001,240,320.0000000002,480};
-  float frequency = bpm / rateValues[(int)division];
-
-  return frequency;
-}
-
-
-//check differnece between array A and B 
-static bool 
-checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
-{
-  if (sizeof(arrayA) != sizeof(arrayB)) {
-    return true;
-  } else {
-    for (size_t index = 0; index < length; index++) {
-      if (arrayA[index] != arrayB[index]) { 
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-//make copy of events from eventList A to eventList B
-static void
-copyEvents(Array* eventListA, Array* eventListB)
-{
-  eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
-
-  for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
-    eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
-  }   
-}
-
-//static void
-//recordNotes(Array* arr, uint8_t note)
-//{
-//  insertNote(arr, note);
-//}
 
 //sequence the MIDI notes that are written into an array
 static void 
