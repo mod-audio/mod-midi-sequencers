@@ -66,9 +66,40 @@ void insertNote(Array *arr, uint8_t note)
 }
 
 
-void recordNotes(Array* arr, uint8_t note)
+void recordNotes(Data* self, uint8_t note)
 {
-  insertNote(arr, note);
+  static bool  wasRecording = false;
+  
+  if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
+  {
+    self->recording = true;
+    wasRecording    = true;
+  }
+
+  if (self->recording)
+  {
+    insertNote(self->recordEvents, note);
+  }
+
+  if (!self->recording && wasRecording)
+  {
+    //TODO get numerator from host.
+    int countAmount  = 0;
+    size_t numerator = 4;
+
+    while (self->recordEvents->size >= numerator)
+    {
+      self->recordEvents->size = self->recordEvents->size - numerator;
+
+      ++countAmount;
+    }
+
+    self->recordEvents->size = countAmount * numerator;
+
+    copyEvents(self->recordEvents, self->writeEvents);
+
+    wasRecording = false;
+  }  
 }
 
 //make copy of events from eventList A to eventList B
@@ -81,6 +112,27 @@ void copyEvents(Array* eventListA, Array* eventListB)
   }   
 }
 
+void resetPhase(Data *self)
+{
+  static float previousDevision;
+  static bool  resetPhase   = true;
+
+  if (self->beatInMeasure < 0.5 && resetPhase) {
+    //TODO move elsewhere 
+    if (*self->division != previousDevision) {
+      self->divisionRate = *self->division;  
+      previousDevision   = *self->division; 
+    }
+
+    self->phase = 0.0;
+    resetPhase  = false;
+
+  } else {
+    if (self->beatInMeasure > 0.5) {
+      resetPhase = true;
+    } 
+  }
+}
 
 void clearSequence(Array *arr)
 {

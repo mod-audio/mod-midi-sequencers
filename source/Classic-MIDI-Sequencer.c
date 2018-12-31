@@ -10,20 +10,6 @@
 #define debug_print(...) \
 ((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
-typedef struct {
-  LV2_URID atom_Blank;
-  LV2_URID atom_Float;
-  LV2_URID atom_Object;
-  LV2_URID atom_Path;
-  LV2_URID atom_Resource;
-  LV2_URID atom_Sequence;
-  LV2_URID time_Position;
-  LV2_URID time_barBeat;
-  LV2_URID time_beatsPerMinute;
-  LV2_URID time_speed;
-} MetroURIs;
-
-
 typedef enum {
   PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
@@ -42,50 +28,11 @@ typedef enum {
   UNDO_LAST
 } ModeEnum;
 
-
-typedef struct {
-
-  //syncVars=================================================
-
-  LV2_URID_Map*  map;     // URID map feature
-  MetroURIs      uris;    // Cache of mapped URIDs
-  LV2_Atom_Sequence* control;
-
-  double rate;   // Sample rate
-  float bpm;
-  float speed; // Transport speed (usually 0=stop, 1=play)
-  float phase;
-  float beatInMeasure;
-  const float* division;
-  //==========================================================
-
-  bool playing;
-  bool recording;
-  int latchTranspose;
-  int transpose;
-  // URIDs
-  LV2_URID urid_midiEvent;
-
-  Array *writeEvents;
-  Array *recordEvents;
-  Array *playEvents;
-
-  const float* mode;
-  const float* recordBars;
-
-  // atom ports
-  const LV2_Atom_Sequence* port_events_in;
-  LV2_Atom_Sequence* port_events_out1;
-
-} Data;
-
-
 // Struct for a 3 byte MIDI event
 typedef struct {
   LV2_Atom_Event event;
   uint8_t        msg[3];
 } LV2_Atom_MIDI;
-
 
 
 static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
@@ -124,31 +71,32 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   uris->time_beatsPerMinute = map->map(map->handle, LV2_TIME__beatsPerMinute);
   uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-  self->rate       = rate;
-  self->bpm        = 120.0f;
+  self->rate          = rate;
+  self->bpm           = 120.0f;
   self->beatInMeasure = 0;
-	
+  self->divisionRate  = 4;	
 	debug_print("test debug\n");
   //init objects
   self->recordEvents = (Array *)malloc(sizeof(Array));
-  self->writeEvents   = (Array* )malloc(sizeof(Array));
+  self->writeEvents  = (Array* )malloc(sizeof(Array));
   self->playEvents   = (Array* )malloc(sizeof(Array));
   //init arrays
   self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
-  self->writeEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
+  self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
   self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
   //init vars
-  self->writeEvents->used = 0;
-  self->writeEvents->size = 1;
+  self->writeEvents->used  = 0;
+  self->writeEvents->size  = 1;
   self->recordEvents->used = 0;
   self->recordEvents->size = 1;
-  self->playEvents->used = 0;
-  self->playEvents->size = 1;
+  self->playEvents->used   = 0;
+  self->playEvents->size   = 1;
 
   self->transpose = 0;
   self->latchTranspose = 1;
 
-
+  self->recording  = false;
+  
   return self;
 }
 
@@ -183,6 +131,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 }
 
 
+
 static void 
 activate(LV2_Handle instance)
 {
@@ -206,6 +155,7 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 
   return msg;
 }
+
 
 
 static void
@@ -248,13 +198,12 @@ static int previousSpeed = 0;
 static void 
 sequence(Data* self)
 {
-  static uint8_t midiNote = 0;
-  static uint8_t prevNote = 0;
-  static bool first = false;
-  static bool different;
-  static bool trigger = false;
-  static bool cleared = true;
-  static size_t notePlayed = 0;
+  static uint8_t midiNote   = 0;
+  static uint8_t prevNote   = 0;
+  static size_t  notePlayed = 0;
+  static bool    trigger    = false;
+  static bool    cleared    = true;
+  static bool    different;
 
   // Get the capacity
   const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
@@ -267,7 +216,6 @@ sequence(Data* self)
   if (self->playing) 
   {
     //makes a copy of the event list if the there are new events
-
     different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->writeEvents->used);
 
     if (different)
@@ -278,36 +226,30 @@ sequence(Data* self)
 
     if (self->phase < 0.2 && !trigger && self->writeEvents->used > 0) 
     {
+      //send note off
+      LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
+      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+      
       //create note on message
       midiNote = self->playEvents->eventList[notePlayed] + self->transpose;
 
-      if (self->recording) 
-      {
-        insertNote(self->recordEvents, midiNote);
-      }
+      recordNotes(self, midiNote);
 
-      LV2_Atom_MIDI msg = createMidiEvent(self, 144, midiNote, 127);
-      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+      LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, 127);
+      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
 
-      //send note off
-      if (first) 
-      {
-        LV2_Atom_MIDI msg = createMidiEvent(self, 128, prevNote, 0);
-        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
-      }
 
       prevNote = midiNote;
       cleared = false;
       trigger = true;
-      first = true;
       
-
       //increment sequence index 
       notePlayed++;
       notePlayed = (notePlayed > (self->writeEvents->used - 1)) ? 0 : notePlayed;
 
     } else 
-    {
+    { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
+      
       if (self->phase > 0.2 ) 
       {
         trigger = false;    
@@ -335,22 +277,22 @@ sequence(Data* self)
 static int
 switchMode(Data* self)
 {
-  static float prevMod = 1;
+  static float prevMod  = 1;
   static int modeHandle = 0;
-  ModeEnum modeStatus = (int)*self->mode;  
+  ModeEnum modeStatus   = (int)*self->mode;  
 
   if (*self->mode != prevMod) {
     switch (modeStatus)
     {
       case CLEAR_ALL:
-        self->playing = false;
+        self->playing   = false;
         self->recording = false;
-        modeHandle = 0;
+        modeHandle      = 0;
         break;
       case RECORD:
-        self->playing = false;
+        self->playing   = false;
         self->recording = false;
-        modeHandle = 1;  
+        modeHandle      = 1;  
         break;
       case PLAY:
         if (self->writeEvents->used > 0)
@@ -363,11 +305,11 @@ switchMode(Data* self)
         }
         break;
       case RECORD_APPEND: 
-        modeHandle = 1;
+        modeHandle    = 1;
         self->playing = true;
         break;
       case RECORD_OVERWRITE:
-        modeHandle = 2;
+        modeHandle    = 2;
         self->playing = true;
         break;
       case UNDO_LAST:
@@ -379,13 +321,14 @@ switchMode(Data* self)
 }
 
 
+
 static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
-  //==============================================
   int modeHandle = switchMode(self);
-
+  static float frequency; 
+  
   // Read incoming events
   LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
   {
@@ -393,7 +336,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     if (ev->body.type == self->urid_midiEvent)
     {
       const uint8_t* const msg = (const uint8_t*)(ev + 1);
-      const uint8_t status  = msg[0] & 0xF0;
+      const uint8_t status = msg[0] & 0xF0;
 
       static size_t count = 0;
 
@@ -425,8 +368,6 @@ run(LV2_Handle instance, uint32_t n_samples)
     }
   }
 
-  //=========================================================================
-
   const MetroURIs* uris = &self->uris;
 
   // Work forwards in time frame by frame, handling events as we go
@@ -445,65 +386,10 @@ run(LV2_Handle instance, uint32_t n_samples)
       }
     }
   }
-
-  static float previousDevision;
-  static float frequency; 
-  static float divisionRate = 4;
-  static bool resetPhase = true;
-  static bool wasRecording = false;
-
-  if (self->beatInMeasure < 0.5 && resetPhase) {
-
-    if (*self->division != previousDevision) {
-      divisionRate = *self->division;  
-      previousDevision = *self->division; 
-    } 
-
-    self->phase = 0.0;
-    resetPhase = false;
-
-  } else {
-    if (self->beatInMeasure > 0.5) {
-      resetPhase = true;
-    } 
-  }
-
-  static int setRecordingBool = 1;
-
-  if (setRecordingBool == 1)
-  {
-    self->recording = false;
-    setRecordingBool = 0;
-  }
-
-  if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
-  {
-    self->recording = true;
-    wasRecording    = true;
-  } 
-
-  if (!self->recording && wasRecording)
-  {
-    //get denumerator from host.
-    int countAmount = 0;
-    size_t numerator   = 4;
-
-    while (self->recordEvents->size >= numerator)
-    {
-      self->recordEvents->size = self->recordEvents->size - numerator;
-
-      ++countAmount;
-    }
-
-    self->recordEvents->size = countAmount * numerator;
-
-    copyEvents(self->recordEvents, self->writeEvents);
-
-    wasRecording = false;
-  }  
-
-
-  frequency = calculateFrequency(self->bpm, divisionRate);
+  
+  resetPhase(self);
+  
+  frequency = calculateFrequency(self->bpm, self->divisionRate);
   //a phase Oscillator that we use for the tempo of the midi-sequencer 
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate);

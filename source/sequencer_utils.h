@@ -24,13 +24,13 @@
 
 #include "structs.h"
 
-
 float* phaseOsc(float frequency, float* phase, float rate);
 float calculateFrequency(uint8_t bpm, float division);
 bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length);
 void insertNote(Array* arr, uint8_t note);
 void clearSequence(Array *arr);
 void copyEvents(Array* eventListA, Array* eventListB);
-void recordNotes(Array* arr, uint8_t note);
+void recordNotes(Data* self, uint8_t note);
+void resetPhase(Data* self);
 
 #endif
