@@ -66,8 +66,17 @@ void insertNote(Array *arr, uint8_t note)
 }
 
 
-void recordNotes(Data* self, uint8_t note)
+void recordNote(Array *arr, uint8_t note)
 {
+  if (arr->used == arr->size) {
+    arr->size *= 2;
+    arr->eventList = (uint8_t *)realloc(arr->eventList, arr->size * sizeof(uint8_t));
+  }
+  arr->eventList[arr->used++] = note;
+}
+
+void recordNotes(Data* self, uint8_t note)
+{ 
   static bool  wasRecording = false;
   
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
@@ -78,11 +87,13 @@ void recordNotes(Data* self, uint8_t note)
 
   if (self->recording)
   {
-    insertNote(self->recordEvents, note);
+    recordNote(self->recordEvents, note);
+//    debug_print("note = %i\n", note);
   }
 
-  if (!self->recording && wasRecording)
+  if (*self->recordBars == 0 && wasRecording)
   {
+    self->recording = false;
     //TODO get numerator from host.
     int countAmount  = 0;
     size_t numerator = 4;
@@ -95,9 +106,18 @@ void recordNotes(Data* self, uint8_t note)
     }
 
     self->recordEvents->size = countAmount * numerator;
-
+    debug_print("recordEvents size = %li\n", self->recordEvents->size);
+    for (size_t in = 0; in < self->recordEvents->size; in++) {
+      debug_print("record index = %li ", in);
+      debug_print("note = %i\n", self->recordEvents->eventList[in]); 
+    }
+    
+    copyEvents(self->recordEvents, self->playEvents);
     copyEvents(self->recordEvents, self->writeEvents);
-
+    
+    debug_print("size used = %li\n", self->writeEvents->used);
+    //TODO check current playing index and size of recorded array
+    self->transpose = 0;
     wasRecording = false;
   }  
 }
@@ -106,6 +126,8 @@ void recordNotes(Data* self, uint8_t note)
 void copyEvents(Array* eventListA, Array* eventListB)
 {
   eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
+
+  eventListB->used = eventListA->used;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];

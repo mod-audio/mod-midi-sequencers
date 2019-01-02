@@ -4,11 +4,6 @@
 #include "sequencer_utils.h"
 
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-#define debug_print(...) \
-((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
 typedef enum {
   PORT_ATOM_IN = 0,
@@ -323,6 +318,39 @@ switchMode(Data* self)
 
 
 static void 
+handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle)
+{
+  static size_t count = 0;
+
+  //TODO add record current loop
+
+  switch (status)
+  {
+    case LV2_MIDI_MSG_NOTE_ON:
+
+      switch (modeHandle)
+      {
+        case 0:
+          break;
+        case 1:
+          insertNote(self->writeEvents, msg[1]);
+          break;
+        case 2:
+          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
+          break;
+        case 3:
+          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
+      }
+
+      break;
+    default:
+      break;
+  }
+}
+
+
+static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
@@ -332,39 +360,11 @@ run(LV2_Handle instance, uint32_t n_samples)
   // Read incoming events
   LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
   {
-
     if (ev->body.type == self->urid_midiEvent)
     {
       const uint8_t* const msg = (const uint8_t*)(ev + 1);
       const uint8_t status = msg[0] & 0xF0;
-
-      static size_t count = 0;
-
-      //TODO add record current loop
-
-      switch (status)
-      {
-        case LV2_MIDI_MSG_NOTE_ON:
-
-          switch (modeHandle)
-          {
-            case 0:
-              break;
-            case 1:
-              insertNote(self->writeEvents, msg[1]);
-              break;
-            case 2:
-              self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
-              break;
-            case 3:
-              self->transpose = msg[1] - self->writeEvents->eventList[0];
-              break;
-          }
-
-          break;
-        default:
-          break;
-      }
+      handleNotes(self, msg, status, modeHandle);
     }
   }
 
@@ -394,7 +394,6 @@ run(LV2_Handle instance, uint32_t n_samples)
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate);
   }
-
   sequence(self);
 }
 

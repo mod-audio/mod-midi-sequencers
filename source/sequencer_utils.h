@@ -3,7 +3,7 @@
  *
  *       Filename:  sequencer_utils.h
  *
- *    Description:  
+ *    Description:   
  *
  *        Version:  1.0
  *        Created:  12/24/2018 03:39:58 PM
@@ -23,6 +23,12 @@
 #include <stdbool.h>
 
 #include "structs.h"
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+#define debug_print(...) \
+((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
 float* phaseOsc(float frequency, float* phase, float rate);
 float calculateFrequency(uint8_t bpm, float division);
