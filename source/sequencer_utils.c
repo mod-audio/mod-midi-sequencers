@@ -20,7 +20,6 @@
 #include "sequencer_utils.h"
 
 
-
 //phase oscillator to use for timing of the beatsync
 float* phaseOsc(float frequency, float* phase, float rate)
 {
@@ -30,6 +29,8 @@ float* phaseOsc(float frequency, float* phase, float rate)
 
   return phase;
 }
+
+
 
 float calculateFrequency(uint8_t bpm, float division)
 {
@@ -44,7 +45,6 @@ float calculateFrequency(uint8_t bpm, float division)
 bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB)
 {
   if (lengthA != lengthB) {
-    debug_print("different size!");
     return true;
   } else {  
     for (size_t index = 0; index < lengthA; index++) {
@@ -57,6 +57,7 @@ bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t le
 }
 
 
+
 void insertNote(Array *arr, uint8_t note)
 {
   if (arr->used == arr->size) {
@@ -67,6 +68,7 @@ void insertNote(Array *arr, uint8_t note)
 }
 
 
+
 void recordNote(Array *arr, uint8_t note)
 {
   if (arr->used == arr->size) {
@@ -75,6 +77,8 @@ void recordNote(Array *arr, uint8_t note)
   }
   arr->eventList[arr->used++] = note;
 }
+
+
 
 void recordNotes(Data* self, uint8_t note)
 { 
@@ -122,6 +126,7 @@ void recordNotes(Data* self, uint8_t note)
   }  
 }
 
+
 //make copy of events from eventList A to eventList B
 void copyEvents(Array* eventListA, Array* eventListB)
 {
@@ -133,6 +138,8 @@ void copyEvents(Array* eventListA, Array* eventListB)
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
   }   
 }
+
+
 
 void resetPhase(Data *self)
 {
@@ -155,6 +162,8 @@ void resetPhase(Data *self)
     } 
   }
 }
+
+
 
 void clearSequence(Array *arr)
 {

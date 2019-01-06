@@ -38,7 +38,8 @@ typedef enum PortEnum {
   METRO_CONTROL,
   MODE,
   DIVISION,
-  RECORDBARS
+  RECORDBARS,
+  NOTELENGTH
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -90,6 +91,8 @@ typedef struct Data {
   const float* mode;
   const float* recordBars;
   const float* division;
+  const float* noteLengthParam;
+
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
 

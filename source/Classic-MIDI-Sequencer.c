@@ -103,6 +103,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
     case RECORDBARS:
       self->recordBars = (const float*)data;
       break;
+    case NOTELENGTH:
+      self->noteLengthParam = (const float*)data;
+      break;
   }
 }
 
@@ -173,12 +176,13 @@ static int previousSpeed = 0;
 //sequence the MIDI notes that are written into an array
 static void 
 sequence(Data* self)
-{
-  static uint8_t midiNote   = 0;
-  static uint8_t prevNote   = 0;
-  static size_t  notePlayed = 0;
-  static bool    trigger    = false;
-  static bool    cleared    = true;
+{ 
+  static float   noteLength = 1;
+  static uint8_t midiNote    = 0;
+  static uint8_t prevNote    = 0;
+  static size_t  notePlayed  = 0;
+  static bool    trigger     = false;
+  static bool    cleared     = true;
   static bool    different;
 
   // Get the capacity
@@ -188,6 +192,15 @@ sequence(Data* self)
   lv2_atom_sequence_clear(self->port_events_out1);
 
   self->port_events_out1->atom.type = self->port_events_in->atom.type;
+
+  static float prevFloatLength = 0;
+  
+  if (*self->noteLengthParam != prevFloatLength){ 
+    noteLength = 0.1 + (*self->noteLengthParam * 0.9);
+    //LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
+    //lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+    prevFloatLength = *self->noteLengthParam;
+  }
 
   if (self->playing) 
   {
@@ -201,21 +214,27 @@ sequence(Data* self)
       different = false;
     }
 
+  
+    if (self->phase >= noteLength || (self->phase < 0.2 && noteLength == 1 && !trigger))
+    {
+      static uint8_t noteOffSend = 0;
+      //send note off
+      if ( prevNote != noteOffSend) 
+      {
+        LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+        noteOffSend = prevNote;
+      }
+    }   
     
     if (self->phase < 0.2 && !trigger && self->playEvents->used > 0) 
     {
-      //send note off
-      LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
-      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
       
       //create note on message
       midiNote = self->playEvents->eventList[notePlayed] + self->transpose;
-
       recordNotes(self, midiNote);
-
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, 127);
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
-
 
       prevNote = midiNote;
       cleared = false;
@@ -231,7 +250,8 @@ sequence(Data* self)
       if (self->phase > 0.2 ) 
       {
         trigger = false;    
-      }   
+      }
+
     }
   } else 
   { // self->playing = false, send note offs of current notes.
@@ -324,7 +344,6 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           self->transpose = msg[1] - self->writeEvents->eventList[0];
           break;
       }
-
       break;
     default:
       break;
