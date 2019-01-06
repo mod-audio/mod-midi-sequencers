@@ -32,6 +32,24 @@
 #include <math.h>
 
 
+typedef enum PortEnum {
+  PORT_ATOM_IN = 0,
+  PORT_ATOM_OUT1,
+  METRO_CONTROL,
+  MODE,
+  DIVISION,
+  RECORDBARS
+} PortEnum;
+
+typedef enum ModeEnum {
+  CLEAR_ALL = 0,
+  RECORD,
+  PLAY,
+  RECORD_APPEND,
+  RECORD_OVERWRITE,
+  UNDO_LAST
+} ModeEnum;
+
 typedef struct MetroURIs {
   LV2_URID atom_Blank;
   LV2_URID atom_Float;
@@ -59,7 +77,6 @@ typedef struct Data {
   float  phase;
   float  beatInMeasure;
   float divisionRate;
-  const float* division;
 
   bool playing;
   bool recording;
@@ -72,7 +89,7 @@ typedef struct Data {
 
   const float* mode;
   const float* recordBars;
-
+  const float* division;
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
 

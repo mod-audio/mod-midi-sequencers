@@ -40,13 +40,14 @@ float calculateFrequency(uint8_t bpm, float division)
 }
 
 
-//check differnece between array A and B
-bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t length)
+//check difference between array A and B
+bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB)
 {
-  if (sizeof(arrayA) != sizeof(arrayB)) {
+  if (lengthA != lengthB) {
+    debug_print("different size!");
     return true;
-  } else {
-    for (size_t index = 0; index < length; index++) {
+  } else {  
+    for (size_t index = 0; index < lengthA; index++) {
       if (arrayA[index] != arrayB[index]) {
         return true;
       }
@@ -88,7 +89,6 @@ void recordNotes(Data* self, uint8_t note)
   if (self->recording)
   {
     recordNote(self->recordEvents, note);
-//    debug_print("note = %i\n", note);
   }
 
   if (*self->recordBars == 0 && wasRecording)
@@ -98,21 +98,21 @@ void recordNotes(Data* self, uint8_t note)
     int countAmount  = 0;
     size_t numerator = 4;
 
-    while (self->recordEvents->size >= numerator)
+    while (self->recordEvents->used >= numerator)
     {
-      self->recordEvents->size = self->recordEvents->size - numerator;
+      self->recordEvents->used = self->recordEvents->used - numerator;
 
       ++countAmount;
     }
 
-    self->recordEvents->size = countAmount * numerator;
+    self->recordEvents->used = countAmount * numerator;
     debug_print("recordEvents size = %li\n", self->recordEvents->size);
-    for (size_t in = 0; in < self->recordEvents->size; in++) {
+    for (size_t in = 0; in < self->recordEvents->used; in++) {
       debug_print("record index = %li ", in);
       debug_print("note = %i\n", self->recordEvents->eventList[in]); 
     }
     
-    copyEvents(self->recordEvents, self->playEvents);
+    //copyEvents(self->recordEvents, self->playEvents);
     copyEvents(self->recordEvents, self->writeEvents);
     
     debug_print("size used = %li\n", self->writeEvents->used);

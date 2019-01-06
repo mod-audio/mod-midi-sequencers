@@ -4,25 +4,6 @@
 #include "sequencer_utils.h"
 
 
-
-typedef enum {
-  PORT_ATOM_IN = 0,
-  PORT_ATOM_OUT1,
-  METRO_CONTROL,
-  MODE,
-  DIVISION,
-  RECORDBARS
-} PortEnum;
-
-typedef enum {
-  CLEAR_ALL = 0,
-  RECORD,
-  PLAY,
-  RECORD_APPEND,
-  RECORD_OVERWRITE,
-  UNDO_LAST
-} ModeEnum;
-
 // Struct for a 3 byte MIDI event
 typedef struct {
   LV2_Atom_Event event;
@@ -211,15 +192,17 @@ sequence(Data* self)
   if (self->playing) 
   {
     //makes a copy of the event list if the there are new events
-    different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->writeEvents->used);
+    different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
 
+    
     if (different)
     {
       copyEvents(self->writeEvents, self->playEvents);  
       different = false;
     }
 
-    if (self->phase < 0.2 && !trigger && self->writeEvents->used > 0) 
+    
+    if (self->phase < 0.2 && !trigger && self->playEvents->used > 0) 
     {
       //send note off
       LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
@@ -240,7 +223,7 @@ sequence(Data* self)
       
       //increment sequence index 
       notePlayed++;
-      notePlayed = (notePlayed > (self->writeEvents->used - 1)) ? 0 : notePlayed;
+      notePlayed = (notePlayed > (self->playEvents->used - 1)) ? 0 : notePlayed;
 
     } else 
     { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
@@ -258,7 +241,6 @@ sequence(Data* self)
         LV2_Atom_MIDI msg = createMidiEvent(self, 128, noteOffIndex, 0);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
-
       clearSequence(self->writeEvents);
       clearSequence(self->recordEvents);
       clearSequence(self->playEvents);    
