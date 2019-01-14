@@ -78,11 +78,12 @@ typedef struct Data {
   float  speed; // Transport speed (usually 0=stop, 1=play)
   float  phase;
   float  beatInMeasure;
-  float divisionRate;
-
-  bool playing;
-  bool recording;
-  int  transpose;
+  float  divisionRate;
+  size_t notePlayed;
+  bool   firstBar;
+  bool   playing;
+  bool   recording;
+  int    transpose;
 
   Array *writeEvents;
   Array *recordEvents;

@@ -68,8 +68,11 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->playEvents->used   = 0;
   self->playEvents->size   = 1;
 
-  self->transpose = 0;
-
+  self->notePlayed = 0;
+  self->transpose  = 0;
+  
+  self->firstBar   = false;
+  self->playing    = false;
   self->recording  = false;
   
   return self;
@@ -188,14 +191,16 @@ switchMode(Data* self)
     switch (modeStatus)
     {
       case CLEAR_ALL:
-        self->playing   = false;
-        self->recording = false;
-        modeHandle      = 0;
+        self->playing    = false;
+        self->recording  = false;
+        self->notePlayed = 0;
+        modeHandle       = 0;
         break;
       case RECORD:
-        self->playing   = false;
-        self->recording = false;
-        modeHandle      = 1;  
+        self->playing    = false;
+        self->recording  = false;
+        self->notePlayed = 0;
+        modeHandle       = 1;  
         break;
       case PLAY:
         if (self->writeEvents->used > 0)
@@ -271,7 +276,6 @@ sequence(Data* self)
   static float   noteLength = 1;
   static uint8_t midiNote    = 0;
   static uint8_t prevNote    = 0;
-  static size_t  notePlayed  = 0;
   static bool    trigger     = false;
   static bool    cleared     = true;
   static bool    different;
@@ -303,7 +307,7 @@ sequence(Data* self)
     prevFloatLength = *self->noteLengthParam;
   }
 
-  if (self->playing) 
+  if (self->playing && self->firstBar) 
   {
     //makes a copy of the event list if the there are new events
     different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
@@ -330,7 +334,7 @@ sequence(Data* self)
     {
       
       //create note on message
-      midiNote = self->playEvents->eventList[notePlayed] + self->transpose;
+      midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
       recordNotes(self, midiNote);
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, 127);
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
@@ -340,8 +344,8 @@ sequence(Data* self)
       trigger = true;
       
       //increment sequence index 
-      notePlayed++;
-      notePlayed = (notePlayed > (self->playEvents->used - 1)) ? 0 : notePlayed;
+      self->notePlayed++;
+      self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
 
     } else 
     { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)

@@ -140,6 +140,7 @@ void recordNotes(Data* self, uint8_t note)
     
     //TODO check current playing index and size of recorded array
     self->transpose = 0;
+    self->notePlayed = self->notePlayed % self->writeEvents->used;
     wasRecording = false;
   }  
 }
@@ -162,10 +163,16 @@ void copyEvents(Array* eventListA, Array* eventListB)
 void resetPhase(Data *self)
 {
   static float previousDevision;
-  static bool  resetPhase   = true;
+  static bool  previousPlaying = false;
+  static bool  resetPhase      = true;
 
   if (self->beatInMeasure < 0.5 && resetPhase) {
-    //TODO move elsewhere 
+    //TODO move elsewhere
+    if (self->playing != previousPlaying) {
+      self->firstBar = true;  
+      previousPlaying = self->playing;
+    }
+
     if (*self->division != previousDevision) {
       self->divisionRate = *self->division;  
       previousDevision   = *self->division; 
