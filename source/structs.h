@@ -39,7 +39,8 @@ typedef enum PortEnum {
   MODE,
   DIVISION,
   RECORDBARS,
-  NOTELENGTH
+  NOTELENGTH,
+  TRANSPOSE
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -81,7 +82,6 @@ typedef struct Data {
 
   bool playing;
   bool recording;
-  int  latchTranspose;
   int  transpose;
 
   Array *writeEvents;
@@ -92,7 +92,7 @@ typedef struct Data {
   const float* recordBars;
   const float* division;
   const float* noteLengthParam;
-
+  const float* latchTranspose;
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
 

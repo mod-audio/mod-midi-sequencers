@@ -69,7 +69,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->playEvents->size   = 1;
 
   self->transpose = 0;
-  self->latchTranspose = 1;
 
   self->recording  = false;
   
@@ -105,6 +104,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
       break;
     case NOTELENGTH:
       self->noteLengthParam = (const float*)data;
+      break;
+    case TRANSPOSE:
+      self->latchTranspose = (const float*)data;
       break;
   }
 }
@@ -150,7 +152,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
       uris->time_speed, &speed,
       NULL);
 
-static int previousSpeed = 0; 
+  static int previousSpeed = 0; 
 
   if (bpm && bpm->type == uris->atom_Float) {
     // Tempo changed, update BPM
@@ -173,6 +175,91 @@ static int previousSpeed = 0;
 }
 
 
+static int
+switchMode(Data* self)
+{
+  static float prevMod  = 1;
+  static int modeHandle = 0;
+  ModeEnum modeStatus   = (int)*self->mode;  
+
+  if (*self->mode != prevMod) {
+    switch (modeStatus)
+    {
+      case CLEAR_ALL:
+        self->playing   = false;
+        self->recording = false;
+        modeHandle      = 0;
+        break;
+      case RECORD:
+        self->playing   = false;
+        self->recording = false;
+        modeHandle      = 1;  
+        break;
+      case PLAY:
+        if (self->writeEvents->used > 0)
+          self->playing = true;
+
+        if (*self->latchTranspose == 1 && self->playing == true) {
+          modeHandle = 3;
+        } else {
+          modeHandle = 0;
+        }
+        break;
+      case RECORD_APPEND: 
+        modeHandle    = 1;
+        self->playing = true;
+        break;
+      case RECORD_OVERWRITE:
+        modeHandle    = 2;
+        self->playing = true;
+        break;
+      case UNDO_LAST:
+        break;
+    }
+    prevMod = *self->mode;
+  }
+  return modeHandle;
+}
+
+
+static void 
+handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t out_capacity_1, void* ev)
+{
+  static size_t count = 0;
+
+  //TODO add record current loop
+	
+	if (modeHandle == 0) {
+    lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
+  }
+
+  switch (status)
+  {
+    case LV2_MIDI_MSG_NOTE_ON:
+
+      switch (modeHandle)
+      {
+        case 0:
+          break;
+        case 1:
+          insertNote(self->writeEvents, msg[1]);
+          debug_print("note on = %i\n", msg[1]);
+          break;
+        case 2:
+          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
+          break;
+        case 3:
+          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
+      }
+      break;
+    case LV2_MIDI_MSG_NOTE_OFF:
+      break;
+    default:
+      break;
+  }
+}
+
 //sequence the MIDI notes that are written into an array
 static void 
 sequence(Data* self)
@@ -184,6 +271,8 @@ sequence(Data* self)
   static bool    trigger     = false;
   static bool    cleared     = true;
   static bool    different;
+  
+  int modeHandle = switchMode(self);
 
   // Get the capacity
   const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
@@ -195,6 +284,18 @@ sequence(Data* self)
 
   static float prevFloatLength = 0;
   
+  // Read incoming events
+  LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
+  {
+    if (ev->body.type == self->urid_midiEvent)
+    {
+      const uint8_t* const msg = (const uint8_t*)(ev + 1);
+      const uint8_t status = msg[0] & 0xF0;
+      handleNotes(self, msg, status, modeHandle, out_capacity_1, ev);
+ 
+    }
+  }
+
   if (*self->noteLengthParam != prevFloatLength){ 
     noteLength = 0.1 + (*self->noteLengthParam * 0.9);
     //LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
@@ -271,103 +372,27 @@ sequence(Data* self)
 
 
 
-static int
-switchMode(Data* self)
-{
-  static float prevMod  = 1;
-  static int modeHandle = 0;
-  ModeEnum modeStatus   = (int)*self->mode;  
-
-  if (*self->mode != prevMod) {
-    switch (modeStatus)
-    {
-      case CLEAR_ALL:
-        self->playing   = false;
-        self->recording = false;
-        modeHandle      = 0;
-        break;
-      case RECORD:
-        self->playing   = false;
-        self->recording = false;
-        modeHandle      = 1;  
-        break;
-      case PLAY:
-        if (self->writeEvents->used > 0)
-          self->playing = true;
-
-        if (self->latchTranspose == 1 && self->playing == true) {
-          modeHandle = 3;
-        } else {
-          modeHandle = 0;
-        }
-        break;
-      case RECORD_APPEND: 
-        modeHandle    = 1;
-        self->playing = true;
-        break;
-      case RECORD_OVERWRITE:
-        modeHandle    = 2;
-        self->playing = true;
-        break;
-      case UNDO_LAST:
-        break;
-    }
-    prevMod = *self->mode;
-  }
-  return modeHandle;
-}
 
 
-
-static void 
-handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle)
-{
-  static size_t count = 0;
-
-  //TODO add record current loop
-
-  switch (status)
-  {
-    case LV2_MIDI_MSG_NOTE_ON:
-
-      switch (modeHandle)
-      {
-        case 0:
-          break;
-        case 1:
-          insertNote(self->writeEvents, msg[1]);
-          break;
-        case 2:
-          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
-          break;
-        case 3:
-          self->transpose = msg[1] - self->writeEvents->eventList[0];
-          break;
-      }
-      break;
-    default:
-      break;
-  }
-}
 
 
 static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
-  int modeHandle = switchMode(self);
+
   static float frequency; 
-  
-  // Read incoming events
-  LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
-  {
-    if (ev->body.type == self->urid_midiEvent)
-    {
-      const uint8_t* const msg = (const uint8_t*)(ev + 1);
-      const uint8_t status = msg[0] & 0xF0;
-      handleNotes(self, msg, status, modeHandle);
-    }
-  }
+ 
+	// Get the capacity
+	const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
+
+	// Write an empty Sequence header to the outputs
+	//lv2_atom_sequence_clear(self->port_events_out1);
+
+	// LV2 is so nice...
+	self->port_events_out1->atom.type = self->port_events_in->atom.type;
+
+ 
 
   const MetroURIs* uris = &self->uris;
 
