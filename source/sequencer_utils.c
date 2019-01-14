@@ -100,7 +100,10 @@ void recordNotes(Data* self, uint8_t note)
     self->recording = false;
     //TODO get numerator from host.
     int countAmount  = 0;
-    size_t numerator = 4;
+    //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
+    size_t numerator = 4 * 2;
+    
+    self->recordEvents->used += 1;
 
     while (self->recordEvents->used >= numerator)
     {
@@ -109,17 +112,32 @@ void recordNotes(Data* self, uint8_t note)
       ++countAmount;
     }
 
-    self->recordEvents->used = countAmount * numerator;
-    debug_print("recordEvents size = %li\n", self->recordEvents->size);
-    for (size_t in = 0; in < self->recordEvents->used; in++) {
-      debug_print("record index = %li ", in);
-      debug_print("note = %i\n", self->recordEvents->eventList[in]); 
-    }
+//    debug_print("recordEvents size = %li\n", self->recordEvents->size);
+//    for (size_t in = 0; in < self->recordEvents->used; in++) {
+//      debug_print("record index = %li ", in);
+//      debug_print("note = %i\n", self->recordEvents->eventList[in]); 
+//    }
+
+		if ( self->recordEvents->used  < (numerator/2))
+		{
+    	self->recordEvents->used = countAmount * numerator;
+			//copyEvents(self->recordEvents, self->playEvents);
+			copyEvents(self->recordEvents, self->writeEvents);
+		} else {
+			int shortage = (self->recordEvents->used - numerator) * -1;
+			//add notes:
+			int totalRecordedNotes = (countAmount * numerator) + self->recordEvents->used;
+			
+			for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
+				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
+				printf(" appended note = %i\n", self->playEvents->eventList[i % self->playEvents->used]);
+			}
+			
+			for (int i = 0; i < totalRecordedNotes -1; i++) {
+				copyEvents(self->recordEvents, self->writeEvents);
+			}
+		}    
     
-    //copyEvents(self->recordEvents, self->playEvents);
-    copyEvents(self->recordEvents, self->writeEvents);
-    
-    debug_print("size used = %li\n", self->writeEvents->used);
     //TODO check current playing index and size of recorded array
     self->transpose = 0;
     wasRecording = false;

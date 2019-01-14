@@ -178,11 +178,13 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 static int
 switchMode(Data* self)
 {
-  static float prevMod  = 1;
-  static int modeHandle = 0;
-  ModeEnum modeStatus   = (int)*self->mode;  
-
-  if (*self->mode != prevMod) {
+  static float prevMod   = 1;
+  static float prevLatch = 1;
+  static int modeHandle  = 0;
+  ModeEnum modeStatus    = (int)*self->mode;  
+  
+  //if (*self->mode != prevMod || *self->latchTranspose == prevLatch) 
+ // {
     switch (modeStatus)
     {
       case CLEAR_ALL:
@@ -216,8 +218,9 @@ switchMode(Data* self)
       case UNDO_LAST:
         break;
     }
-    prevMod = *self->mode;
-  }
+  //  prevMod = *self->mode;
+ //   prevLatch = *self->latchTranspose;
+ // }
   return modeHandle;
 }
 
@@ -250,6 +253,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           break;
         case 3:
           self->transpose = msg[1] - self->writeEvents->eventList[0];
+          debug_print("note on = %i\n", msg[1]);
           break;
       }
       break;
@@ -276,10 +280,8 @@ sequence(Data* self)
 
   // Get the capacity
   const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
-
   // Write an empty Sequence header to the outputs
   lv2_atom_sequence_clear(self->port_events_out1);
-
   self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
   static float prevFloatLength = 0;
@@ -298,8 +300,6 @@ sequence(Data* self)
 
   if (*self->noteLengthParam != prevFloatLength){ 
     noteLength = 0.1 + (*self->noteLengthParam * 0.9);
-    //LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, prevNote, 0);
-    //lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
     prevFloatLength = *self->noteLengthParam;
   }
 
@@ -308,13 +308,11 @@ sequence(Data* self)
     //makes a copy of the event list if the there are new events
     different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
 
-    
     if (different)
     {
       copyEvents(self->writeEvents, self->playEvents);  
       different = false;
     }
-
   
     if (self->phase >= noteLength || (self->phase < 0.2 && noteLength == 1 && !trigger))
     {
@@ -369,10 +367,6 @@ sequence(Data* self)
     }
   }
 }
-
-
-
-
 
 
 
