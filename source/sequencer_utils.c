@@ -141,6 +141,7 @@ void recordNotes(Data* self, uint8_t note)
     countAmount = 0; 
     self->transpose = 0;
     self->notePlayed = self->notePlayed % self->writeEvents->used;
+    clearSequence(self->recordEvents);
     wasRecording = false;
   }  
 }
