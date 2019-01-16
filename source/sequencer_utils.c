@@ -130,7 +130,7 @@ void recordNotes(Data* self, uint8_t note)
 			
 			for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
 				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
-				printf(" appended note = %i\n", self->playEvents->eventList[i % self->playEvents->used]);
+				debug_print(" appended note = %i\n", self->playEvents->eventList[i % self->playEvents->used]);
 			}
 			
 			for (int i = 0; i < totalRecordedNotes -1; i++) {
@@ -138,7 +138,7 @@ void recordNotes(Data* self, uint8_t note)
 			}
 		}    
     
-    //TODO check current playing index and size of recorded array
+    countAmount = 0; 
     self->transpose = 0;
     self->notePlayed = self->notePlayed % self->writeEvents->used;
     wasRecording = false;
