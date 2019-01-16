@@ -82,7 +82,8 @@ void recordNote(Array *arr, uint8_t note)
 
 void recordNotes(Data* self, uint8_t note)
 { 
-  static bool  wasRecording = false;
+  static bool  wasRecording     = false;
+  static bool  recordingStarted = false;
   
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
   {
@@ -91,7 +92,12 @@ void recordNotes(Data* self, uint8_t note)
   }
 
   if (self->recording)
-  {
+  { 
+    if (!recordingStarted){
+      clearSequence(self->recordEvents);
+      recordingStarted = true;
+    }
+
     recordNote(self->recordEvents, note);
   }
 
@@ -138,11 +144,11 @@ void recordNotes(Data* self, uint8_t note)
 			}
 		}    
     
-    countAmount = 0; 
-    self->transpose = 0;
+    countAmount      = 0; 
+    self->transpose  = 0;
     self->notePlayed = self->notePlayed % self->writeEvents->used;
-    clearSequence(self->recordEvents);
-    wasRecording = false;
+    recordingStarted = false;
+    wasRecording     = false;
   }  
 }
 
