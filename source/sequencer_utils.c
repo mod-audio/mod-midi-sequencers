@@ -94,7 +94,7 @@ void recordNotes(Data* self, uint8_t note)
   if (self->recording)
   { 
     if (!recordingStarted){
-      clearSequence(self->recordEvents);
+      //clearSequence(self->recordEvents);
       recordingStarted = true;
     }
 
@@ -149,6 +149,7 @@ void recordNotes(Data* self, uint8_t note)
     self->notePlayed = self->notePlayed % self->writeEvents->used;
     recordingStarted = false;
     wasRecording     = false;
+    clearSequence(self->recordEvents);
   }  
 }
 
