@@ -129,7 +129,7 @@ void recordNotes(Data* self, uint8_t note)
 		{
     	self->recordEvents->used = (countAmount * numerator) -1;
 			//copyEvents(self->recordEvents, self->playEvents);
-      debug_print("self->recordEvents->used = %li", self->recordEvents->used);
+      debug_print("self->recordEvents->used = %i", self->recordEvents->used);
 			copyEvents(self->recordEvents, self->writeEvents);
       debug_print("DEBUG 4");
 		} else {
