@@ -93,11 +93,6 @@ void recordNotes(Data* self, uint8_t note)
 
   if (self->recording)
   { 
-    if (!recordingStarted){
-      //clearSequence(self->recordEvents);
-      recordingStarted = true;
-    }
-
     recordNote(self->recordEvents, note);
   }
 
@@ -109,7 +104,11 @@ void recordNotes(Data* self, uint8_t note)
     //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
     size_t numerator = 4 * 2;
     
+    debug_print("DEBUG 1");
+
     self->recordEvents->used += 1;
+
+    debug_print("DEBUG 2");
 
     while (self->recordEvents->used >= numerator)
     {
@@ -118,6 +117,8 @@ void recordNotes(Data* self, uint8_t note)
       ++countAmount;
     }
 
+    
+    debug_print("DEBUG 3");
 //    debug_print("recordEvents size = %li\n", self->recordEvents->size);
 //    for (size_t in = 0; in < self->recordEvents->used; in++) {
 //      debug_print("record index = %li ", in);
@@ -126,15 +127,19 @@ void recordNotes(Data* self, uint8_t note)
 
 		if ( self->recordEvents->used  < (numerator/2))
 		{
-    	self->recordEvents->used = countAmount * numerator;
+    	self->recordEvents->used = (countAmount * numerator) -1;
 			//copyEvents(self->recordEvents, self->playEvents);
+      debug_print("self->recordEvents->used = %li", self->recordEvents->used);
 			copyEvents(self->recordEvents, self->writeEvents);
+      debug_print("DEBUG 4");
 		} else {
+      debug_print("DEBUG 5");
 			int shortage = (self->recordEvents->used - numerator) * -1;
 			//add notes:
 			int totalRecordedNotes = (countAmount * numerator) + self->recordEvents->used;
-			
+			debug_print("DEBUG 6");
 			for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
+        debug_print("DEBUG 7");
 				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
 				debug_print(" appended note = %i\n", self->playEvents->eventList[i % self->playEvents->used]);
 			}
@@ -142,14 +147,17 @@ void recordNotes(Data* self, uint8_t note)
 			for (int i = 0; i < totalRecordedNotes -1; i++) {
 				copyEvents(self->recordEvents, self->writeEvents);
 			}
-		}    
+		debug_print("DEBUG 8");
+    }    
     
-    countAmount      = 0; 
     self->transpose  = 0;
     self->notePlayed = self->notePlayed % self->writeEvents->used;
+    debug_print("DEBUG 9");
     recordingStarted = false;
     wasRecording     = false;
-    clearSequence(self->recordEvents);
+    self->recordEvents->used = 0;
+    self->recordEvents->size = 0;
+    //clearSequence(self->recordEvents);
   }  
 }
 
