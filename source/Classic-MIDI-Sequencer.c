@@ -383,7 +383,7 @@ sequence(Data* self)
       self->recordEvents->size = 1;
       self->playEvents->used   = 0;
       self->playEvents->size   = 1;
-
+      self->firstBar = false;
       cleared = true;
     }
   }
