@@ -103,7 +103,7 @@ void recordNotes(Data* self, uint8_t note)
     //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
     size_t numerator = 4 * 2;
 
-    self->recordEvents->used += 1;
+    //self->recordEvents->used += 1;
 
 
     while (self->recordEvents->used >= numerator)
@@ -116,7 +116,7 @@ void recordNotes(Data* self, uint8_t note)
 
 		if ( self->recordEvents->used  < (numerator/2))
 		{
-    	self->recordEvents->used = (countAmount * numerator) - 1;
+    	self->recordEvents->used = (countAmount * numerator);
 			//copyEvents(self->recordEvents, self->playEvents);
 			copyEvents(self->recordEvents, self->writeEvents);
 		} else {
@@ -128,7 +128,7 @@ void recordNotes(Data* self, uint8_t note)
 				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
 			}
 
-			for (int i = 0; i < totalRecordedNotes -1; i++) {
+			for (int i = 0; i < totalRecordedNotes; i++) {
 				copyEvents(self->recordEvents, self->writeEvents);
 			}
     }    
