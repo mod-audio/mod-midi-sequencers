@@ -365,8 +365,25 @@ sequence(Data* self)
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
       clearSequence(self->writeEvents);
-      //clearSequence(self->recordEvents);
-      clearSequence(self->playEvents);    
+      clearSequence(self->recordEvents);
+      clearSequence(self->playEvents);
+
+      //init objects
+      self->recordEvents = (Array *)malloc(sizeof(Array));
+      self->writeEvents  = (Array* )malloc(sizeof(Array));
+      self->playEvents   = (Array* )malloc(sizeof(Array));
+      //init arrays
+      self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
+      self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
+      self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
+      //init vars
+      self->writeEvents->used  = 0;
+      self->writeEvents->size  = 1;
+      self->recordEvents->used = 0;
+      self->recordEvents->size = 1;
+      self->playEvents->used   = 0;
+      self->playEvents->size   = 1;
+
       cleared = true;
     }
   }

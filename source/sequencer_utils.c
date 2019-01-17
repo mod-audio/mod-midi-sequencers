@@ -114,7 +114,7 @@ void recordNotes(Data* self, uint8_t note)
     }
 
 
-		if ( self->recordEvents->used  < (numerator/2))
+		if ( self->recordEvents->used  < (int)(round(numerator * 0.25)))
 		{
     	self->recordEvents->used = (countAmount * numerator);
 			//copyEvents(self->recordEvents, self->playEvents);
@@ -153,6 +153,7 @@ void copyEvents(Array* eventListA, Array* eventListB)
   eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
 
   eventListB->used = eventListA->used;
+  eventListB->size = eventListB->size;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
