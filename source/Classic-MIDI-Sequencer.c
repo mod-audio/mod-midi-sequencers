@@ -1,5 +1,22 @@
 /*
-*/
+ * =====================================================================================
+ *
+ *       Filename:  Classic-midi-sequencer.c
+ *
+ *    Description:  Main file of the MIDI sequencer plugin, I have used some parts of 
+ *                  the eg-metro lv2 plugin and the mod-midi-switchbox plugin. 
+ *
+ *        Version:  1.0
+ *        Created:  12/24/2018 03:29:18 PM
+ *       Revision:  none
+ *       Compiler:  gcc
+ *
+ *         Author:  Bram Giesen (), bram@moddevices.com
+ *   Organization:  MOD Devices
+ *
+ * =====================================================================================
+ */
+
 
 #include "sequencer_utils.h"
 
@@ -367,7 +384,9 @@ sequence(Data* self)
       clearSequence(self->writeEvents);
       clearSequence(self->recordEvents);
       clearSequence(self->playEvents);
+      
 
+      //TODO create a function for this
       //init objects
       self->recordEvents = (Array *)malloc(sizeof(Array));
       self->writeEvents  = (Array* )malloc(sizeof(Array));
