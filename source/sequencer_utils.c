@@ -118,18 +118,18 @@ void recordNotes(Data* self, uint8_t note)
 		{
     	self->recordEvents->used = (countAmount * numerator) - 1;
 			//copyEvents(self->recordEvents, self->playEvents);
-			//copyEvents(self->recordEvents, self->writeEvents);
+			copyEvents(self->recordEvents, self->writeEvents);
 		} else {
 			int shortage = (self->recordEvents->used - numerator) * - 1;
 			//add notes:
 			int totalRecordedNotes = (countAmount * numerator) + self->recordEvents->used;
 		
 			for (int i = 0; i < totalRecordedNotes -1; i++) {
-				//copyEvents(self->recordEvents, self->writeEvents);
+				copyEvents(self->recordEvents, self->writeEvents);
 			}
     
       for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
-				//insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
+				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
 			}
 			
     }    
@@ -138,11 +138,9 @@ void recordNotes(Data* self, uint8_t note)
     self->notePlayed = self->notePlayed % self->writeEvents->used;
     recordingStarted = false;
     wasRecording     = false;
-    //self->recordEvents->used = 0;
-    //self->recordEvents->size = 0;
     clearSequence(self->recordEvents);
 
-		//init objects
+		//init object
 		self->recordEvents = (Array *)malloc(sizeof(Array));
 		self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
 		self->recordEvents->used = 0;
