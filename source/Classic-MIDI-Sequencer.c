@@ -365,7 +365,7 @@ sequence(Data* self)
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
       }
       clearSequence(self->writeEvents);
-      clearSequence(self->recordEvents);
+      //clearSequence(self->recordEvents);
       clearSequence(self->playEvents);    
       cleared = true;
     }

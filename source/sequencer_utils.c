@@ -79,7 +79,6 @@ void recordNote(Array *arr, uint8_t note)
 }
 
 
-
 void recordNotes(Data* self, uint8_t note)
 { 
   static bool  wasRecording     = false;
@@ -142,6 +141,12 @@ void recordNotes(Data* self, uint8_t note)
     //self->recordEvents->used = 0;
     //self->recordEvents->size = 0;
     clearSequence(self->recordEvents);
+
+		//init objects
+		self->recordEvents = (Array *)malloc(sizeof(Array));
+		self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
+		self->recordEvents->used = 0;
+		self->recordEvents->size = 1;
   }  
 }
 
