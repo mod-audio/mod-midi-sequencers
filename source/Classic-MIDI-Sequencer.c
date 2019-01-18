@@ -291,8 +291,8 @@ static void
 sequence(Data* self)
 {
   static bool    different;
-  static uint8_t noteOffArr[4];
-  static size_t  noteOffIndex = 0; 
+  static uint8_t noteOffArr[4] = {0, 0, 0, 0};
+  static size_t  noteOffIndex  = 0; 
   static float   noteLength    = 1;
   static uint8_t midiNote      = 0;
   static uint8_t prevNote      = 0;
@@ -342,9 +342,9 @@ sequence(Data* self)
       //send note off
       if ( noteOffIndex > 0) 
       { 
-        for (int i = 0; i < noteOffIndex; i++) 
+        for (size_t i = 0; i < noteOffIndex; i++) 
         {
-          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[noteOffIndex], 0);
+          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[i], 0);
           lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
         }
         noteOffIndex = 0;
@@ -356,9 +356,9 @@ sequence(Data* self)
       //TODO this is a extra note off check, needs to be removed later...=============================== 
       if ( noteOffIndex > 0) 
       { 
-        for (int i = 0; i < noteOffIndex; i++) 
+        for (size_t i = 0; i < noteOffIndex; i++) 
         {
-          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[noteOffIndex], 0);
+          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[i], 0);
           lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
         }
         noteOffIndex = 0;
