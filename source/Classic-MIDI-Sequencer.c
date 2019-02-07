@@ -88,6 +88,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->notePlayed = 0;
   self->transpose  = 0;
   
+  self->through    = true;
   self->firstBar   = false;
   self->playing    = false;
   self->recording  = false;
@@ -210,31 +211,36 @@ switchMode(Data* self)
       case CLEAR_ALL:
         self->playing    = false;
         self->recording  = false;
+        self->through    = true; 
         self->notePlayed = 0;
         modeHandle       = 0;
         break;
       case RECORD:
         self->playing    = false;
         self->recording  = false;
+        self->through    = true; 
         self->notePlayed = 0;
         modeHandle       = 1;  
         break;
       case PLAY:
         if (self->writeEvents->used > 0)
           self->playing = true;
-
+        
+        //set MIDI input through 
         if (*self->latchTranspose == 1 && self->playing == true) {
-          modeHandle = 3;
+          self->through = false;
         } else {
-          modeHandle = 0;
+          self->through = true;
         }
         break;
       case RECORD_APPEND: 
         modeHandle    = 1;
+        self->through = false;
         self->playing = true;
         break;
       case RECORD_OVERWRITE:
         modeHandle    = 2;
+        self->through = false;
         self->playing = true;
         break;
       case UNDO_LAST:
@@ -253,8 +259,9 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   static size_t count = 0;
 
   //TODO add record current loop
-	
-	if (modeHandle == 0) {
+  
+  //MIDI through   
+	if (self->through) {
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
   }
 

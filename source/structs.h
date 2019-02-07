@@ -80,6 +80,7 @@ typedef struct Data {
   float  beatInMeasure;
   float  divisionRate;
   size_t notePlayed;
+  bool   through;
   bool   firstBar;
   bool   playing;
   bool   recording;
