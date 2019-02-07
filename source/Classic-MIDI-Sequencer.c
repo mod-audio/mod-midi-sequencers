@@ -264,7 +264,6 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   
   //MIDI through   
 	if (self->through) {
-    debug_print("ik laat de noten door");
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
   }
 
@@ -278,14 +277,12 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           break;
         case 1:
           insertNote(self->writeEvents, msg[1]);
-          debug_print("note on = %i\n", msg[1]);
           break;
         case 2:
           self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
           break;
         case 3:
           self->transpose = msg[1] - self->writeEvents->eventList[0];
-          debug_print("note on = %i\n", msg[1]);
           break;
       }
       break;
