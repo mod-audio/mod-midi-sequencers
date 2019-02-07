@@ -228,9 +228,11 @@ switchMode(Data* self)
         
         //set MIDI input through 
         if (*self->latchTranspose == 1 && self->playing == true) {
+          modeHandle = 3;
           self->through = false;
         } else {
           self->through = true;
+          modeHandle = 0;
         }
         break;
       case RECORD_APPEND: 
@@ -262,6 +264,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   
   //MIDI through   
 	if (self->through) {
+    debug_print("ik laat de noten door");
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
   }
 
