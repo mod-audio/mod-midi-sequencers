@@ -103,7 +103,6 @@ Classic MIDI sequencer with a few different record modes.""" ;
            lv2:minimum 0 ;
            lv2:maximum 9 ;
            lv2:portProperty lv2:enumeration, lv2:integer;
-           lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
            lv2:scalePoint [ rdfs:label "1 bar" ; rdf:value 1  ] ;
            lv2:scalePoint [ rdfs:label "2 bar" ; rdf:value 2  ] ;
            lv2:scalePoint [ rdfs:label "3 bar" ; rdf:value 3  ] ;

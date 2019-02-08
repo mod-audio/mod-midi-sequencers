@@ -62,6 +62,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   uris->time_Position       = map->map(map->handle, LV2_TIME__Position);
   uris->time_barBeat        = map->map(map->handle, LV2_TIME__barBeat);
   uris->time_beatsPerMinute = map->map(map->handle, LV2_TIME__beatsPerMinute);
+  uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
   uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
   self->rate          = rate;
@@ -169,11 +170,11 @@ update_position(Data* self, const LV2_Atom_Object* obj)
   const MetroURIs* uris = &self->uris;
 
   // Received new transport position/speed
-  LV2_Atom *beat = NULL, *bpm = NULL, *speed = NULL;
+  LV2_Atom *beat = NULL, *bpm = NULL, *speed = NULL, *barsize = NULL;
   lv2_atom_object_get(obj,
       uris->time_barBeat, &beat,
       uris->time_beatsPerMinute, &bpm,
-      uris->time_speed, &speed,
+      uris->time_speed, &speed, uris->time_beatsPerBar, &barsize, 
       NULL);
 
   static int previousSpeed = 0; 
@@ -188,10 +189,12 @@ update_position(Data* self, const LV2_Atom_Object* obj)
   }
   if (beat && beat->type == uris->atom_Float) {
     const float bar_beats       = ((LV2_Atom_Float*)beat)->body;
-    const float beat_beats      = bar_beats - floorf(bar_beats);  
+    const float beat_beats      = bar_beats - floorf(bar_beats);
+    const float beat_barsize    = ((LV2_Atom_Float*)barsize)->body;  
     self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
+    self->barsize = beat_barsize; 
+    
     if (self->speed != previousSpeed) {
-
       self->phase = beat_beats;
       previousSpeed = self->speed;
     }
@@ -202,8 +205,8 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 static int
 switchMode(Data* self)
 {
-  static float prevMod   = 1;
-  static float prevLatch = 1;
+  //static float prevMod   = 1;
+  //static float prevLatch = 1;
   static int modeHandle  = 0;
   ModeEnum modeStatus    = (int)*self->mode;  
   
@@ -305,7 +308,6 @@ sequence(Data* self)
   static size_t  noteOffIndex  = 0; 
   static float   noteLength    = 1;
   static uint8_t midiNote      = 0;
-  static uint8_t prevNote      = 0;
   static bool    trigger       = false;
   static bool    cleared       = true;
   
@@ -443,12 +445,6 @@ run(LV2_Handle instance, uint32_t n_samples)
   Data* self = (Data*)instance;
 
   static float frequency; 
- 
-	// Get the capacity
-	const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
-
-	// Write an empty Sequence header to the outputs
-	//lv2_atom_sequence_clear(self->port_events_out1);
 
 	// LV2 is so nice...
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;

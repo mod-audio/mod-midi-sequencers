@@ -96,7 +96,8 @@ void resetRecord(Data* self)
 void recordNotes(Data* self, uint8_t note)
 { 
   static bool wasRecording = false;
-  
+  static float dividers[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
+
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
   {
     self->recording = true;
@@ -108,14 +109,11 @@ void recordNotes(Data* self, uint8_t note)
     
     //count how many bars there are recorded //TODO run calculation in if statement only once.
     //TODO Check the current index while copying new list
-    //TODO it now only works in 4/4 
-
-    if (self->beatInMeasure < 0.5 && notCounted)
+    //TODO what to do if the divider changes half way? 
+    debug_print("threshold = %f\n", (*self->recordLength * self->barsize * dividers[(int)*self->division]) - 1); 
+    if (self->recordEvents->used >= (*self->recordLength * self->barsize * dividers[(int)*self->division]))
     {
-      amountOfBars++;
-    }
-    if (self->recordEvents->used > (*self->recordLength * 4) - 1)
-    {
+      debug_print(" dividers = %f\n", dividers[(int)*self->division]);
       self->recording = false;
       if (*self->recordLength > 8) {
         wasRecording = true;
@@ -134,15 +132,11 @@ void recordNotes(Data* self, uint8_t note)
     //TODO get numerator from host.
     int countAmount  = 0;
     //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
-    size_t numerator = 4 * 2;
-
-    //self->recordEvents->used += 1;
-
+    size_t numerator = self->barsize * 2;
 
     while (self->recordEvents->used >= numerator)
     {
       self->recordEvents->used = self->recordEvents->used - numerator;
-
       ++countAmount;
     }
 
@@ -204,7 +198,7 @@ void resetPhase(Data *self)
       previousDevision   = *self->division; 
     }
 
-    self->phase = 0.0;
+    //self->phase = 0.0;
     resetPhase  = false;
 
   } else {

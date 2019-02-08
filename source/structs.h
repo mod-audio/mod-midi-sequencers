@@ -63,6 +63,7 @@ typedef struct MetroURIs {
   LV2_URID time_Position;
   LV2_URID time_barBeat;
   LV2_URID time_beatsPerMinute;
+  LV2_URID time_beatsPerBar;
   LV2_URID time_speed;
 } MetroURIs;
 
@@ -76,6 +77,7 @@ typedef struct Data {
 
   double rate;   // Sample rate
   float  bpm;
+  float  barsize;
   float  speed; // Transport speed (usually 0=stop, 1=play)
   float  phase;
   float  beatInMeasure;
