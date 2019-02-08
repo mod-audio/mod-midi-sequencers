@@ -79,20 +79,53 @@ void recordNote(Array *arr, uint8_t note)
 }
 
 
+void resetRecord(Data* self)
+{
+  self->transpose  = 0;
+  //self->notePlayed = self->notePlayed % self->writeEvents->used;
+  clearSequence(self->recordEvents);
+  //init object
+  self->recordEvents = (Array *)malloc(sizeof(Array));
+  self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
+  self->recordEvents->used = 0;
+  self->recordEvents->size = 1;
+}
+
+
+
 void recordNotes(Data* self, uint8_t note)
 { 
-  static bool  wasRecording     = false;
-  static bool  recordingStarted = false;
+  static bool wasRecording = false;
   
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
   {
     self->recording = true;
-    wasRecording    = true;
   }
 
   if (self->recording)
   { 
     recordNote(self->recordEvents, note);
+    
+    //count how many bars there are recorded //TODO run calculation in if statement only once.
+    //TODO Check the current index while copying new list
+    //TODO it now only works in 4/4 
+
+    if (self->beatInMeasure < 0.5 && notCounted)
+    {
+      amountOfBars++;
+    }
+    if (self->recordEvents->used > (*self->recordLength * 4) - 1)
+    {
+      self->recording = false;
+      if (*self->recordLength > 8) {
+        wasRecording = true;
+      } else {
+          debug_print("self->used = %li\n", self->recordEvents->used);
+          copyEvents(self->recordEvents, self->writeEvents);
+          resetRecord(self);
+          *self->recordBars = 0;
+      }  
+    }
   }
 
   if (*self->recordBars == 0 && wasRecording)
@@ -132,17 +165,8 @@ void recordNotes(Data* self, uint8_t note)
 				copyEvents(self->recordEvents, self->writeEvents);
 			}
     }    
-    
-    self->transpose  = 0;
-    self->notePlayed = self->notePlayed % self->writeEvents->used;
-    recordingStarted = false;
-    wasRecording     = false;
-    clearSequence(self->recordEvents);
-		//init object
-		self->recordEvents = (Array *)malloc(sizeof(Array));
-		self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
-		self->recordEvents->used = 0;
-		self->recordEvents->size = 1;
+    resetRecord(self);
+    wasRecording = false;
   }  
 }
 

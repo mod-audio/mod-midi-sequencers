@@ -121,7 +121,10 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
       self->division = (const float*)data;
       break;
     case RECORDBARS:
-      self->recordBars = (const float*)data;
+      self->recordBars = (float*)data;
+      break;
+    case RECORDLENGTH:
+      self->recordLength = (const float*)data;
       break;
     case NOTELENGTH:
       self->noteLengthParam = (const float*)data;
