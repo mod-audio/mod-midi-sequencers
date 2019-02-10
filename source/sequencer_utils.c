@@ -71,6 +71,7 @@ void insertNote(Array *arr, uint8_t note)
 
 void recordNote(Array *arr, uint8_t note)
 {
+  debug_print("note is = %i\n", note);
   if (arr->used == arr->size) {
     arr->size *= 2;
     arr->eventList = (uint8_t *)realloc(arr->eventList, arr->size * sizeof(uint8_t));
@@ -103,14 +104,14 @@ void renderRecordedNotes(Data* self)
  
 
   //pre-count
-  if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
+  if (self->beatInMeasure < 0.5 && *self->recordBars == 1) {
     self->preCount = true;
+  }
 
-  if (self->beatInMeasure > self->barsize - 0.02)
+  if (self->beatInMeasure > self->barsize - 0.02 && self->preCount) {
     self->recording = true;
+  }
 
- 
- 
   if (self->recording)
   {
     self->preCount = false;
