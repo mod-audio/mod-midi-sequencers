@@ -87,6 +87,7 @@ typedef struct Data {
   bool   firstBar;
   bool   playing;
   bool   recording;
+  bool   preCount;
   int    transpose;
 
   Array *writeEvents;

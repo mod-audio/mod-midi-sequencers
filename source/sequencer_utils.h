@@ -34,9 +34,10 @@ float* phaseOsc(float frequency, float* phase, float rate);
 float calculateFrequency(uint8_t bpm, float division);
 bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB);
 void insertNote(Array* arr, uint8_t note);
+void recordNote(Array* arr, uint8_t note);
 void clearSequence(Array *arr);
 void copyEvents(Array* eventListA, Array* eventListB);
-void recordNotes(Data* self, uint8_t note);
+void renderRecordedNotes(Data* self);
 void resetPhase(Data* self);
 
 #endif

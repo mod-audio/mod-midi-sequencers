@@ -93,7 +93,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->firstBar   = false;
   self->playing    = false;
   self->recording  = false;
-  
+  self->preCount   = false;
+
   return self;
 }
 
@@ -312,7 +313,7 @@ sequence(Data* self)
   static bool    cleared       = true;
   
   int modeHandle = switchMode(self);
-
+  renderRecordedNotes(self);
   // Get the capacity
   const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
   // Write an empty Sequence header to the outputs
@@ -380,7 +381,10 @@ sequence(Data* self)
       
       //create note on message
       midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
-      recordNotes(self, midiNote);
+      
+      if (self->recording)
+        recordNote(self->recordEvents, midiNote);
+      
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, 127);
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
 

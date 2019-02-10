@@ -79,6 +79,7 @@ void recordNote(Array *arr, uint8_t note)
 }
 
 
+
 void resetRecord(Data* self)
 {
   self->transpose  = 0;
@@ -93,76 +94,104 @@ void resetRecord(Data* self)
 
 
 
-void recordNotes(Data* self, uint8_t note)
-{ 
+void renderRecordedNotes(Data* self)
+{
   static bool wasRecording = false;
-  static float dividers[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
+  static float counterForRecording = 0;
+  static float prevPosBeat = 0;
+  //static float dividers[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
+ 
 
+  //pre-count
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1)
-  {
-    self->recording = true;
-  }
+    self->preCount = true;
 
+  if (self->beatInMeasure > self->barsize - 0.02)
+    self->recording = true;
+
+ 
+ 
   if (self->recording)
-  { 
-    recordNote(self->recordEvents, note);
+  {
+    self->preCount = false;
+    static int dummy = 0;
+    if ( dummy == 0 ) {
+      debug_print("beat in measure when started recording =  %f\n", self->beatInMeasure);
+      dummy++;
+    } 
     
-    //count how many bars there are recorded //TODO run calculation in if statement only once.
-    //TODO Check the current index while copying new list
-    //TODO what to do if the divider changes half way? 
-    debug_print("threshold = %f\n", (*self->recordLength * self->barsize * dividers[(int)*self->division]) - 1); 
-    if (self->recordEvents->used >= (*self->recordLength * self->barsize * dividers[(int)*self->division]))
+    static size_t amountOfBars = 0;
+    static bool barCounted = false;
+    
+    if (self->beatInMeasure > self->barsize - 0.02 && !barCounted)
     {
-      debug_print(" dividers = %f\n", dividers[(int)*self->division]);
+      amountOfBars++;
+      debug_print("amount of bars = %li\n", amountOfBars);
+      barCounted = true;
+    } 
+    else if (self->beatInMeasure < self->barsize -0.02) {
+      barCounted = false;
+    }
+
+    if (amountOfBars > *self->recordLength)
+    {
       self->recording = false;
       if (*self->recordLength > 8) {
         wasRecording = true;
       } else {
-          debug_print("self->used = %li\n", self->recordEvents->used);
-          copyEvents(self->recordEvents, self->writeEvents);
-          resetRecord(self);
-          *self->recordBars = 0;
+        debug_print("self->used = %li\n", self->recordEvents->used);
+        for (size_t i = 0; i < self->recordEvents->used; i++) {\
+          debug_print("recordEvent[%li]", i); 
+          debug_print(" %i\n", self->recordEvents->eventList[i]);
+        }
+        copyEvents(self->recordEvents, self->writeEvents);
+        resetRecord(self);
+        *self->recordBars = 0;
+        counterForRecording = 0;
+        amountOfBars = 0;
+        self->recording = false;
       }  
     }
   }
 
-  if (*self->recordBars == 0 && wasRecording)
-  {
-    self->recording = false;
-    //TODO get numerator from host.
-    int countAmount  = 0;
-    //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
-    size_t numerator = self->barsize * 2;
-
-    while (self->recordEvents->used >= numerator)
-    {
-      self->recordEvents->used = self->recordEvents->used - numerator;
-      ++countAmount;
-    }
-
-
-		if ( self->recordEvents->used  < (int)(round(numerator * 0.25)))
-		{
-    	self->recordEvents->used = (countAmount * numerator);
-			//copyEvents(self->recordEvents, self->playEvents);
-			copyEvents(self->recordEvents, self->writeEvents);
-		} else {
-			int shortage = (self->recordEvents->used - numerator) * - 1;
-			//add notes:
-			int totalRecordedNotes = (countAmount * numerator) + self->recordEvents->used;
-		
-      for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
-				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
-			}
-
-			for (int i = 0; i < totalRecordedNotes; i++) {
-				copyEvents(self->recordEvents, self->writeEvents);
-			}
-    }    
-    resetRecord(self);
-    wasRecording = false;
-  }  
+//  if (*self->recordBars == 0 && wasRecording)
+//  {
+//    self->recording = false;
+//    //TODO get numerator from host.
+//    int countAmount  = 0;
+//    //TODO remove hardcoded stuff, now this is set 4/4 with a div a 8th's
+//    size_t numerator = self->barsize * 2;
+//
+//    while (self->recordEvents->used >= numerator)
+//    {
+//      self->recordEvents->used = self->recordEvents->used - numerator;
+//      ++countAmount;
+//    }
+//
+//
+//		if ( self->recordEvents->used  < (int)(round(numerator * 0.25)))
+//		{
+//    	self->recordEvents->used = (countAmount * numerator);
+//			//copyEvents(self->recordEvents, self->playEvents);
+//			copyEvents(self->recordEvents, self->writeEvents);
+//		} else {
+//			int shortage = (self->recordEvents->used - numerator) * - 1;
+//			//add notes:
+//			int totalRecordedNotes = (countAmount * numerator) + self->recordEvents->used;
+//		
+//      for (int i = totalRecordedNotes ; i < totalRecordedNotes + shortage; i++) {
+//				insertNote(self->recordEvents, self->playEvents->eventList[i % self->playEvents->used] + self->transpose);
+//			}
+//
+//			for (int i = 0; i < totalRecordedNotes; i++) {
+//				copyEvents(self->recordEvents, self->writeEvents);
+//			}
+//    }    
+//    resetRecord(self);
+//    wasRecording = false;
+//  }  
 }
+
 
 
 //make copy of events from eventList A to eventList B
@@ -174,6 +203,7 @@ void copyEvents(Array* eventListA, Array* eventListB)
   eventListB->size = eventListB->size;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
+    debug_print("note in copyEvents = %i\n", eventListA->eventList[noteIndex]); 
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
   }   
 }
