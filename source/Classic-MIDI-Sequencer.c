@@ -474,20 +474,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     }
   }
   
-  //reset phase to keep timeSink 
-  static bool phaseSet = false;
-  
-  debug_print("self->phase = %f\n", self->phase);
-  debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
-  if (self->phase < 0.1 && self->beatInMeasure < 0.1 && !phaseSet) {
-    resetPhase(self);
-    phaseSet = true;
-    debug_print("phase is set\n");
-  } 
-  else if (self->phase > 0.1) {
-    phaseSet = false;
-  }
-
+  resetPhase(self);
   
   frequency = calculateFrequency(self->bpm, self->divisionRate);
   //a phase Oscillator that we use for the tempo of the midi-sequencer 

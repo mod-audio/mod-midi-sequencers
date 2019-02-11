@@ -219,16 +219,22 @@ void resetPhase(Data *self)
   if (self->beatInMeasure < 0.5 && resetPhase) {
     //TODO move elsewhere
     if (self->playing != previousPlaying) {
+      self->phase = 0.0;
       self->firstBar = true;  
       previousPlaying = self->playing;
     }
 
     if (*self->division != previousDevision) {
+      self->phase        = 0.0;
       self->divisionRate = *self->division;  
       previousDevision   = *self->division; 
     }
+    debug_print("phase in reset phase = %f\n", self->phase);
+    if (self->phase > 0.989 || self->phase < 0.01) {
+      debug_print("PHASE is RESET\n");
+      self->phase = 0.0;
+    }
 
-    //self->phase = 0.0;
     resetPhase  = false;
 
   } else {
