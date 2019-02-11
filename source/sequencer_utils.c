@@ -83,7 +83,9 @@ void recordNote(Array *arr, uint8_t note)
 
 void resetRecord(Data* self)
 {
-  self->transpose  = 0;
+  *self->recordBars = 0;
+  self->transpose   = 0;
+  self->recording   = false;
   //self->notePlayed = self->notePlayed % self->writeEvents->used;
   clearSequence(self->recordEvents);
   //init object
@@ -102,7 +104,6 @@ void renderRecordedNotes(Data* self)
   static float prevPosBeat = 0;
   //static float dividers[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
  
-
   //pre-count
   if (self->beatInMeasure < 0.5 && *self->recordBars == 1) {
     self->preCount = true;
@@ -134,7 +135,7 @@ void renderRecordedNotes(Data* self)
       barCounted = false;
     }
 
-    if (amountOfBars > *self->recordLength)
+    if (amountOfBars > *self->recordLength && *self->recordBars != 0)
     {
       self->recording = false;
       if (*self->recordLength > 8) {
@@ -147,10 +148,8 @@ void renderRecordedNotes(Data* self)
         }
         copyEvents(self->recordEvents, self->writeEvents);
         resetRecord(self);
-        *self->recordBars = 0;
         counterForRecording = 0;
         amountOfBars = 0;
-        self->recording = false;
       }  
     }
   }
