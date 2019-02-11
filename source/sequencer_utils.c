@@ -34,7 +34,7 @@ float* phaseOsc(float frequency, float* phase, float rate)
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-  float rateValues[11] = {15,20,30,40,60,80,120,160.0000000001,240,320.0000000002,480};
+  float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
   float frequency = bpm / rateValues[(int)division];
 
   return frequency;
