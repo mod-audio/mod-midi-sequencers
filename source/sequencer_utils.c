@@ -219,7 +219,7 @@ void resetPhase(Data *self)
   static bool  previousPlaying = false;
   static bool  resetPhase      = true;
 
-  if (self->beatInMeasure < 0.5 && resetPhase) {
+  if (self->beatInMeasure < 0.5 && resetPhase && *self->mode > 1) {
     //TODO move elsewhere
     if (self->playing != previousPlaying) {
       self->phase = 0.0;
