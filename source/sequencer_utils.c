@@ -36,9 +36,6 @@ float calculateFrequency(uint8_t bpm, float division)
 {
   float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
   float frequency = bpm / rateValues[(int)division];
-  debug_print("bpm = %i\n", bpm);
-  debug_print("devision = %f\n", division);
-  debug_print("frequency = %f\n", frequency);
 
   return frequency;
 }
@@ -74,7 +71,6 @@ void insertNote(Array *arr, uint8_t note)
 
 void recordNote(Array *arr, uint8_t note)
 {
-  debug_print("note is = %i\n", note);
   if (arr->used == arr->size) {
     arr->size *= 2;
     arr->eventList = (uint8_t *)realloc(arr->eventList, arr->size * sizeof(uint8_t));
@@ -119,11 +115,6 @@ void renderRecordedNotes(Data* self)
   if (self->recording)
   {
     self->preCount = false;
-    static int dummy = 0;
-    if ( dummy == 0 ) {
-      debug_print("beat in measure when started recording =  %f\n", self->beatInMeasure);
-      dummy++;
-    } 
     
     static size_t amountOfBars = 0;
     static bool barCounted = false;
@@ -131,7 +122,6 @@ void renderRecordedNotes(Data* self)
     if (self->beatInMeasure > self->barsize - 0.02 && !barCounted)
     {
       amountOfBars++;
-      debug_print("amount of bars = %li\n", amountOfBars);
       barCounted = true;
     } 
     else if (self->beatInMeasure < self->barsize -0.02) {
@@ -144,10 +134,7 @@ void renderRecordedNotes(Data* self)
       if (*self->recordLength > 8) {
         wasRecording = true;
       } else {
-        debug_print("self->used = %li\n", self->recordEvents->used);
         for (size_t i = 0; i < self->recordEvents->used; i++) {\
-          debug_print("recordEvent[%li]", i); 
-          debug_print(" %i\n", self->recordEvents->eventList[i]);
         }
         copyEvents(self->recordEvents, self->writeEvents);
         resetRecord(self);
@@ -206,7 +193,6 @@ void copyEvents(Array* eventListA, Array* eventListB)
   eventListB->size = eventListB->size;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
-    debug_print("note in copyEvents = %i\n", eventListA->eventList[noteIndex]); 
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
   }   
 }
@@ -219,11 +205,17 @@ void resetPhase(Data *self)
   static bool  previousPlaying = false;
   static bool  resetPhase      = true;
 
-  if (self->beatInMeasure < 0.5 && resetPhase && *self->mode > 1) {
+  if (self->beatInMeasure < 0.5 && resetPhase) {
     //TODO move elsewhere
+    //debug_print("self->mode = %f\n", *self->mode);
+    //debug_print("self->playing = %i\n", self->playing);
+    //debug_print("previousPlaying = %i\n", previousPlaying);
     if (self->playing != previousPlaying) {
-      self->phase = 0.0;
-      self->firstBar = true;  
+      if (*self->mode > 1) {
+        debug_print("ja ik ben er hoor");
+        self->phase = 0.0;
+        self->firstBar = true;
+      }  
       previousPlaying = self->playing;
     }
 
@@ -232,9 +224,7 @@ void resetPhase(Data *self)
       self->divisionRate = *self->division;  
       previousDevision   = *self->division; 
     }
-    debug_print("phase in reset phase = %f\n", self->phase);
     if (self->phase > 0.989 || self->phase < 0.01) {
-      debug_print("PHASE is RESET\n");
       self->phase = 0.0;
     }
 
