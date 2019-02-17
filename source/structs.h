@@ -37,11 +37,15 @@ typedef enum PortEnum {
   PORT_ATOM_OUT1,
   METRO_CONTROL,
   MODE,
+	NOTEMODE,
+  TRANSPOSE,
   DIVISION,
-  RECORDBARS,
-  RECORDLENGTH,
   NOTELENGTH,
-  TRANSPOSE
+  SWING,
+  RANDOMIZETIMMING,
+  RANDOMIZEVELOCITY, 
+  TRIGGERSNAPSHOT,
+  SNAPSHOTLENGTH
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -103,6 +107,10 @@ typedef struct Data {
   const float* division;
   const float* noteLengthParam;
   const float* latchTranspose;
+  const float* swing;
+  const float* noteMode;
+  const float* randomizeTimming;
+  const float* randomizeVelocity;
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
 
