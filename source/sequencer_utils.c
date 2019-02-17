@@ -99,8 +99,8 @@ void resetRecord(Data* self)
 void renderRecordedNotes(Data* self)
 {
   static bool wasRecording = false;
-  static float counterForRecording = 0;
-  static float prevPosBeat = 0;
+ //static float counterForRecording = 0;
+  //static float prevPosBeat = 0;
   //static float dividers[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
  
   //pre-count
@@ -138,14 +138,14 @@ void renderRecordedNotes(Data* self)
         }
         copyEvents(self->recordEvents, self->writeEvents);
         resetRecord(self);
-        counterForRecording = 0;
+        //counterForRecording = 0;
         amountOfBars = 0;
       }  
     }
   }
 
-//  if (*self->recordBars == 0 && wasRecording)
-//  {
+  if (*self->recordBars == 0 && wasRecording)
+  {
 //    self->recording = false;
 //    //TODO get numerator from host.
 //    int countAmount  = 0;
@@ -178,8 +178,8 @@ void renderRecordedNotes(Data* self)
 //			}
 //    }    
 //    resetRecord(self);
-//    wasRecording = false;
-//  }  
+    wasRecording = false;
+  }  
 }
 
 

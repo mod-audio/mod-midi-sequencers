@@ -80,6 +80,8 @@ typedef struct Data {
   float  barsize;
   float  speed; // Transport speed (usually 0=stop, 1=play)
   float  phase;
+  float  noteLengthTime[2];
+  int    activeNotes;
   float  beatInMeasure;
   float  divisionRate;
   size_t notePlayed;

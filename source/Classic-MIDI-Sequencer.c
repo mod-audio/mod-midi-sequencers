@@ -65,10 +65,11 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
   uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-  self->rate          = rate;
-  self->bpm           = 120.0f;
-  self->beatInMeasure = 0;
-  self->divisionRate  = 4;	
+  self->rate           = rate;
+  self->bpm            = 120.0f;
+  self->beatInMeasure  = 0;
+  self->divisionRate   = 4;
+	self->phase          = 0;	
 	debug_print("test debug\n");
   //init objects
   self->recordEvents = (Array *)malloc(sizeof(Array));
@@ -77,7 +78,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   //init arrays
   self->recordEvents->eventList = (uint8_t *)malloc(sizeof(uint8_t));
   self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
-  self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
+  self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
+  
   //init vars
   self->writeEvents->used  = 0;
   self->writeEvents->size  = 1;
@@ -306,8 +308,8 @@ sequence(Data* self)
 {
   static bool    different;
   static uint8_t noteOffArr[4] = {0, 0, 0, 0};
-  static size_t  noteOffIndex  = 0; 
-  static float   noteLength    = 1;
+  static int  noteOffIndex  = 0; 
+  //static float   noteLength    = 1;
   static uint8_t midiNote      = 0;
   static bool    trigger       = false;
   static bool    cleared       = true;
@@ -334,10 +336,10 @@ sequence(Data* self)
     }
   }
 
-  if (*self->noteLengthParam != prevFloatLength){ 
-    noteLength = 0.1 + (*self->noteLengthParam * 0.9);
-    prevFloatLength = *self->noteLengthParam;
-  }
+//  if (*self->noteLengthParam != prevFloatLength){ 
+//    noteLength = 0.1 + (*self->noteLengthParam * 0.9);
+//    prevFloatLength = *self->noteLengthParam;
+//  }
 
   if (self->playing && self->firstBar) 
   {
@@ -349,47 +351,27 @@ sequence(Data* self)
       copyEvents(self->writeEvents, self->playEvents);  
       different = false;
     }
-  
-    if (self->phase >= noteLength || (self->phase < 0.2 && noteLength == 1 && !trigger))
-    {
-      //send note off
-      if ( noteOffIndex > 0) 
-      { 
-        for (size_t i = 0; i < noteOffIndex; i++) 
-        {
-          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[i], 0);
-          lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
-        }
-        noteOffIndex = 0;
-      }
-    }   
     
     if (self->phase < 0.2 && !trigger && self->playEvents->used > 0) 
     {
-      //TODO this is a extra note off check, needs to be removed later...=============================== 
-      if ( noteOffIndex > 0) 
-      { 
-        for (size_t i = 0; i < noteOffIndex; i++) 
-        {
-          LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[i], 0);
-          lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
-        }
-        noteOffIndex = 0;
-      }
-
-      //=================================================================================================
-      
       //create note on message
       midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
       
       if (self->recording)
         recordNote(self->recordEvents, midiNote);
       
+      debug_print("note note %i is send\n", midiNote);
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, 127);
       lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
 
       //prevNote = midiNote;
-      noteOffArr[noteOffIndex++ % 4] = midiNote;
+      noteOffArr[noteOffIndex] = midiNote;
+      //debug_print("noteOffIndex %i\n", noteOffIndex);
+      
+      noteOffIndex ^= 1;
+      //debug_print("noteOffIndex after mudulo =  %i\n", noteOffIndex);
+      self->activeNotes = self->activeNotes + 1;
+      debug_print("self->activeNotes = %i\n", self->activeNotes);
       cleared = false;
       trigger = true;
       
@@ -406,6 +388,22 @@ sequence(Data* self)
       }
 
     }
+    
+    static int noteOffSendIndex = 0;
+    //send Note Off
+    for (int i = self->activeNotes - 1; i > - 1; i--) {
+      
+      if (self->noteLengthTime[i] > *self->noteLengthParam)
+      { 
+        debug_print("note off is send for %i\n",noteOffArr[i]);
+        debug_print("i in note off = %i\n", i); 
+        LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[noteOffSendIndex], 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+        noteOffSendIndex ^= 1;
+        self->noteLengthTime[i] = 0.0; 
+        self->activeNotes--;
+      }
+    }   
   } else 
   { // self->playing = false, send note offs of current notes.
 
@@ -435,7 +433,15 @@ sequence(Data* self)
       self->recordEvents->size = 1;
       self->playEvents->used   = 0;
       self->playEvents->size   = 1;
+      self->activeNotes = 0;
+      self->transpose = 0;
       self->firstBar = false;
+     
+      for (int i = self->activeNotes - 1; i > - 1; i--) {
+        self->noteLengthTime[i] = 0.0;
+      }
+      noteOffIndex = 0;
+      self->activeNotes = 0;
       cleared = true;
     }
   }
@@ -453,10 +459,8 @@ run(LV2_Handle instance, uint32_t n_samples)
 	// LV2 is so nice...
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
- 
-
   const MetroURIs* uris = &self->uris;
-
+  
   // Work forwards in time frame by frame, handling events as we go
   const LV2_Atom_Sequence* in     = self->control;
 
@@ -480,6 +484,11 @@ run(LV2_Handle instance, uint32_t n_samples)
   //a phase Oscillator that we use for the tempo of the midi-sequencer 
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate);
+    for (int i = self->activeNotes - 1; i > - 1; i--) {
+      //debug_print("self->noteLengthTime[0] = %f\n", self->noteLengthTime[0]);
+      //debug_print("self->noteLengthTime[1] = %f\n", self->noteLengthTime[1]);
+      self->noteLengthTime[i] += frequency / self->rate;
+    }
   }
   sequence(self);
 }
