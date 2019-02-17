@@ -82,6 +82,7 @@ typedef struct Data {
   float  phase;
   float  noteLengthTime[2];
   int    activeNotes;
+  int    noteStarted[2];
   float  beatInMeasure;
   float  divisionRate;
   size_t notePlayed;

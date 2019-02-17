@@ -88,8 +88,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->playEvents->used   = 0;
   self->playEvents->size   = 1;
 
-  self->notePlayed = 0;
-  self->transpose  = 0;
+  self->notePlayed  = 0;
+  self->transpose   = 0;
   
   self->through    = true;
   self->firstBar   = false;
@@ -366,6 +366,7 @@ sequence(Data* self)
 
       //prevNote = midiNote;
       noteOffArr[noteOffIndex] = midiNote;
+      self->noteStarted[noteOffIndex] = 1;
       //debug_print("noteOffIndex %i\n", noteOffIndex);
       
       noteOffIndex ^= 1;
@@ -391,19 +392,20 @@ sequence(Data* self)
     
     static int noteOffSendIndex = 0;
     //send Note Off
-    for (int i = self->activeNotes - 1; i > - 1; i--) {
+    //for (int i = self->activeNotes - 1; i > - 1; i--) {
       
-      if (self->noteLengthTime[i] > *self->noteLengthParam)
+      if (self->noteLengthTime[noteOffSendIndex] > *self->noteLengthParam)
       { 
-        debug_print("note off is send for %i\n",noteOffArr[i]);
-        debug_print("i in note off = %i\n", i); 
+        debug_print("note off is send for %i\n",noteOffArr[noteOffSendIndex]);
+       // debug_print("i in note off = %i\n", i); 
         LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[noteOffSendIndex], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
-        noteOffSendIndex ^= 1;
-        self->noteLengthTime[i] = 0.0; 
+        self->noteStarted[noteOffSendIndex] = 0;
+        self->noteLengthTime[noteOffSendIndex] = 0.0; 
         self->activeNotes--;
+        noteOffSendIndex ^= 1;
       }
-    }   
+   // }   
   } else 
   { // self->playing = false, send note offs of current notes.
 
@@ -440,6 +442,7 @@ sequence(Data* self)
       for (int i = self->activeNotes - 1; i > - 1; i--) {
         self->noteLengthTime[i] = 0.0;
       }
+
       noteOffIndex = 0;
       self->activeNotes = 0;
       cleared = true;
@@ -481,13 +484,14 @@ run(LV2_Handle instance, uint32_t n_samples)
   resetPhase(self);
   
   frequency = calculateFrequency(self->bpm, self->divisionRate);
-  //a phase Oscillator that we use for the tempo of the midi-sequencer 
+  //a phase Oscillator that we use for the tempo of the midi-sequencer
+  debug_print("self->noteLengthTime[0] = %f\n", self->noteLengthTime[0]);  
+  debug_print("self->noteLengthTime[1] = %f\n", self->noteLengthTime[1]);  
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate);
-    for (int i = self->activeNotes - 1; i > - 1; i--) {
-      //debug_print("self->noteLengthTime[0] = %f\n", self->noteLengthTime[0]);
-      //debug_print("self->noteLengthTime[1] = %f\n", self->noteLengthTime[1]);
-      self->noteLengthTime[i] += frequency / self->rate;
+    for (int i = 0; i < 2; i++) {
+      if (self->noteStarted[i] > 0)
+        self->noteLengthTime[i] += frequency / self->rate;
     }
   }
   sequence(self);
