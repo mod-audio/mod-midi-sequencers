@@ -515,7 +515,7 @@ run(LV2_Handle instance, uint32_t n_samples)
   frequency = calculateFrequency(self->bpm, self->divisionRate);
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
-    self->phase = *phaseOsc(frequency, &self->phase, self->rate);
+    self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
     for (int i = 0; i < 2; i++) {
       if (self->noteStarted[i] > 0)
         self->noteLengthTime[i] += frequency / self->rate;

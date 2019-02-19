@@ -30,7 +30,7 @@
 #define debug_print(...) \
 ((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
-float* phaseOsc(float frequency, float* phase, float rate);
+float* phaseOsc(float frequency, float* phase, float rate, float swing);
 float calculateFrequency(uint8_t bpm, float division);
 bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB);
 void insertNote(Array* arr, uint8_t note);

@@ -21,11 +21,21 @@
 
 
 //phase oscillator to use for timing of the beatsync
-float* phaseOsc(float frequency, float* phase, float rate)
+float* phaseOsc(float frequency, float* phase, float rate, float swing)
 {
+  static float noteLength[2];
+  static int switchLength = 0;
+  
+  float phaseParam = swing - 50;
+  noteLength[0] = (phaseParam * -1 + 100) * 0.01;  
+  noteLength[1] = (phaseParam + 100) * 0.01;
+
   *phase += frequency / rate;
 
-  if(*phase >= 1) *phase = *phase - 1;
+  if(*phase >= noteLength[switchLength]){ 
+    *phase = *phase - noteLength[switchLength];
+    switchLength ^= 1;
+  }
 
   return phase;
 }
