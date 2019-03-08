@@ -66,10 +66,10 @@ float* velOsc(float frequency, float* velocityLFO, float rate, const float* velo
   else
     warpedpos = m2*pos + b2;
 
-  *velocityLFO = *curveDepth * ((cos( warpedpos * PI_2 ) * 0.5) + 1);
+  *velocityLFO = 127 * ((cos( warpedpos * PI_2 ) * 0.5) + 1);
   //"clip" signal
-  *velocityLFO = (*velocityLFO >= *curveDepth) ? *curveDepth : *curveDepth - (*curveDepth * 0.5); 
-  *velocityLFO = (*velocityLFO > 0 ) ? *velocityLFO : 0;   
+  //*velocityLFO = (*velocityLFO >= *curveDepth) ? *curveDepth : *curveDepth - (*curveDepth * 0.5); 
+  //*velocityLFO = (*velocityLFO > 0 ) ? *velocityLFO : 0;   
   pos+=phase;
 
   while(pos >= phaseLenght )
