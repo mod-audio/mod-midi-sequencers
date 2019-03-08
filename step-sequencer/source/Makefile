@@ -1,10 +1,10 @@
 #!/usr/bin/make -f
-# Makefile for Classic-MIDI-Sequencer.lv2 #
+# Makefile for Step-Sequencer.lv2 #
 # --------------------------------- #
 
 include Makefile.mk
 
-NAME = Classic-MIDI-Sequencer
+NAME = Step-Sequencer
 
 # --------------------------------------------------------------
 # Installation path
@@ -23,7 +23,7 @@ build: $(NAME)-build
 
 $(NAME)-build: $(NAME).lv2/$(NAME)$(LIB_EXT)
 
-$(NAME).lv2/$(NAME)$(LIB_EXT): $(NAME).c
+$(NAME).lv2/$(NAME)$(LIB_EXT): $(NAME).c sequencer_utils.c oscillators.c
 	$(CC) $^ $(BUILD_C_FLAGS) $(LINK_FLAGS) -lm $(SHARED) -o $@
 
 # --------------------------------------------------------------

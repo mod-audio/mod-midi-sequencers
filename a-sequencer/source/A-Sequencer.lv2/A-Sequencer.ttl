@@ -1,0 +1,188 @@
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix mod:  <http://moddevices.com/ns/mod#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix time: <http://lv2plug.in/ns/ext/time#> .
+@prefix epp:   <http://lv2plug.in/ns/ext/port-props/#>.
+
+<http://moddevices.com/plugins/mod-devel/A-Sequencer>
+        a mod:MIDIPlugin ,
+        lv2:UtilityPlugin ,
+        lv2:Plugin ;
+        doap:name "Classic MIDI Sequencer" ;
+        doap:license "GPLv2+" ;
+        rdfs:comment """
+Classic MIDI sequencer with a few different record modes.""" ;
+        lv2:minorVersion 2 ;
+        lv2:microVersion 0 ;
+        lv2:optionalFeature lv2:hardRTCapable ;
+        lv2:port 
+        [
+           a lv2:InputPort , atom:AtomPort ;
+           atom:bufferType atom:Sequence ;
+           atom:supports midi:MidiEvent ;
+           lv2:index 0 ;
+           lv2:symbol "in" ;
+           lv2:name "In" ;
+        ] , 
+        [
+           a lv2:OutputPort , atom:AtomPort ;
+           atom:bufferType atom:Sequence ;
+           atom:supports midi:MidiEvent ;
+           lv2:index 1 ;
+           lv2:symbol "out1" ;
+           lv2:name "Out 1" ;
+        ] , 
+        [
+           a lv2:InputPort , atom:AtomPort ;
+           atom:bufferType atom:Sequence ;
+           atom:supports time:Position ;
+           lv2:index 2 ;
+           lv2:symbol "control" ;
+           lv2:name "Control" ;
+       ] , 
+       [   
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 3 ;
+           lv2:name "mode" ;
+           lv2:symbol "mode" ;
+           lv2:default 2 ;
+           lv2:minimum 0 ;
+           lv2:maximum 5 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "Clear All" ; rdf:value 0 ] ;
+           lv2:scalePoint [ rdfs:label "Record" ; rdf:value 1  ] ;
+           lv2:scalePoint [ rdfs:label "Play" ; rdf:value 2 ] ;
+           lv2:scalePoint [ rdfs:label "Record Append" ; rdf:value 3 ] ;
+           lv2:scalePoint [ rdfs:label "Record Overwrite" ; rdf:value 4 ] ;
+           lv2:scalePoint [ rdfs:label "Undo Last" ; rdf:value 5 ] ;
+        ] , 
+        [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 4 ;
+           lv2:name "notemode" ;
+           lv2:symbol "notemode" ;
+           lv2:default 1 ;
+           lv2:minimum 0 ;
+           lv2:maximum 2 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "Rest" ; rdf:value 0 ] ;
+           lv2:scalePoint [ rdfs:label "Normal" ; rdf:value 1  ] ;
+           lv2:scalePoint [ rdfs:label "Tie" ; rdf:value 2 ] ;
+        ] ,
+        [ 
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 5 ;
+           lv2:name "transpose" ;
+           lv2:symbol "transpose" ;
+           lv2:default 1 ;
+           lv2:minimum 0 ;
+           lv2:maximum 1 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "Off" ; rdf:value 0 ] ;
+           lv2:scalePoint [ rdfs:label "On" ; rdf:value 1 ] ;
+        ] ,
+        [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 6 ;
+           lv2:name "division" ;
+           lv2:symbol "division" ;
+           lv2:default 6 ;
+           lv2:minimum 0 ;
+           lv2:maximum 10 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "1/1 " ; rdf:value 10 ] ;
+           lv2:scalePoint [ rdfs:label "1/1 T" ; rdf:value 9  ] ;
+           lv2:scalePoint [ rdfs:label "1/2" ; rdf:value 8 ] ;
+           lv2:scalePoint [ rdfs:label "1/2 T" ; rdf:value 7 ] ;
+           lv2:scalePoint [ rdfs:label "1/4" ; rdf:value 6 ] ;
+           lv2:scalePoint [ rdfs:label "1/4 T" ; rdf:value 5 ] ;
+           lv2:scalePoint [ rdfs:label "1/8" ; rdf:value 4 ] ;
+           lv2:scalePoint [ rdfs:label "1/8 T" ; rdf:value 3 ] ;
+           lv2:scalePoint [ rdfs:label "1/16" ; rdf:value 2 ] ;
+           lv2:scalePoint [ rdfs:label "1/16 T" ; rdf:value 1 ] ;
+           lv2:scalePoint [ rdfs:label "1/32" ; rdf:value 0 ] ;
+        ],
+        [ 
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 7 ;
+           lv2:name "noteLength"  ;
+           lv2:symbol "noteLength" ;
+           lv2:default 0.7 ;
+           lv2:minimum 0.0 ;
+           lv2:maximum 1.75 ;
+         ], 
+         [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 8 ;
+           lv2:name "swing"  ;
+           lv2:symbol "swing" ;
+           lv2:default 50 ;
+           lv2:minimum 25 ;
+           lv2:maximum 75 ;
+         ], 
+         [ 
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 9 ;
+           lv2:name "randomizetimming"  ;
+           lv2:symbol "randomizetimming" ;
+           lv2:default 0.0 ;
+           lv2:minimum 0.0 ;
+           lv2:maximum 1.0 ;
+         ],
+         [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 10 ;
+           lv2:name "randomizevelocity"  ;
+           lv2:symbol "randomizevelocity" ;
+           lv2:default 0.0 ;
+           lv2:minimum 0.0 ;
+           lv2:maximum 1.0 ;
+         ], 
+         [
+					 a lv2:InputPort, lv2:ControlPort ;
+        	 lv2:index 11 ;
+        	 lv2:symbol "triggersnapshot" ;
+        	 lv2:name "triggersnapshot" ;
+        	 lv2:default 0 ;
+        	 lv2:minimum 0 ;
+        	 lv2:maximum 1;
+					 lv2:portProperty lv2:integer, lv2:toggled, epp:trigger;
+          ], 
+					[
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 12 ;
+           lv2:name "snapshotLength" ;
+           lv2:symbol "snapshotLength" ;
+           lv2:default 1 ;
+           lv2:minimum 1 ;
+           lv2:maximum 9 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "1 bar" ; rdf:value 1  ] ;
+           lv2:scalePoint [ rdfs:label "2 bar" ; rdf:value 2  ] ;
+           lv2:scalePoint [ rdfs:label "3 bar" ; rdf:value 3  ] ;
+           lv2:scalePoint [ rdfs:label "4 bar" ; rdf:value 4  ] ;
+           lv2:scalePoint [ rdfs:label "5 bar" ; rdf:value 5  ] ;
+           lv2:scalePoint [ rdfs:label "6 bar" ; rdf:value 6  ] ;
+           lv2:scalePoint [ rdfs:label "7 bar" ; rdf:value 7  ] ;
+           lv2:scalePoint [ rdfs:label "8 bar" ; rdf:value 8  ] ;
+           lv2:scalePoint [ rdfs:label "Free" ; rdf:value 9  ] ;
+          ] ;
+        doap:developer [
+            foaf:name "Bram Giesen" ;
+            foaf:homepage <http://bramgiesen.com> ;
+            foaf:mbox <bram@moddevices.com> ;
+        ] ;
+
+        doap:maintainer [
+            foaf:name "MOD Team" ;
+            foaf:homepage <http://moddevices.com> ;
+            foaf:mbox <mailto:devel@moddevices.com> ;
+        ] ;
+
+        mod:brand "MOD" ;
+        mod:label "Classic MIDI Sequencer" .

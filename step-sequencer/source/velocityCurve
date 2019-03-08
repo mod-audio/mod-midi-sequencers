@@ -1,0 +1,142 @@
+Binary file Step-Sequencer.lv2/Step-Sequencer.so matches
+sequencer_utils.c:83:  if (self->beatInMeasure < 0.5 && resetPhase) {
+sequencer_utils.c:85:    //debug_print("self->mode = %f\n", *self->mode);
+sequencer_utils.c:86:    //debug_print("self->playing = %i\n", self->playing);
+sequencer_utils.c:88:    if (self->playing != previousPlaying) {
+sequencer_utils.c:89:      if (*self->mode > 1) {
+sequencer_utils.c:91:        self->phase = 0.0;
+sequencer_utils.c:92:        self->firstBar = true;
+sequencer_utils.c:94:      previousPlaying = self->playing;
+sequencer_utils.c:97:    if (*self->division != previousDevision) {
+sequencer_utils.c:98:      self->phase        = 0.0;
+sequencer_utils.c:99:      self->divisionRate = *self->division;  
+sequencer_utils.c:100:      previousDevision   = *self->division; 
+sequencer_utils.c:102:    if (self->phase > 0.989 || self->phase < 0.01) {
+sequencer_utils.c:103:      self->phase = 0.0;
+sequencer_utils.c:109:    if (self->beatInMeasure > 0.5) {
+Step-Sequencer.c:53:  self->urid_midiEvent = map->map(map->handle, LV2_MIDI__MidiEvent);
+Step-Sequencer.c:55:  MetroURIs* const    uris  = &self->uris;
+Step-Sequencer.c:68:  self->rate           = rate;
+Step-Sequencer.c:69:  self->bpm            = 120.0f;
+Step-Sequencer.c:70:  self->beatInMeasure  = 0;
+Step-Sequencer.c:71:  self->divisionRate   = 4;
+Step-Sequencer.c:72:	self->phase          = 0;
+Step-Sequencer.c:73:  self->velocityLFO    = 0;  
+Step-Sequencer.c:76:  self->writeEvents  = (Array* )malloc(sizeof(Array));
+Step-Sequencer.c:77:  self->playEvents   = (Array* )malloc(sizeof(Array));
+Step-Sequencer.c:79:  self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
+Step-Sequencer.c:80:  self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
+Step-Sequencer.c:83:  self->writeEvents->used  = 0;
+Step-Sequencer.c:84:  self->writeEvents->size  = 1;
+Step-Sequencer.c:85:  self->playEvents->used   = 0;
+Step-Sequencer.c:86:  self->playEvents->size   = 1;
+Step-Sequencer.c:88:  self->notePlayed  = 0;
+Step-Sequencer.c:89:  self->transpose   = 0;
+Step-Sequencer.c:91:  self->through    = true;
+Step-Sequencer.c:92:  self->firstBar   = false;
+Step-Sequencer.c:93:  self->playing    = false;
+Step-Sequencer.c:108:      self->port_events_in = (const LV2_Atom_Sequence*)data;
+Step-Sequencer.c:111:      self->port_events_out1 = (LV2_Atom_Sequence*)data;
+Step-Sequencer.c:114:      self->control = (LV2_Atom_Sequence*)data;
+Step-Sequencer.c:117:      self->noteMode = (const float*)data;
+Step-Sequencer.c:120:      self->mode = (const float*)data;
+Step-Sequencer.c:123:      self->division = (const float*)data;
+Step-Sequencer.c:126:      self->noteLengthParam = (const float*)data;
+Step-Sequencer.c:129:      self->latchTranspose = (const float*)data;
+Step-Sequencer.c:132:      self->swing = (const float*)data;
+Step-Sequencer.c:135:      self->randomizeTimming = (const float*)data;
+Step-Sequencer.c:138:      self->velocityCurve = (const float*)data;
+Step-Sequencer.c:141:      self->curveDepth = (float*)data;
+Step-Sequencer.c:144:      self->curveLength = (const float*)data;
+Step-Sequencer.c:166:  msg.event.body.type = self->urid_midiEvent;
+Step-Sequencer.c:180:  const MetroURIs* uris = &self->uris;
+Step-Sequencer.c:194:    self->bpm = ((LV2_Atom_Float*)bpm)->body;
+Step-Sequencer.c:198:    self->speed = ((LV2_Atom_Float*)speed)->body;
+Step-Sequencer.c:204:    self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
+Step-Sequencer.c:205:    self->barsize = beat_barsize; 
+Step-Sequencer.c:207:    if (self->speed != previousSpeed) {
+Step-Sequencer.c:208:      self->phase = beat_beats;
+Step-Sequencer.c:209:      previousSpeed = self->speed;
+Step-Sequencer.c:221:  ModeEnum modeStatus    = (int)*self->mode;  
+Step-Sequencer.c:223:  //if (*self->mode != prevMod || *self->latchTranspose == prevLatch) 
+Step-Sequencer.c:228:        self->playing    = false;
+Step-Sequencer.c:229:        self->through    = true; 
+Step-Sequencer.c:230:        self->notePlayed = 0;
+Step-Sequencer.c:234:        self->playing    = false;
+Step-Sequencer.c:235:        self->through    = true; 
+Step-Sequencer.c:236:        self->notePlayed = 0;
+Step-Sequencer.c:240:        if (self->writeEvents->used > 0)
+Step-Sequencer.c:241:          self->playing = true;
+Step-Sequencer.c:244:        if (*self->latchTranspose == 1 && self->playing == true) {
+Step-Sequencer.c:246:          self->through = false;
+Step-Sequencer.c:248:          self->through = true;
+Step-Sequencer.c:254:        self->through = false;
+Step-Sequencer.c:255:        self->playing = true;
+Step-Sequencer.c:259:        self->through = false;
+Step-Sequencer.c:260:        self->playing = true;
+Step-Sequencer.c:265:  //  prevMod = *self->mode;
+Step-Sequencer.c:266: //   prevLatch = *self->latchTranspose;
+Step-Sequencer.c:269:  if (*self->noteMode == 0) {
+Step-Sequencer.c:285:	if (self->through) {
+Step-Sequencer.c:286:    lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
+Step-Sequencer.c:298:          insertNote(self->writeEvents, msg[1]);
+Step-Sequencer.c:301:          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
+Step-Sequencer.c:304:          self->transpose = msg[1] - self->writeEvents->eventList[0];
+Step-Sequencer.c:307:          insertNote(self->writeEvents, 0);
+Step-Sequencer.c:332:  const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
+Step-Sequencer.c:334:  lv2_atom_sequence_clear(self->port_events_out1);
+Step-Sequencer.c:335:  self->port_events_out1->atom.type = self->port_events_in->atom.type;
+Step-Sequencer.c:338:  LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
+Step-Sequencer.c:340:    if (ev->body.type == self->urid_midiEvent)
+Step-Sequencer.c:349://  if (*self->noteLengthParam != prevFloatLength){ 
+Step-Sequencer.c:350://    noteLength = 0.1 + (*self->noteLengthParam * 0.9);
+Step-Sequencer.c:351://    prevFloatLength = *self->noteLengthParam;
+Step-Sequencer.c:354:  if (self->playing && self->firstBar) 
+Step-Sequencer.c:357:    different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
+Step-Sequencer.c:361:      copyEvents(self->writeEvents, self->playEvents);  
+Step-Sequencer.c:365:    float offset = *self->randomizeTimming * ((rand() % 100) * 0.003);
+Step-Sequencer.c:368:    if (self->phase < 0.2 && self->phase > offset && !trigger && self->playEvents->used > 0) 
+Step-Sequencer.c:372:      if ( self->playEvents->eventList[self->notePlayed] > 0)
+Step-Sequencer.c:375:        midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
+Step-Sequencer.c:377:        int velocity = (int)floor(self->velocityLFO * *self->curveDepth); 
+Step-Sequencer.c:381:        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
+Step-Sequencer.c:386:        self->noteStarted[noteOffIndex] = 1;
+Step-Sequencer.c:391:        self->activeNotes = self->activeNotes + 1;
+Step-Sequencer.c:392:        debug_print("self->activeNotes = %i\n", self->activeNotes);
+Step-Sequencer.c:397:      self->notePlayed++;
+Step-Sequencer.c:398:      self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
+Step-Sequencer.c:401:    { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
+Step-Sequencer.c:403:      if (self->phase > 0.5) 
+Step-Sequencer.c:412:    //for (int i = self->activeNotes - 1; i > - 1; i--) {
+Step-Sequencer.c:414:      if (self->noteLengthTime[noteOffSendIndex] > *self->noteLengthParam)
+Step-Sequencer.c:419:        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+Step-Sequencer.c:420:        self->noteStarted[noteOffSendIndex] = 0;
+Step-Sequencer.c:421:        self->noteLengthTime[noteOffSendIndex] = 0.0; 
+Step-Sequencer.c:422:        self->activeNotes--;
+Step-Sequencer.c:427:  { // self->playing = false, send note offs of current notes.
+Step-Sequencer.c:429:    if ( !cleared && *self->mode < 2 ) {
+Step-Sequencer.c:432:        lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+Step-Sequencer.c:434:      clearSequence(self->writeEvents);
+Step-Sequencer.c:435:      clearSequence(self->playEvents);
+Step-Sequencer.c:440:      self->writeEvents  = (Array* )malloc(sizeof(Array));
+Step-Sequencer.c:441:      self->playEvents   = (Array* )malloc(sizeof(Array));
+Step-Sequencer.c:443:      self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
+Step-Sequencer.c:444:      self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
+Step-Sequencer.c:446:      self->writeEvents->used  = 0;
+Step-Sequencer.c:447:      self->writeEvents->size  = 1;
+Step-Sequencer.c:448:      self->playEvents->used   = 0;
+Step-Sequencer.c:449:      self->playEvents->size   = 1;
+Step-Sequencer.c:450:      self->activeNotes = 0;
+Step-Sequencer.c:451:      self->transpose = 0;
+Step-Sequencer.c:452:      self->firstBar = false;
+Step-Sequencer.c:454:      for (int i = self->activeNotes - 1; i > - 1; i--) {
+Step-Sequencer.c:455:        self->noteLengthTime[i] = 0.0;
+Step-Sequencer.c:459:      self->activeNotes = 0;
+Step-Sequencer.c:475:	self->port_events_out1->atom.type = self->port_events_in->atom.type;
+Step-Sequencer.c:477:  const MetroURIs* uris = &self->uris;
+Step-Sequencer.c:480:  const LV2_Atom_Sequence* in     = self->control;
+Step-Sequencer.c:498:  frequency = calculateFrequency(self->bpm, self->divisionRate);
+Step-Sequencer.c:501:    self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
+Step-Sequencer.c:502:    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth);
+Step-Sequencer.c:504:      if (self->noteStarted[i] > 0)
+Step-Sequencer.c:505:        self->noteLengthTime[i] += frequency / self->rate;
