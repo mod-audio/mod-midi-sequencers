@@ -125,6 +125,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
     case NOTELENGTH:
       self->noteLengthParam = (const float*)data;
       break;
+    case OCTAVESPREAD:
+      self->octaveSpread = (const float*)data;
+      break;
     case TRANSPOSE:
       self->latchTranspose = (const float*)data;
       break;
@@ -371,8 +374,11 @@ sequence(Data* self)
       //TODO look for a cleaner way to filter out the rests 
       if ( self->playEvents->eventList[self->notePlayed] > 0)
       {
+        static size_t octaveIndex = 0;
+        int octave = 12 * octaveIndex - 12; 
+        octaveIndex = (octaveIndex + 1) % (int)*self->octaveSpread;
         //create note on message
-        midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
+        midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
 
         int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth); 
         debug_print("velocity = %i\n", velocity); 
