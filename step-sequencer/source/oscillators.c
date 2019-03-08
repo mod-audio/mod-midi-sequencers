@@ -18,7 +18,6 @@
 
 #include "oscillators.h"
 
-
 //this is a LFO to use for timing of the beatsync
 float* phaseOsc(float frequency, float* phase, float rate, float swing)
 {
@@ -45,6 +44,7 @@ float* velOsc(float frequency, float* velocityLFO, float rate, const float* velo
 {
 
 	double x1 = (*velocityCurve > 0) ? *velocityCurve * 0.01 : 0.1;
+
 	static double phase;
 	static double pos = 0;
 	static double warpedpos;
@@ -54,7 +54,7 @@ float* velOsc(float frequency, float* velocityLFO, float rate, const float* velo
 
 	static double a = 0.5;
 	static double b = 1.0;
-	static double phaseLenght = 2.0;
+	static double phaseLenght = 1.0;
 
   phase = (frequency / 4) / rate;
   m1 = a / x1;
@@ -66,10 +66,9 @@ float* velOsc(float frequency, float* velocityLFO, float rate, const float* velo
   else
     warpedpos = m2*pos + b2;
 
-  *velocityLFO = 127 * ((cos( warpedpos * PI_2 ) * 0.5) + 1);
+  *velocityLFO = 127 * (cos( warpedpos * PI_2 ) + 1) * 0.5;
   //"clip" signal
-  //*velocityLFO = (*velocityLFO >= *curveDepth) ? *curveDepth : *curveDepth - (*curveDepth * 0.5); 
-  //*velocityLFO = (*velocityLFO > 0 ) ? *velocityLFO : 0;   
+  *velocityLFO = (*velocityLFO >= 120) ? 127 : 50; 
   pos+=phase;
 
   while(pos >= phaseLenght )

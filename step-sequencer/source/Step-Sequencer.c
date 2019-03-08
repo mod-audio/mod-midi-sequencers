@@ -380,7 +380,8 @@ sequence(Data* self)
         //create note on message
         midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
 
-        int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth); 
+        int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+        debug_print("velocityLFO = %f\n", self->velocityLFO); 
         debug_print("velocity = %i\n", velocity); 
         //  debug_print("note note %i is send\n", midiNote);
         LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
