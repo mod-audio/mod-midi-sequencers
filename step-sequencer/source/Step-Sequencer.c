@@ -125,6 +125,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
     case NOTELENGTH:
       self->noteLengthParam = (const float*)data;
       break;
+    case OCTAVESPREAD:
+      self->octaveSpread = (const float*)data;
+      break;
     case TRANSPOSE:
       self->latchTranspose = (const float*)data;
       break;
@@ -139,6 +142,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
       break;
     case CURVEDEPTH:
       self->curveDepth = (float*)data;
+      break;
+    case CURVECLIP:
+      self->curveClip = (float*)data;
       break;
     case CURVELENGTH:
       self->curveLength = (const float*)data;
@@ -371,10 +377,14 @@ sequence(Data* self)
       //TODO look for a cleaner way to filter out the rests 
       if ( self->playEvents->eventList[self->notePlayed] > 0)
       {
+        static size_t octaveIndex = 0;
+        int octave = 12 * octaveIndex - 12; 
+        octaveIndex = (octaveIndex + 1) % (int)*self->octaveSpread;
         //create note on message
-        midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose;
+        midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
 
-        int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth); 
+        int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+        debug_print("velocityLFO = %f\n", self->velocityLFO); 
         debug_print("velocity = %i\n", velocity); 
         //  debug_print("note note %i is send\n", midiNote);
         LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
@@ -499,7 +509,8 @@ run(LV2_Handle instance, uint32_t n_samples)
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
-    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth);
+    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
+        self->curveLength, self->curveClip);
     for (int i = 0; i < 2; i++) {
       if (self->noteStarted[i] > 0)
         self->noteLengthTime[i] += frequency / self->rate;

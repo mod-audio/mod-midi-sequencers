@@ -1,1 +1,3 @@
-DRUM SEQEUNCER
+# DRUM SEQUENCER
+
+Drum sequencer comming soon
