@@ -52,6 +52,7 @@ typedef enum PortEnum {
   RANDOMIZETIMMING,
   VELOCITYCURVE,
   CURVEDEPTH,
+  CURVECLIP,
   CURVELENGTH
 } PortEnum;
 
@@ -116,6 +117,7 @@ typedef struct Data {
   const float* velocityCurve;
   const float* curveDepth;
   const float* curveLength;
+  const float* curveClip;
   const float* octaveSpread;
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;

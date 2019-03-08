@@ -143,6 +143,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
     case CURVEDEPTH:
       self->curveDepth = (float*)data;
       break;
+    case CURVECLIP:
+      self->curveClip = (float*)data;
+      break;
     case CURVELENGTH:
       self->curveLength = (const float*)data;
       break;
@@ -506,7 +509,8 @@ run(LV2_Handle instance, uint32_t n_samples)
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
-    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth);
+    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
+        self->curveLength, self->curveClip);
     for (int i = 0; i < 2; i++) {
       if (self->noteStarted[i] > 0)
         self->noteLengthTime[i] += frequency / self->rate;
