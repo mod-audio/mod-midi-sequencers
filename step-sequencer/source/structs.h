@@ -80,7 +80,7 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t *eventList;
+  uint8_t eventList[248];
   size_t used;
   size_t size;
 } Array;
@@ -105,10 +105,8 @@ typedef struct Data {
   bool   clip;
   int    transpose;
 
-  uint8_t writeEventsFixed[248];
-  uint8_t playEventsFixed[248];
-  Array *writeEvents;
-  Array *playEvents;
+  Array* writeEvents;
+  Array* playEvents;
 
   const float* noteMode;
   const float* mode;

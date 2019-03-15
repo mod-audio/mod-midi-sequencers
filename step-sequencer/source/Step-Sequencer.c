@@ -75,9 +75,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   //init objects
   self->writeEvents  = (Array* )malloc(sizeof(Array));
   self->playEvents   = (Array* )malloc(sizeof(Array));
-  //init arrays
-  self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
-  self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));
   
   //init vars
   self->writeEvents->used  = 0;
@@ -329,7 +326,6 @@ sequence(Data* self)
   static bool    different;
   static uint8_t noteOffArr[4] = {0, 0, 0, 0};
   static int  noteOffIndex  = 0; 
-  //static float   noteLength    = 1;
   static uint8_t midiNote      = 0;
   static bool    trigger       = false;
   static bool    cleared       = true;
@@ -449,15 +445,7 @@ sequence(Data* self)
       clearSequence(self->writeEvents);
       clearSequence(self->playEvents);
       
-
-      //TODO create a function for this
-      //init objects
-      self->writeEvents  = (Array* )malloc(sizeof(Array));
-      self->playEvents   = (Array* )malloc(sizeof(Array));
-      //init arrays
-      self->writeEvents->eventList  = (uint8_t *)malloc(sizeof(uint8_t));
-      self->playEvents->eventList   = (uint8_t *)malloc(sizeof(uint8_t));  
-      //init vars
+      //reset vars
       self->writeEvents->used  = 0;
       self->writeEvents->size  = 1;
       self->playEvents->used   = 0;

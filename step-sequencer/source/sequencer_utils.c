@@ -20,9 +20,6 @@
 #include "sequencer_utils.h"
 
 
-
-
-
 float calculateFrequency(uint8_t bpm, float division)
 {
   float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
@@ -51,19 +48,14 @@ bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t le
 
 void insertNote(Array *arr, uint8_t note)
 {
-  if (arr->used == arr->size) {
-    arr->size *= 2;
-    arr->eventList = (uint8_t *)realloc(arr->eventList, arr->size * sizeof(uint8_t));
-  }
-  arr->eventList[arr->used++] = note;
+  arr->eventList[arr->used] = note;
+  arr->used = (arr->used + 1) % 248;
 }
 
 
 //make copy of events from eventList A to eventList B
 void copyEvents(Array* eventListA, Array* eventListB)
 {
-  eventListB->eventList = (uint8_t *)realloc(eventListB->eventList, eventListA->used * sizeof(uint8_t));
-
   eventListB->used = eventListA->used;
   eventListB->size = eventListB->size;
 
@@ -116,7 +108,5 @@ void resetPhase(Data *self)
 
 void clearSequence(Array *arr)
 {
-  free(arr->eventList);
-  arr->eventList = NULL;
   arr->used = arr->size = 0;
 }
