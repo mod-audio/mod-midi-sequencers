@@ -70,7 +70,10 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->beatInMeasure  = 0;
   self->divisionRate   = 4;
 	self->phase          = 0;
-  self->velocityLFO    = 0;  
+  self->velPhase       = 0.998;
+  self->x1             = 0.00000001; 
+  self->velocityLFO    = 0;
+  self->octaveIndex    = 0;  
 	debug_print("test debug\n");
   //init objects
   self->writeEvents  = (Array* )malloc(sizeof(Array));
@@ -78,9 +81,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   
   //init vars
   self->writeEvents->used  = 0;
-  self->writeEvents->size  = 1;
   self->playEvents->used   = 0;
-  self->playEvents->size   = 1;
 
   self->notePlayed  = 0;
   self->transpose   = 0;
@@ -89,6 +90,16 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->firstBar   = false;
   self->playing    = false;
   self->clip       = false;
+
+	//init pointer for velocity pattern
+	self->pattern[0] = &self->patternVel1;
+	self->pattern[1] = &self->patternVel2;
+	self->pattern[2] = &self->patternVel3;
+	self->pattern[3] = &self->patternVel4;
+	self->pattern[4] = &self->patternVel5;
+	self->pattern[5] = &self->patternVel6;
+	self->pattern[6] = &self->patternVel7;
+	self->pattern[7] = &self->patternVel8;
 
   return self;
 }
@@ -102,51 +113,81 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 
   switch (port)
   {
-    case PORT_ATOM_IN:
-      self->port_events_in = (const LV2_Atom_Sequence*)data;
-      break;
-    case PORT_ATOM_OUT1:
-      self->port_events_out1 = (LV2_Atom_Sequence*)data;
-      break;
-    case METRO_CONTROL:
-      self->control = (LV2_Atom_Sequence*)data;
-      break;
-    case NOTEMODE:
-      self->noteMode = (const float*)data;
-      break;
-    case MODE:
-      self->mode = (const float*)data;
-      break;
-    case DIVISION:
-      self->division = (const float*)data;
-      break;
-    case NOTELENGTH:
-      self->noteLengthParam = (const float*)data;
-      break;
-    case OCTAVESPREAD:
-      self->octaveSpread = (const float*)data;
-      break;
-    case TRANSPOSE:
-      self->latchTranspose = (const float*)data;
-      break;
-    case SWING:
-      self->swing = (const float*)data;
-      break;
-    case RANDOMIZETIMMING:
-      self->randomizeTimming = (const float*)data;
-      break;
-    case VELOCITYCURVE:
-      self->velocityCurve = (const float*)data;
-      break;
-    case CURVEDEPTH:
-      self->curveDepth = (float*)data;
-      break;
-    case CURVECLIP:
-      self->curveClip = (float*)data;
-      break;
-    case CURVELENGTH:
-      self->curveLength = (const float*)data;
-      break;
+		case PORT_ATOM_IN:
+			self->port_events_in = (const LV2_Atom_Sequence*)data;
+			break;
+		case PORT_ATOM_OUT1:
+			self->port_events_out1 = (LV2_Atom_Sequence*)data;
+			break;
+		case METRO_CONTROL:
+			self->control = (LV2_Atom_Sequence*)data;
+			break;
+		case NOTEMODE:
+			self->noteMode = (const float*)data;
+			break;
+		case MODE:
+			self->mode = (const float*)data;
+			break;
+		case DIVISION:
+			self->division = (const float*)data;
+			break;
+		case NOTELENGTH:
+			self->noteLengthParam = (const float*)data;
+			break;
+		case OCTAVESPREAD:
+			self->octaveSpread = (const float*)data;
+			break;
+		case TRANSPOSE:
+			self->latchTranspose = (const float*)data;
+			break;
+		case SWING:
+			self->swing = (const float*)data;
+			break;
+		case RANDOMIZETIMMING:
+			self->randomizeTimming = (const float*)data;
+			break;
+		case VELOCITYMODE:
+			self->velocityMode = (const float*)data;
+			break;
+		case VELOCITYCURVE:
+			self->velocityCurve = (const float*)data;
+			break;
+		case CURVEDEPTH:
+			self->curveDepth = (const float*)data;
+			break;
+		case CURVECLIP:
+			self->curveClip = (const float*)data;
+			break;
+		case CURVELENGTH:
+			self->curveLength = (const float*)data;
+			break;
+		case VELOCITYPATTERNLENGTH:
+			self->velocityPatternLength = (const float*)data;
+			break;
+		case PATTERNVEL1:
+			self->patternVel1 = (const float*)data;
+			break;
+		case PATTERNVEL2:
+			self->patternVel2 = (const float*)data;
+			break;
+		case PATTERNVEL3:
+			self->patternVel3 = (const float*)data;
+			break;
+		case PATTERNVEL4:
+			self->patternVel4 = (const float*)data;
+			break;
+		case PATTERNVEL5:
+			self->patternVel5 = (const float*)data;
+			break;
+		case PATTERNVEL6:
+			self->patternVel6 = (const float*)data;
+			break;
+		case PATTERNVEL7:
+			self->patternVel7 = (const float*)data;
+			break;
+		case PATTERNVEL8:
+			self->patternVel8 = (const float*)data;
+			break;
   }
 }
 
@@ -219,8 +260,6 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 static int
 switchMode(Data* self)
 {
-  //static float prevMod   = 1;
-  //static float prevLatch = 1;
   static int modeHandle  = 0;
   ModeEnum modeStatus    = (int)*self->mode;  
   
@@ -282,10 +321,8 @@ static void
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t out_capacity_1, void* ev)
 {
   static size_t count = 0;
-
-  //TODO add record current loop
   
-  //MIDI through   
+	//MIDI through   
 	if (self->through) {
     lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
   }
@@ -349,11 +386,6 @@ sequence(Data* self)
     }
   }
 
-//  if (*self->noteLengthParam != prevFloatLength){ 
-//    noteLength = 0.1 + (*self->noteLengthParam * 0.9);
-//    prevFloatLength = *self->noteLengthParam;
-//  }
-
   if (self->playing && self->firstBar) 
   {
     //makes a copy of the event list if the there are new events
@@ -374,33 +406,37 @@ sequence(Data* self)
       //TODO look for a cleaner way to filter out the rests 
       if ( self->playEvents->eventList[self->notePlayed] > 0)
       {
-        static size_t octaveIndex = 0;
-        int octave = 12 * octaveIndex - 12; 
-        octaveIndex = (octaveIndex + 1) % (int)*self->octaveSpread;
+        int octave = 12 * self->octaveIndex - 12; 
+        self->octaveIndex = (self->octaveIndex + 1) % (int)*self->octaveSpread;
         //create note on message
         midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
-
-        int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
-        
+				
+				static int patternIndex = 0;
+				static int velocity;
+       
+        //TODO create function for velocity handling
+        if (*self->velocityMode == 0) {
+          velocity = 80;
+        } else if (*self->velocityMode == 1) { 
+          velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+				} else if (*self->velocityMode == 2) {
+          velocity = (int)floor(**self->pattern[patternIndex]);
+          patternIndex = (patternIndex + 1) % (int)floor(*self->velocityPatternLength); 
+				}
+         
         if (self->clip)
           self->clip = false;
 
-        debug_print("velocityLFO = %f\n", self->velocityLFO); 
-        debug_print("velocity = %i\n", velocity); 
-        //  debug_print("note note %i is send\n", midiNote);
         LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
 
       }
-        //prevNote = midiNote;
-        noteOffArr[noteOffIndex] = midiNote;
-        self->noteStarted[noteOffIndex] = 1;
-        //debug_print("noteOffIndex %i\n", noteOffIndex);
+      //prevNote = midiNote;
+      noteOffArr[noteOffIndex] = midiNote;
+      self->noteStarted[noteOffIndex] = 1;
 
-        noteOffIndex ^= 1;
-        //debug_print("noteOffIndex after mudulo =  %i\n", noteOffIndex);
-        self->activeNotes = self->activeNotes + 1;
-        debug_print("self->activeNotes = %i\n", self->activeNotes);
+      noteOffIndex ^= 1;
+      self->activeNotes = self->activeNotes + 1;
       
       cleared = false;
       trigger = true;
@@ -424,8 +460,6 @@ sequence(Data* self)
       
       if (self->noteLengthTime[noteOffSendIndex] > *self->noteLengthParam)
       { 
-        debug_print("note off is send for %i\n",noteOffArr[noteOffSendIndex]);
-       // debug_print("i in note off = %i\n", i); 
         LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, noteOffArr[noteOffSendIndex], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
         self->noteStarted[noteOffSendIndex] = 0;
@@ -447,12 +481,11 @@ sequence(Data* self)
       
       //reset vars
       self->writeEvents->used  = 0;
-      self->writeEvents->size  = 1;
       self->playEvents->used   = 0;
-      self->playEvents->size   = 1;
-      self->activeNotes = 0;
-      self->transpose = 0;
-      self->firstBar = false;
+      self->activeNotes        = 0;
+      self->transpose          = 0;
+      self->firstBar           = false;
+      self->octaveIndex        = 0;
      
       for (int i = self->activeNotes - 1; i > - 1; i--) {
         self->noteLengthTime[i] = 0.0;

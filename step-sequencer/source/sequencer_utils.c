@@ -57,7 +57,6 @@ void insertNote(Array *arr, uint8_t note)
 void copyEvents(Array* eventListA, Array* eventListB)
 {
   eventListB->used = eventListA->used;
-  eventListB->size = eventListB->size;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
     eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
@@ -71,16 +70,17 @@ void resetPhase(Data *self)
   static float previousDevision;
   static bool  previousPlaying = false;
   static bool  resetPhase      = true;
+  static float velInitVal      = 0.998;
 
   if (self->beatInMeasure < 0.5 && resetPhase) {
+
     //TODO move elsewhere
     //debug_print("self->mode = %f\n", *self->mode);
     //debug_print("self->playing = %i\n", self->playing);
     //debug_print("previousPlaying = %i\n", previousPlaying);
     if (self->playing != previousPlaying) {
       if (*self->mode > 1) {
-        debug_print("ja ik ben er hoor");
-        self->phase = 0.0;
+        self->velPhase = velInitVal;
         self->firstBar = true;
       }  
       previousPlaying = self->playing;
@@ -88,6 +88,7 @@ void resetPhase(Data *self)
 
     if (*self->division != previousDevision) {
       self->phase        = 0.0;
+      self->velPhase     = velInitVal;
       self->divisionRate = *self->division;  
       previousDevision   = *self->division; 
     }
@@ -108,5 +109,5 @@ void resetPhase(Data *self)
 
 void clearSequence(Array *arr)
 {
-  arr->used = arr->size = 0;
+  arr->used = 0;
 }
