@@ -102,8 +102,11 @@ typedef struct Data {
   bool   through;
   bool   firstBar;
   bool   playing;
+  bool   clip;
   int    transpose;
 
+  uint8_t writeEventsFixed[248];
+  uint8_t playEventsFixed[248];
   Array *writeEvents;
   Array *playEvents;
 

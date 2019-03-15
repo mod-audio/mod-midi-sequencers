@@ -91,6 +91,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->through    = true;
   self->firstBar   = false;
   self->playing    = false;
+  self->clip       = false;
 
   return self;
 }
@@ -384,6 +385,10 @@ sequence(Data* self)
         midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
 
         int velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+        
+        if (self->clip)
+          self->clip = false;
+
         debug_print("velocityLFO = %f\n", self->velocityLFO); 
         debug_print("velocity = %i\n", velocity); 
         //  debug_print("note note %i is send\n", midiNote);
@@ -510,7 +515,7 @@ run(LV2_Handle instance, uint32_t n_samples)
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
     self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
-        self->curveLength, self->curveClip);
+        self->curveLength, self->curveClip, self);
     for (int i = 0; i < 2; i++) {
       if (self->noteStarted[i] > 0)
         self->noteLengthTime[i] += frequency / self->rate;
