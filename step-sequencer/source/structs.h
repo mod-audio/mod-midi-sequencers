@@ -96,26 +96,31 @@ typedef struct Array {
 
 typedef struct Data {
 
-  double rate;   // Sample rate
-  double velPhase;
-  double x1;
-  float  bpm;
-  float  barsize;
-  float  speed; // Transport speed (usually 0=stop, 1=play)
-  float  phase;
-  float  velocityLFO;
-  float  noteLengthTime[2];
-  int    activeNotes;
-  int    noteStarted[2];
-  float  beatInMeasure;
-  float  divisionRate;
-  size_t notePlayed;
-  size_t octaveIndex;
-  bool   through;
-  bool   firstBar;
-  bool   playing;
-  bool   clip;
-  int    transpose;
+  double  rate;   // Sample rate
+  double  velPhase;
+  double  x1;
+  float   bpm;
+  float   barsize;
+  float   speed; // Transport speed (usually 0=stop, 1=play)
+  float   phase;
+  float   velocityLFO;
+  float   noteLengthTime[2];
+  int     activeNotes;
+  int     noteStarted[2];
+  uint8_t noteOffArr[4];
+  float   beatInMeasure;
+  float   divisionRate;
+  size_t  notePlayed;
+  size_t  octaveIndex;
+  size_t  noteOffIndex;
+  size_t  noteOffSendIndex;
+  bool    through;
+  bool    firstBar;
+  bool    playing;
+  bool    clip;
+  bool    trigger;
+  bool    cleared;
+  int     transpose;
 	
 	const float** pattern[8];
   Array* writeEvents;
