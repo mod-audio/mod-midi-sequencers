@@ -264,11 +264,25 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 }
 
 
+//clear all arrays and set values back to initial state TODO check adding trigger?
+static void
+clearNotes(Data *self, const uint32_t outCapacity)
+{
+  //TODO only note offs for notes that are currently being played
+  for (size_t mNotes = 0; mNotes < 127; mNotes++) {
+    LV2_Atom_MIDI msg = createMidiEvent(self, 128, mNotes, 0);
+    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&msg);
+  }
+}
+
+
+
 static int
-switchMode(Data* self)
+switchMode(Data* self, const uint32_t outCapacity)
 {
   static int modeHandle  = 0;
-  ModeEnum modeStatus    = (int)*self->mode;  
+  ModeEnum modeStatus    = (int)*self->mode; 
+  //TODO set normal value 
   static int prevMod     = 100;
   static int prevLatch   = 100; 
   if (*self->mode != prevMod || *self->latchTranspose != prevLatch) 
@@ -295,6 +309,12 @@ switchMode(Data* self)
         if (*self->latchTranspose == 1 && self->playing == true) {
           modeHandle = 3;
           self->through = false;
+        } 
+        else if (*self->latchTranspose == 0 ) {
+          modeHandle = 5; 
+          self->through = false;
+          self->playing = false;
+          clearNotes(self, outCapacity);
         } else {
           self->through = true;
           modeHandle = 0;
@@ -339,7 +359,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   switch (status)
   {
     case LV2_MIDI_MSG_NOTE_ON:
-
+      
       switch (modeHandle)
       {
         case 0:
@@ -356,12 +376,22 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
         case 4:
           insertNote(self->writeEvents, 0);
           break;
+        case 5:
+          self->playing = true;
+          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
       }
       break;
+    
     case LV2_MIDI_MSG_NOTE_OFF:
+      if (modeHandle == 5) {
+        self->playing = false;
+        self->notePlayed = 0;
+        clearNotes(self, outCapacity);
+      }
       break;
-    default:
-      break;
+//    default:
+//      break;
   }
 }
 
@@ -474,35 +504,27 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 }
 
 
-//clear all arrays and set values back to initial state TODO check adding trigger?
+  
 static void
-clearNotes(Data *self, const uint32_t outCapacity)
+stopSequence(Data* self)
 {
-  if ( !self->cleared && *self->mode < 2 ) 
-  {
-    for (size_t mNotes = 0; mNotes < 127; mNotes++) {
-      LV2_Atom_MIDI msg = createMidiEvent(self, 128, mNotes, 0);
-      lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&msg);
-    }
+  clearSequence(self->writeEvents);
+  clearSequence(self->playEvents);
 
-    clearSequence(self->writeEvents);
-    clearSequence(self->playEvents);
+  self->writeEvents->used  = 0;
+  self->playEvents->used   = 0;
+  self->activeNotes        = 0;
+  self->transpose          = 0;
+  self->firstBar           = false;
+  self->octaveIndex        = 0;
 
-    self->writeEvents->used  = 0;
-    self->playEvents->used   = 0;
-    self->activeNotes        = 0;
-    self->transpose          = 0;
-    self->firstBar           = false;
-    self->octaveIndex        = 0;
-
-    for (int i = self->activeNotes - 1; i > - 1; i--) {
-      self->noteLengthTime[i] = 0.0;
-    }
-
-    self->noteOffIndex = 0;
-    self->activeNotes = 0;
-    self->cleared = true;
+  for (int i = self->activeNotes - 1; i > - 1; i--) {
+    self->noteLengthTime[i] = 0.0;
   }
+
+  self->noteOffIndex = 0;
+  self->activeNotes = 0;
+  self->cleared = true;
 }
 
 static void
@@ -535,15 +557,21 @@ sequence(Data* self, const uint32_t outCapacity)
 
   } else // self->playing = false, send note offs of current notes. 
   { 
+    if ( !self->cleared && *self->mode < 2 ) 
+    {
     clearNotes(self, outCapacity);
+    stopSequence(self);
+    }
   }
 }
+
+
 
 //sequence the MIDI notes that are written into an array
 static void 
 handleEvents(Data* self, const uint32_t outCapacity)
 {
-  int modeHandle = switchMode(self);
+  int modeHandle = switchMode(self, outCapacity);
   
   // Read incoming events
   LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
