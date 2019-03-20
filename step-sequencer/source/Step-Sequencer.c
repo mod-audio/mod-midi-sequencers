@@ -325,13 +325,13 @@ switchMode(Data* self)
 
 
 static void 
-handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t out_capacity_1, void* ev)
+handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
 {
   static size_t count = 0;
   
 	//MIDI through   
 	if (self->through) {
-    lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, ev);
+    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
   }
   
   switch (status)
@@ -366,12 +366,12 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 static uint32_t 
 handlePorts(Data* self)
 {
-  const uint32_t out_capacity_1 = self->port_events_out1->atom.size;
+  const uint32_t outCapacity = self->port_events_out1->atom.size;
   // Write an empty Sequence header to the outputs
   lv2_atom_sequence_clear(self->port_events_out1);
   self->port_events_out1->atom.type = self->port_events_in->atom.type;
  
-  return out_capacity_1; 
+  return outCapacity; 
 }
 
 
@@ -430,53 +430,62 @@ velocityHandler(Data* self)
 }
 
 static void 
-handleNoteOn(Data* self, const uint32_t out_capacity_1)
+handleNoteOn(Data* self, const uint32_t outCapacity)
 {
+  //get octave and velocity
   int octave = octaveHandler(self);
   int velocity = velocityHandler(self);
-  //create note on message
+  
+  //create MIDI note on message
   uint8_t midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
 
+  //send MIDI note on message
   LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
-  lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&onMsg);
+  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
 
-  //prevNote = midiNote;
+  //store MIDI note in array for the to create a note off later
   self->noteOffArr[self->noteOffIndex] = midiNote;
   self->noteStarted[self->noteOffIndex] = 1;
-
+  
+  //toggle noteOffIndex between 0 and 1
   self->noteOffIndex ^= 1;
   self->activeNotes = self->activeNotes + 1;
 
+  //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
   self->cleared = false;
   self->trigger = true;
+  
   //increment sequence index 
   self->notePlayed++;
   self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
 }
 
 static void
-handleNoteOff(Data* self, const uint32_t out_capacity_1)
+handleNoteOff(Data* self, const uint32_t outCapacity)
 {
   LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->noteOffArr[self->noteOffSendIndex], 0);
-  lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&offMsg);
+  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
   self->noteStarted[self->noteOffSendIndex] = 0;
   self->noteLengthTime[self->noteOffSendIndex] = 0.0; 
   self->activeNotes--;
   self->noteOffSendIndex ^= 1;
 }
 
+
+//clear all arrays and set values back to initial state TODO check adding trigger?
 static void
-clearNotes(Data *self, const uint32_t out_capacity_1)
+clearNotes(Data *self, const uint32_t outCapacity)
 {
-  if ( !self->cleared && *self->mode < 2 ) {
+  if ( !self->cleared && *self->mode < 2 ) 
+  {
     for (size_t mNotes = 0; mNotes < 127; mNotes++) {
       LV2_Atom_MIDI msg = createMidiEvent(self, 128, mNotes, 0);
-      lv2_atom_sequence_append_event(self->port_events_out1, out_capacity_1, (LV2_Atom_Event*)&msg);
+      lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&msg);
     }
+
     clearSequence(self->writeEvents);
     clearSequence(self->playEvents);
 
-    //reset vars
     self->writeEvents->used  = 0;
     self->playEvents->used   = 0;
     self->activeNotes        = 0;
@@ -494,27 +503,10 @@ clearNotes(Data *self, const uint32_t out_capacity_1)
   }
 }
 
-
-//sequence the MIDI notes that are written into an array
-static void 
-sequence(Data* self)
+static void
+sequence(Data* self, const uint32_t outCapacity)
 {
-  int modeHandle = switchMode(self);
   applyDifference(self);
-  
-  // Get the capacity
-  const uint32_t out_capacity_1 = handlePorts(self); 
-
-  // Read incoming events
-  LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
-  {
-    if (ev->body.type == self->urid_midiEvent)
-    {
-      const uint8_t* const msg = (const uint8_t*)(ev + 1);
-      const uint8_t status = msg[0] & 0xF0;
-      handleNotes(self, msg, status, modeHandle, out_capacity_1, ev);
-    }
-  }
 
   if (self->playing && self->firstBar) 
   {
@@ -524,7 +516,7 @@ sequence(Data* self)
     {
       if ( self->playEvents->eventList[self->notePlayed] > 0)
       {
-        handleNoteOn(self, out_capacity_1); 
+        handleNoteOn(self, outCapacity); 
       }
     } else 
     { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
@@ -536,12 +528,30 @@ sequence(Data* self)
 
     if (self->noteLengthTime[self->noteOffSendIndex] > *self->noteLengthParam)
     {
-     handleNoteOff(self, out_capacity_1); 
+     handleNoteOff(self, outCapacity); 
     }
 
   } else // self->playing = false, send note offs of current notes. 
   { 
-    clearNotes(self, out_capacity_1);
+    clearNotes(self, outCapacity);
+  }
+}
+
+//sequence the MIDI notes that are written into an array
+static void 
+handleEvents(Data* self, const uint32_t outCapacity)
+{
+  int modeHandle = switchMode(self);
+  
+  // Read incoming events
+  LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
+  {
+    if (ev->body.type == self->urid_midiEvent)
+    {
+      const uint8_t* const msg = (const uint8_t*)(ev + 1);
+      const uint8_t status = msg[0] & 0xF0;
+      handleNotes(self, msg, status, modeHandle, outCapacity, ev);
+    }
   }
 }
 
@@ -577,6 +587,9 @@ run(LV2_Handle instance, uint32_t n_samples)
   }
   resetPhase(self);
   frequency = calculateFrequency(self->bpm, self->divisionRate);
+  // Get the capacity
+  const uint32_t outCapacity = handlePorts(self); 
+  
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
@@ -586,8 +599,9 @@ run(LV2_Handle instance, uint32_t n_samples)
       if (self->noteStarted[i] > 0)
         self->noteLengthTime[i] += frequency / self->rate;
     }
+    sequence(self, outCapacity);
   }
-  sequence(self);
+  handleEvents(self, outCapacity);
 }
 
 
