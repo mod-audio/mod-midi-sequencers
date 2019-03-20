@@ -269,9 +269,10 @@ switchMode(Data* self)
 {
   static int modeHandle  = 0;
   ModeEnum modeStatus    = (int)*self->mode;  
-  
-  //if (*self->mode != prevMod || *self->latchTranspose == prevLatch) 
- // {
+  static int prevMod     = 100;
+  static int prevLatch   = 100; 
+  if (*self->mode != prevMod || *self->latchTranspose != prevLatch) 
+  {
     switch (modeStatus)
     {
       case CLEAR_ALL:
@@ -310,12 +311,13 @@ switchMode(Data* self)
         self->playing = true;
         break;
       case UNDO_LAST:
+        //TODO works but it should be aware of sequence
+        self->writeEvents->used--;
         break;
     }
-  //  prevMod = *self->mode;
- //   prevLatch = *self->latchTranspose;
- //
- // }
+    prevMod = *self->mode;
+    prevLatch = *self->latchTranspose;
+  }
   if (*self->noteMode == 0) {
     modeHandle = 4;
   }
@@ -564,7 +566,6 @@ run(LV2_Handle instance, uint32_t n_samples)
 
   static float frequency; 
 
-	// LV2 is so nice...
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
   const MetroURIs* uris = &self->uris;
