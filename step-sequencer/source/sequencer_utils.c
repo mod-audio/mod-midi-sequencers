@@ -70,7 +70,7 @@ void resetPhase(Data *self)
   static float previousDevision;
   static bool  previousPlaying = false;
   static bool  resetPhase      = true;
-  static float velInitVal      = 0.998;
+  static float velInitVal      = 0.000000009;
 
   if (self->beatInMeasure < 0.5 && resetPhase) {
 

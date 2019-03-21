@@ -70,7 +70,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->beatInMeasure    = 0;
   self->divisionRate     = 4;
 	self->phase            = 0;
-  self->velPhase         = 0.998;
+  self->velPhase         = 0.000000009;
   self->x1               = 0.00000001; 
   self->velocityLFO      = 0;
   self->octaveIndex      = 0;
@@ -458,6 +458,8 @@ velocityHandler(Data* self)
   if (self->clip)
     self->clip = false;
   
+  debug_print("velocity = %i\n", velocity);
+
   return velocity;
 }
 

@@ -79,8 +79,7 @@ float* velOsc(float frequency, float* velocityLFO, float rate,
 
   while (self->velPhase >= phaseLenght) {
     self->velPhase-= phaseLenght;
-    self->x1 = (*self->velocityCurve > 0) ? *self->velocityCurve * 0.01 : 0.0000001;
-    debug_print("x1 = %f\n", self->x1);
+    self->x1 = (*self->velocityCurve > 0) ? *self->velocityCurve * 0.01 : 0.00000009;
   }
    
 	return velocityLFO;
