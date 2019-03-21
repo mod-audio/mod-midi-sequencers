@@ -358,8 +358,10 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   
   switch (status)
   {
+    static size_t notesPressed = 0;
+
     case LV2_MIDI_MSG_NOTE_ON:
-      
+      notesPressed++;   
       switch (modeHandle)
       {
         case 0:
@@ -384,7 +386,8 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
       break;
     
     case LV2_MIDI_MSG_NOTE_OFF:
-      if (modeHandle == 5) {
+      notesPressed--;
+      if (modeHandle == 5 && notesPressed == 0) {
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
