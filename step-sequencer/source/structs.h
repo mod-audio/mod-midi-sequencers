@@ -50,10 +50,20 @@ typedef enum PortEnum {
   TRANSPOSE,
   SWING,
   RANDOMIZETIMMING,
+	VELOCITYMODE,
   VELOCITYCURVE,
   CURVEDEPTH,
   CURVECLIP,
-  CURVELENGTH
+  CURVELENGTH,
+	VELOCITYPATTERNLENGTH,
+	PATTERNVEL1,
+	PATTERNVEL2,
+	PATTERNVEL3,
+	PATTERNVEL4,
+	PATTERNVEL5,
+	PATTERNVEL6,
+	PATTERNVEL7,
+	PATTERNVEL8
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -80,32 +90,41 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t *eventList;
+  uint8_t eventList[248];
   size_t used;
-  size_t size;
 } Array;
 
 typedef struct Data {
 
-  double rate;   // Sample rate
-  float  bpm;
-  float  barsize;
-  float  speed; // Transport speed (usually 0=stop, 1=play)
-  float  phase;
-  float  velocityLFO;
-  float  noteLengthTime[2];
-  int    activeNotes;
-  int    noteStarted[2];
-  float  beatInMeasure;
-  float  divisionRate;
-  size_t notePlayed;
-  bool   through;
-  bool   firstBar;
-  bool   playing;
-  int    transpose;
-
-  Array *writeEvents;
-  Array *playEvents;
+  double  rate;   // Sample rate
+  double  velPhase;
+  double  x1;
+  float   bpm;
+  float   barsize;
+  float   speed; // Transport speed (usually 0=stop, 1=play)
+  float   phase;
+  float   velocityLFO;
+  float   noteLengthTime[2];
+  int     activeNotes;
+  int     noteStarted[2];
+  uint8_t noteOffArr[4];
+  float   beatInMeasure;
+  float   divisionRate;
+  size_t  notePlayed;
+  size_t  octaveIndex;
+  size_t  noteOffIndex;
+  size_t  noteOffSendIndex;
+  bool    through;
+  bool    firstBar;
+  bool    playing;
+  bool    clip;
+  bool    trigger;
+  bool    cleared;
+  int     transpose;
+	
+	const float** pattern[8];
+  Array* writeEvents;
+  Array* playEvents;
 
   const float* noteMode;
   const float* mode;
@@ -114,11 +133,22 @@ typedef struct Data {
   const float* latchTranspose;
   const float* swing;
   const float* randomizeTimming;
+	const float* velocityMode;
   const float* velocityCurve;
   const float* curveDepth;
   const float* curveLength;
   const float* curveClip;
   const float* octaveSpread;
+	const float* velocityPatternLength;
+	const float* patternVel1;
+	const float* patternVel2;
+	const float* patternVel3;
+	const float* patternVel4;
+	const float* patternVel5;
+	const float* patternVel6;
+	const float* patternVel7;
+	const float* patternVel8;
+
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
 
