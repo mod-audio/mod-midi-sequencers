@@ -90,13 +90,14 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
   self->notePlayed  = 0;
   self->transpose   = 0;
- 
-  self->trigger    = false;
-  self->cleared    = true; 
-  self->through    = true;
-  self->firstBar   = false;
-  self->playing    = false;
-  self->clip       = false;
+
+  self->firstRecordedNote = false; 
+  self->trigger           = false;
+  self->cleared           = true; 
+  self->through           = true;
+  self->firstBar          = false;
+  self->playing           = false;
+  self->clip              = false;
 
 	//init pointer for velocity pattern
 	self->pattern[0] = &self->patternVel1;
@@ -296,12 +297,12 @@ switchMode(Data* self, const uint32_t outCapacity)
         modeHandle       = 0;
         break;
       case RECORD:
-        self->playing    = false;
-        self->through    = true; 
-        self->notePlayed = 0;
-        modeHandle       = 1;  
+        self->firstRecordedNote = false;
+        self->through           = true; 
+        modeHandle              = 6;  
         break;
       case PLAY:
+
         if (self->writeEvents->used > 0)
           self->playing = true;
         
@@ -359,7 +360,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   switch (status)
   {
     static size_t notesPressed = 0;
-
+    
     case LV2_MIDI_MSG_NOTE_ON:
       notesPressed++;   
       switch (modeHandle)
@@ -381,6 +382,17 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
         case 5:
           self->playing = true;
           self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
+        case 6:
+          if (!self->firstRecordedNote) {
+            self->playing    = false;
+            self->through    = true; 
+            self->notePlayed = 0;
+            insertNote(self->writeEvents, msg[1]);
+            self->firstRecordedNote = true;
+          } else {
+            insertNote(self->writeEvents, msg[1]);
+          }
           break;
       }
       break;

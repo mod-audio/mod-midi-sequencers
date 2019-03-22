@@ -114,6 +114,7 @@ typedef struct Data {
   size_t  octaveIndex;
   size_t  noteOffIndex;
   size_t  noteOffSendIndex;
+  bool    firstRecordedNote;
   bool    through;
   bool    firstBar;
   bool    playing;
