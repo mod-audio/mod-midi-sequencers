@@ -277,6 +277,144 @@ clearNotes(Data *self, const uint32_t outCapacity)
 }
 
 
+static void
+stopSequence(Data* self)
+{
+  clearSequence(self->writeEvents);
+  clearSequence(self->playEvents);
+
+  self->writeEvents->used  = 0;
+  self->playEvents->used   = 0;
+  self->activeNotes        = 0;
+  self->transpose          = 0;
+  self->firstBar           = false;
+  self->trigger            = false;
+  self->octaveIndex        = 0;
+  self->notePlayed         = 0;
+  self->octaveIndex        = 0;
+
+  for (int i = self->activeNotes - 1; i > - 1; i--) {
+    self->noteLengthTime[i] = 0.0;
+  }
+
+  self->noteOffIndex     = 0;
+  self->noteOffSendIndex = 0; 
+  self->activeNotes      = 0;
+  self->cleared          = true;
+}
+
+
+
+static uint32_t 
+handlePorts(Data* self)
+{
+  const uint32_t outCapacity = self->port_events_out1->atom.size;
+  // Write an empty Sequence header to the outputs
+  lv2_atom_sequence_clear(self->port_events_out1);
+  self->port_events_out1->atom.type = self->port_events_in->atom.type;
+ 
+  return outCapacity; 
+}
+
+
+static void
+applyDifference(Data* self)
+{
+  static bool different;
+  //makes a copy of the event list if the there are new events
+  different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
+
+  if (different)
+  {
+    copyEvents(self->writeEvents, self->playEvents);  
+    different = false;
+  }
+}
+
+
+static float
+applyRandomTiming(Data* self)
+{
+  return *self->randomizeTimming * ((rand() % 100) * 0.003);
+}
+
+
+static uint8_t 
+octaveHandler(Data* self)
+{
+  int octave = 12 * self->octaveIndex - 12; 
+  self->octaveIndex = (self->octaveIndex + 1) % (int)*self->octaveSpread;
+  
+  return octave;
+}
+
+
+static uint8_t 
+velocityHandler(Data* self)
+{
+  static int patternIndex = 0;
+  static int velocity;
+
+  //TODO create function for velocity handling
+  if (*self->velocityMode == 0) {
+    velocity = 80;
+  } else if (*self->velocityMode == 1) { 
+    velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+  } else if (*self->velocityMode == 2) {
+    velocity = (int)floor(**self->pattern[patternIndex]);
+    patternIndex = (patternIndex + 1) % (int)floor(*self->velocityPatternLength); 
+  }
+
+  if (self->clip)
+    self->clip = false;
+
+  return velocity;
+}
+
+
+static void 
+handleNoteOn(Data* self, const uint32_t outCapacity)
+{
+  //get octave and velocity
+  int octave = octaveHandler(self);
+  int velocity = velocityHandler(self);
+  
+  //create MIDI note on message
+  uint8_t midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
+
+  //send MIDI note on message
+  LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
+  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
+
+  //store MIDI note in array for the to create a note off later
+  self->noteOffArr[self->noteOffIndex] = midiNote;
+  self->noteStarted[self->noteOffIndex] = 1;
+  
+  //toggle noteOffIndex between 0 and 1
+  self->noteOffIndex ^= 1;
+  self->activeNotes = self->activeNotes + 1;
+
+  //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
+  self->cleared = false;
+  self->trigger = true;
+  
+  //increment sequence index 
+  self->notePlayed++;
+  self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
+}
+
+static void
+handleNoteOff(Data* self, const uint32_t outCapacity)
+{
+  LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->noteOffArr[self->noteOffSendIndex], 0);
+  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
+  self->noteStarted[self->noteOffSendIndex] = 0;
+  self->noteLengthTime[self->noteOffSendIndex] = 0.0; 
+  self->activeNotes--;
+  self->noteOffSendIndex ^= 1;
+}
+
+
 
 static int
 switchMode(Data* self, const uint32_t outCapacity)
@@ -291,9 +429,9 @@ switchMode(Data* self, const uint32_t outCapacity)
     switch (modeStatus)
     {
       case CLEAR_ALL:
+        clearNotes(self, outCapacity);
+        stopSequence(self);
         self->playing    = false;
-        self->through    = true; 
-        self->notePlayed = 0;
         modeHandle       = 0;
         break;
       case RECORD:
@@ -385,9 +523,8 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           break;
         case 6:
           if (!self->firstRecordedNote) {
-            self->playing    = false;
-            self->through    = true; 
-            self->notePlayed = 0;
+            self->playing = false;
+            stopSequence(self);
             insertNote(self->writeEvents, msg[1]);
             self->firstRecordedNote = true;
           } else {
@@ -410,139 +547,9 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   }
 }
 
-static uint32_t 
-handlePorts(Data* self)
-{
-  const uint32_t outCapacity = self->port_events_out1->atom.size;
-  // Write an empty Sequence header to the outputs
-  lv2_atom_sequence_clear(self->port_events_out1);
-  self->port_events_out1->atom.type = self->port_events_in->atom.type;
- 
-  return outCapacity; 
-}
-
-
-static void
-applyDifference(Data* self)
-{
-  static bool different;
-  //makes a copy of the event list if the there are new events
-  different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
-
-  if (different)
-  {
-    copyEvents(self->writeEvents, self->playEvents);  
-    different = false;
-  }
-}
-
-
-static float
-applyRandomTiming(Data* self)
-{
-  return *self->randomizeTimming * ((rand() % 100) * 0.003);
-}
-
-
-static uint8_t 
-octaveHandler(Data* self)
-{
-  int octave = 12 * self->octaveIndex - 12; 
-  self->octaveIndex = (self->octaveIndex + 1) % (int)*self->octaveSpread;
-  
-  return octave;
-}
-
-
-static uint8_t 
-velocityHandler(Data* self)
-{
-  static int patternIndex = 0;
-  static int velocity;
-
-  //TODO create function for velocity handling
-  if (*self->velocityMode == 0) {
-    velocity = 80;
-  } else if (*self->velocityMode == 1) { 
-    velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
-  } else if (*self->velocityMode == 2) {
-    velocity = (int)floor(**self->pattern[patternIndex]);
-    patternIndex = (patternIndex + 1) % (int)floor(*self->velocityPatternLength); 
-  }
-
-  if (self->clip)
-    self->clip = false;
-  
-  debug_print("velocity = %i\n", velocity);
-
-  return velocity;
-}
-
-static void 
-handleNoteOn(Data* self, const uint32_t outCapacity)
-{
-  //get octave and velocity
-  int octave = octaveHandler(self);
-  int velocity = velocityHandler(self);
-  
-  //create MIDI note on message
-  uint8_t midiNote = self->playEvents->eventList[self->notePlayed] + self->transpose + octave;
-
-  //send MIDI note on message
-  LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
-  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
-
-  //store MIDI note in array for the to create a note off later
-  self->noteOffArr[self->noteOffIndex] = midiNote;
-  self->noteStarted[self->noteOffIndex] = 1;
-  
-  //toggle noteOffIndex between 0 and 1
-  self->noteOffIndex ^= 1;
-  self->activeNotes = self->activeNotes + 1;
-
-  //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
-  self->cleared = false;
-  self->trigger = true;
-  
-  //increment sequence index 
-  self->notePlayed++;
-  self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
-}
-
-static void
-handleNoteOff(Data* self, const uint32_t outCapacity)
-{
-  LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->noteOffArr[self->noteOffSendIndex], 0);
-  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
-  self->noteStarted[self->noteOffSendIndex] = 0;
-  self->noteLengthTime[self->noteOffSendIndex] = 0.0; 
-  self->activeNotes--;
-  self->noteOffSendIndex ^= 1;
-}
 
 
   
-static void
-stopSequence(Data* self)
-{
-  clearSequence(self->writeEvents);
-  clearSequence(self->playEvents);
-
-  self->writeEvents->used  = 0;
-  self->playEvents->used   = 0;
-  self->activeNotes        = 0;
-  self->transpose          = 0;
-  self->firstBar           = false;
-  self->octaveIndex        = 0;
-
-  for (int i = self->activeNotes - 1; i > - 1; i--) {
-    self->noteLengthTime[i] = 0.0;
-  }
-
-  self->noteOffIndex = 0;
-  self->activeNotes = 0;
-  self->cleared = true;
-}
 
 static void
 sequence(Data* self, const uint32_t outCapacity)
@@ -566,19 +573,10 @@ sequence(Data* self, const uint32_t outCapacity)
         self->trigger = false;    
       }
     }
-
-    if (self->noteLengthTime[self->noteOffSendIndex] > *self->noteLengthParam)
-    {
-     handleNoteOff(self, outCapacity); 
-    }
-
-  } else // self->playing = false, send note offs of current notes. 
-  { 
-    if ( !self->cleared && *self->mode < 2 ) 
-    {
-    clearNotes(self, outCapacity);
-    stopSequence(self);
-    }
+  }  
+  if (self->noteLengthTime[self->noteOffSendIndex] > *self->noteLengthParam)
+  {
+    handleNoteOff(self, outCapacity); 
   }
 }
 
