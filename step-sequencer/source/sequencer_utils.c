@@ -75,9 +75,6 @@ void resetPhase(Data *self)
   if (self->beatInMeasure < 0.5 && resetPhase) {
 
     //TODO move elsewhere
-    //debug_print("self->mode = %f\n", *self->mode);
-    //debug_print("self->playing = %i\n", self->playing);
-    //debug_print("previousPlaying = %i\n", previousPlaying);
     if (self->playing != previousPlaying) {
       if (*self->mode > 1) {
         self->velPhase = velInitVal;

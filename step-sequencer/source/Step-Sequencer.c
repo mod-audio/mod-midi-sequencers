@@ -84,19 +84,26 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   for (size_t i = 0; i < 4; i++) {
     self->noteOffArr[i] = 0;
   }
+
+  for (size_t row = 0; row < 4; row++) {
+    for (size_t index = 0; index < 2; index++) {
+      self->noteOffTimer[row][index] = 0;
+    }
+  }
   //init vars
   self->writeEvents->used  = 0;
   self->playEvents->used   = 0;
 
   self->notePlayed  = 0;
   self->transpose   = 0;
- 
-  self->trigger    = false;
-  self->cleared    = true; 
-  self->through    = true;
-  self->firstBar   = false;
-  self->playing    = false;
-  self->clip       = false;
+
+  self->firstRecordedNote = false; 
+  self->trigger           = false;
+  self->cleared           = true; 
+  self->through           = true;
+  self->firstBar          = false;
+  self->playing           = false;
+  self->clip              = false;
 
 	//init pointer for velocity pattern
 	self->pattern[0] = &self->patternVel1;
@@ -276,124 +283,37 @@ clearNotes(Data *self, const uint32_t outCapacity)
 }
 
 
-
-static int
-switchMode(Data* self, const uint32_t outCapacity)
+static void
+stopSequence(Data* self)
 {
-  static int modeHandle  = 0;
-  ModeEnum modeStatus    = (int)*self->mode; 
-  //TODO set normal value 
-  static int prevMod     = 100;
-  static int prevLatch   = 100; 
-  if (*self->mode != prevMod || *self->latchTranspose != prevLatch) 
-  {
-    switch (modeStatus)
-    {
-      case CLEAR_ALL:
-        self->playing    = false;
-        self->through    = true; 
-        self->notePlayed = 0;
-        modeHandle       = 0;
-        break;
-      case RECORD:
-        self->playing    = false;
-        self->through    = true; 
-        self->notePlayed = 0;
-        modeHandle       = 1;  
-        break;
-      case PLAY:
-        if (self->writeEvents->used > 0)
-          self->playing = true;
-        
-        //set MIDI input through 
-        if (*self->latchTranspose == 1 && self->playing == true) {
-          modeHandle = 3;
-          self->through = false;
-        } 
-        else if (*self->latchTranspose == 0 ) {
-          modeHandle = 5; 
-          self->through = false;
-          self->playing = false;
-          clearNotes(self, outCapacity);
-        } else {
-          self->through = true;
-          modeHandle = 0;
-        }
-        break;
-      case RECORD_APPEND: 
-        modeHandle    = 1;
-        self->through = false;
-        self->playing = true;
-        break;
-      case RECORD_OVERWRITE:
-        modeHandle    = 2;
-        self->through = false;
-        self->playing = true;
-        break;
-      case UNDO_LAST:
-        //TODO works but it should be aware of sequence
-        self->writeEvents->used--;
-        break;
-    }
-    prevMod = *self->mode;
-    prevLatch = *self->latchTranspose;
-  }
-  if (*self->noteMode == 0) {
-    modeHandle = 4;
+  clearSequence(self->writeEvents);
+  clearSequence(self->playEvents);
+
+  self->writeEvents->used  = 0;
+  self->playEvents->used   = 0;
+  self->activeNotes        = 0;
+  self->transpose          = 0;
+  self->firstBar           = false;
+  self->trigger            = false;
+  self->octaveIndex        = 0;
+  self->notePlayed         = 0;
+  self->octaveIndex        = 0;
+
+  for (int i = self->activeNotes - 1; i > - 1; i--) {
+    self->noteLengthTime[i] = 0.0;
   }
 
-  return modeHandle;
+  for (int y = 0; y < 2; y++) {
+    self->noteStarted[y] = 0;
+  }
+
+  self->noteOffIndex     = 0;
+  self->noteOffSendIndex = 0; 
+  self->activeNotes      = 0;
+  self->cleared          = true;
 }
 
 
-static void 
-handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
-{
-  static size_t count = 0;
-  
-	//MIDI through   
-	if (self->through) {
-    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
-  }
-  
-  switch (status)
-  {
-    case LV2_MIDI_MSG_NOTE_ON:
-      
-      switch (modeHandle)
-      {
-        case 0:
-          break;
-        case 1:
-          insertNote(self->writeEvents, msg[1]);
-          break;
-        case 2:
-          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
-          break;
-        case 3:
-          self->transpose = msg[1] - self->writeEvents->eventList[0];
-          break;
-        case 4:
-          insertNote(self->writeEvents, 0);
-          break;
-        case 5:
-          self->playing = true;
-          self->transpose = msg[1] - self->writeEvents->eventList[0];
-          break;
-      }
-      break;
-    
-    case LV2_MIDI_MSG_NOTE_OFF:
-      if (modeHandle == 5) {
-        self->playing = false;
-        self->notePlayed = 0;
-        clearNotes(self, outCapacity);
-      }
-      break;
-//    default:
-//      break;
-  }
-}
 
 static uint32_t 
 handlePorts(Data* self)
@@ -457,11 +377,11 @@ velocityHandler(Data* self)
 
   if (self->clip)
     self->clip = false;
-  
-  debug_print("velocity = %i\n", velocity);
 
   return velocity;
 }
+
+
 
 static void 
 handleNoteOn(Data* self, const uint32_t outCapacity)
@@ -477,14 +397,12 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
   LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
   lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
 
-  //store MIDI note in array for the to create a note off later
-  self->noteOffArr[self->noteOffIndex] = midiNote;
-  self->noteStarted[self->noteOffIndex] = 1;
   
-  //toggle noteOffIndex between 0 and 1
-  self->noteOffIndex ^= 1;
-  self->activeNotes = self->activeNotes + 1;
+  static size_t activeNoteIndex = 0;
 
+  self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
+  activeNoteIndex = (activeNoteIndex + 1) % 4; 
+  
   //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
   self->cleared = false;
   self->trigger = true;
@@ -494,40 +412,164 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
   self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
 }
 
+
+
 static void
 handleNoteOff(Data* self, const uint32_t outCapacity)
 {
-  LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->noteOffArr[self->noteOffSendIndex], 0);
-  lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
-  self->noteStarted[self->noteOffSendIndex] = 0;
-  self->noteLengthTime[self->noteOffSendIndex] = 0.0; 
-  self->activeNotes--;
-  self->noteOffSendIndex ^= 1;
+  for (int i = 0; i < 4; i++) {
+    if (self->noteOffTimer[i][0] > 0) {
+      self->noteOffTimer[i][1] += self->frequency / self->rate;
+      if (self->noteOffTimer[i][1] > *self->noteLengthParam) {
+        LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
+        self->noteOffTimer[i][0] = 0;
+        self->noteOffTimer[i][1] = 0;
+      }
+    }  
+  }
 }
+
+
+
+static int
+switchMode(Data* self, const uint32_t outCapacity)
+{
+  static int modeHandle  = 0;
+  ModeEnum modeStatus    = (int)*self->mode; 
+  //TODO set normal value 
+  static int prevMod     = 100;
+  static int prevLatch   = 100; 
+  if (*self->mode != prevMod || *self->latchTranspose != prevLatch) 
+  {
+    switch (modeStatus)
+    {
+      case CLEAR_ALL:
+        clearNotes(self, outCapacity);
+        stopSequence(self);
+        self->playing    = false;
+        modeHandle       = 0;
+        break;
+      case RECORD:
+        self->firstRecordedNote = false;
+        self->through           = true; 
+        modeHandle              = 6;  
+        break;
+      case PLAY:
+
+        if (self->writeEvents->used > 0)
+          self->playing = true;
+        
+        //set MIDI input through 
+        if (*self->latchTranspose == 1 && self->playing == true) {
+          modeHandle = 3;
+          self->through = false;
+        } 
+        else if (*self->latchTranspose == 0 ) {
+          modeHandle = 5; 
+          self->through = false;
+          self->playing = false;
+          clearNotes(self, outCapacity);
+        } else {
+          self->through = true;
+          modeHandle = 0;
+        }
+        break;
+      case RECORD_APPEND: 
+        modeHandle    = 1;
+        self->through = false;
+        self->playing = true;
+        break;
+      case RECORD_OVERWRITE:
+        modeHandle    = 2;
+        self->through = false;
+        self->playing = true;
+        break;
+      case UNDO_LAST:
+        //TODO works but it should be aware of sequence
+        self->writeEvents->used--;
+        break;
+    }
+    prevMod = *self->mode;
+    prevLatch = *self->latchTranspose;
+  }
+  if (*self->noteMode == 0) {
+    modeHandle = 4;
+  }
+
+  return modeHandle;
+}
+
+
+static void 
+handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
+{
+  static size_t count = 0;
+  
+	//MIDI through   
+	if (self->through) {
+    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
+  }
+  
+  switch (status)
+  {
+    static size_t notesPressed = 0;
+    
+    case LV2_MIDI_MSG_NOTE_ON:
+      notesPressed++;   
+      switch (modeHandle)
+      {
+        case 0:
+          break;
+        case 1:
+          insertNote(self->writeEvents, msg[1]);
+          break;
+        case 2:
+          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
+          break;
+        case 3:
+          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
+        case 4:
+          insertNote(self->writeEvents, 0);
+          break;
+        case 5:
+          self->playing = true;
+          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          break;
+        case 6:
+          if (!self->firstRecordedNote) {
+            self->playing = false;
+            stopSequence(self);
+            insertNote(self->writeEvents, msg[1]);
+            self->firstRecordedNote = true;
+
+            for (size_t i = 0; i < 2; i++) {
+              self->noteLengthTime[i] = 0.0;
+            }
+          } else {
+            insertNote(self->writeEvents, msg[1]);
+          }
+          break;
+      }
+      break;
+    
+    case LV2_MIDI_MSG_NOTE_OFF:
+      notesPressed--;
+      if (modeHandle == 5 && notesPressed == 0) {
+        self->playing = false;
+        self->notePlayed = 0;
+        clearNotes(self, outCapacity);
+      }
+      break;
+//    default:
+//      break;
+  }
+}
+
 
 
   
-static void
-stopSequence(Data* self)
-{
-  clearSequence(self->writeEvents);
-  clearSequence(self->playEvents);
-
-  self->writeEvents->used  = 0;
-  self->playEvents->used   = 0;
-  self->activeNotes        = 0;
-  self->transpose          = 0;
-  self->firstBar           = false;
-  self->octaveIndex        = 0;
-
-  for (int i = self->activeNotes - 1; i > - 1; i--) {
-    self->noteLengthTime[i] = 0.0;
-  }
-
-  self->noteOffIndex = 0;
-  self->activeNotes = 0;
-  self->cleared = true;
-}
 
 static void
 sequence(Data* self, const uint32_t outCapacity)
@@ -537,7 +579,6 @@ sequence(Data* self, const uint32_t outCapacity)
   if (self->playing && self->firstBar) 
   {
     float offset = applyRandomTiming(self); 
-
     if (self->phase < 0.2 && self->phase > offset && !self->trigger && self->playEvents->used > 0) 
     {
       if ( self->playEvents->eventList[self->notePlayed] > 0)
@@ -551,20 +592,8 @@ sequence(Data* self, const uint32_t outCapacity)
         self->trigger = false;    
       }
     }
-
-    if (self->noteLengthTime[self->noteOffSendIndex] > *self->noteLengthParam)
-    {
-     handleNoteOff(self, outCapacity); 
-    }
-
-  } else // self->playing = false, send note offs of current notes. 
-  { 
-    if ( !self->cleared && *self->mode < 2 ) 
-    {
-    clearNotes(self, outCapacity);
-    stopSequence(self);
-    }
-  }
+  }  
+  handleNoteOff(self, outCapacity); 
 }
 
 
@@ -594,7 +623,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
 
-  static float frequency; 
+  //static float frequency; 
 
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
@@ -617,19 +646,15 @@ run(LV2_Handle instance, uint32_t n_samples)
     }
   }
   resetPhase(self);
-  frequency = calculateFrequency(self->bpm, self->divisionRate);
+  self->frequency = calculateFrequency(self->bpm, self->divisionRate);
   // Get the capacity
   const uint32_t outCapacity = handlePorts(self); 
   
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
-    self->phase = *phaseOsc(frequency, &self->phase, self->rate, *self->swing);
-    self->velocityLFO = *velOsc(frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
+    self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
+    self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);
-    for (int i = 0; i < 2; i++) {
-      if (self->noteStarted[i] > 0)
-        self->noteLengthTime[i] += frequency / self->rate;
-    }
     sequence(self, outCapacity);
   }
   handleEvents(self, outCapacity);
