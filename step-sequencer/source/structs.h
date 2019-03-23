@@ -97,6 +97,7 @@ typedef struct Array {
 typedef struct Data {
 
   double  rate;   // Sample rate
+  double  frequency;
   double  velPhase;
   double  x1;
   float   bpm;
@@ -108,6 +109,7 @@ typedef struct Data {
   int     activeNotes;
   int     noteStarted[2];
   uint8_t noteOffArr[4];
+  float   noteOffTimer[4][2];
   float   beatInMeasure;
   float   divisionRate;
   size_t  notePlayed;
