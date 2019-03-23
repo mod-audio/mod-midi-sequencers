@@ -509,9 +509,9 @@ switchMode(Data* self, const uint32_t outCapacity)
     prevMod = *self->mode;
     prevLatch = *self->latchTranspose;
   }
-  if (*self->noteMode == 0) {
-    modeHandle = 4;
-  }
+//  if (*self->noteMode == 0) {
+//    modeHandle = 4;
+//  }
 
   return modeHandle;
 }
@@ -526,22 +526,30 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   
   switch (status)
   {
-    static size_t notesPressed = 0;
-    
+    static size_t   notesPressed = 0;
+    static uint8_t  midiNote     = 0;
+
     case LV2_MIDI_MSG_NOTE_ON:
-      notesPressed++;   
+      notesPressed++;  
+
+      if (*self->noteMode == 0)
+        midiNote = 200;
+      else
+        midiNote = msg[1];
+
       switch (modeHandle)
       {
         case 0:
           break;
         case 1:
-          insertNote(self->writeEvents, msg[1]);
+          insertNote(self->writeEvents, midiNote);
           break;
         case 2:
-          self->writeEvents->eventList[count++ % self->writeEvents->used] = msg[1];
+          self->writeEvents->eventList[count++ % self->writeEvents->used] = midiNote;
           break;
         case 3:
-          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          if (midiNote < 128)
+            self->transpose = midiNote - self->writeEvents->eventList[0];
           break;
         case 4:
           //200 = rest
@@ -549,17 +557,17 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           break;
         case 5:
           self->playing = true;
-          self->transpose = msg[1] - self->writeEvents->eventList[0];
+          self->transpose = midiNote - self->writeEvents->eventList[0];
           break;
         case 6:
           if (!self->firstRecordedNote) {
             debug_print("note on received\n");
             self->playing = false;
             stopSequence(self);
-            insertNote(self->writeEvents, msg[1]);
+            insertNote(self->writeEvents, midiNote);
             self->firstRecordedNote = true;
           } else {
-            insertNote(self->writeEvents, msg[1]);
+            insertNote(self->writeEvents, midiNote);
           }
           break;
       }
