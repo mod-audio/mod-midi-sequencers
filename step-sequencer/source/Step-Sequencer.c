@@ -299,7 +299,8 @@ stopSequence(Data* self)
   self->octaveIndex        = 0;
   self->notePlayed         = 0;
   self->octaveIndex        = 0;
-
+  self->noteTie            = 0;
+  
   for (int y = 0; y < 2; y++) {
     self->noteStarted[y] = 0;
   }
@@ -382,7 +383,7 @@ static void
 handleNoteOn(Data* self, const uint32_t outCapacity)
 {
   static bool   alreadyPlaying = false;
-  static size_t noteFound      =  0;
+  static size_t noteFound      = 0;
   //get octave and velocity
   
   if ( self->playEvents->eventList[self->notePlayed][0] > 0 && self->playEvents->eventList[self->notePlayed][0] < 128)
@@ -411,18 +412,31 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
       lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
       
-      //if (noteTie > 0) {
-      //  //sendNoteOff
-      //} 
-      
+      if (self->noteTie > 0) {
+        //sendNoteOff
+        LV2_Atom_MIDI noteTieMsg = createMidiEvent(self, 128, self->noteTie, 0);
+        lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&noteTieMsg);
+        self->noteTie = 0;
+      }
+
+      if (self->playEvents->eventList[self->notePlayed][1] != 2) { 
       self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
       activeNoteIndex = (activeNoteIndex + 1) % 4; 
+      } else {
+        self->noteTie = midiNote;
+      }
     } else {
       activeNoteIndex = (noteFound + 1) % 4; 
     }
 
     //check for note tie else add to noteOffTimer
+  } else if (self->noteTie > 0) {
+    //TODO check for better structure, this code is included twice because it wasn't working when playing a rest
+    LV2_Atom_MIDI noteTieMsg = createMidiEvent(self, 128, self->noteTie, 0);
+    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&noteTieMsg);
+    self->noteTie = 0;
   }
+  
   //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
   self->cleared = false;
   self->trigger = true;

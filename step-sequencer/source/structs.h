@@ -108,6 +108,7 @@ typedef struct Data {
   float   velocityLFO;
   float   noteLengthTime[2];
   int     activeNotes;
+  uint8_t noteTie;
   int     noteStarted[2];
   uint8_t noteOffArr[4];
   float   noteOffTimer[4][2];
