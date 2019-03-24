@@ -62,7 +62,7 @@ float* velOsc(float frequency, float* velocityLFO, float rate,
 	static double a = 1.0;
 	static double phaseLenght = 1.0;
 
-  phase = (frequency / *curveLength) / rate;
+  phase = (frequency / (double)*curveLength) / rate;
   m1 = a / self->x1;
   m2 = a / ( a - self->x1 );
 

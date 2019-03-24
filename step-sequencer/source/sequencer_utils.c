@@ -30,14 +30,19 @@ float calculateFrequency(uint8_t bpm, float division)
 
 
 //check difference between array A and B
-bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB)
+bool checkDifference(uint8_t (*arrayA) [2], uint8_t (*arrayB) [2], size_t lengthA, size_t lengthB)
 {
   if (lengthA != lengthB) {
     return true;
   } else {  
     for (size_t index = 0; index < lengthA; index++) {
-      if (arrayA[index] != arrayB[index]) {
-        return true;
+      for (size_t y = 0; y < 2; y++) {
+        if (arrayA[index] != arrayB[index]) {
+          return true;
+        } 
+        else if (arrayA[index][y] != arrayB[index][y]) {
+          return true;    
+        }
       }
     }
   }
@@ -46,9 +51,10 @@ bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t le
 
 
 
-void insertNote(Array *arr, uint8_t note)
+void insertNote(Array *arr, uint8_t note, uint8_t noteTie)
 {
-  arr->eventList[arr->used] = note;
+  arr->eventList[arr->used][0] = note;
+  arr->eventList[arr->used][1] = noteTie;
   arr->used = (arr->used + 1) % 248;
 }
 
@@ -59,7 +65,9 @@ void copyEvents(Array* eventListA, Array* eventListB)
   eventListB->used = eventListA->used;
 
   for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
-    eventListB->eventList[noteIndex] = eventListA->eventList[noteIndex];
+    for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
+      eventListB->eventList[noteIndex][noteMeta] = eventListA->eventList[noteIndex][noteMeta];
+    }
   }   
 }
 

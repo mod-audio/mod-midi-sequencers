@@ -90,7 +90,7 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t eventList[248];
+  uint8_t eventList[248][2];
   size_t used;
 } Array;
 
@@ -144,14 +144,14 @@ typedef struct Data {
   const float* curveClip;
   const float* octaveSpread;
 	const float* velocityPatternLength;
-	const float* patternVel1;
-	const float* patternVel2;
-	const float* patternVel3;
-	const float* patternVel4;
-	const float* patternVel5;
-	const float* patternVel6;
-	const float* patternVel7;
-	const float* patternVel8;
+	const float*   patternVel1;
+	const float*   patternVel2;
+	const float*   patternVel3;
+	const float*   patternVel4;
+	const float*   patternVel5;
+	const float*   patternVel6;
+	const float*   patternVel7;
+	const float*   patternVel8;
 
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
