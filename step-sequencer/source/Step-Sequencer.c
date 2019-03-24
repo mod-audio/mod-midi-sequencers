@@ -66,6 +66,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
   self->rate             = rate;
+  self->nyquist          = rate / 2; 
   self->bpm              = 120.0f;
   self->beatInMeasure    = 0;
   self->divisionRate     = 4;
@@ -411,13 +412,18 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
       //send MIDI note on message
       LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
       lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
-
+      
+      //if (noteTie > 0) {
+      //  //sendNoteOff
+      //} 
+      
       self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
       activeNoteIndex = (activeNoteIndex + 1) % 4; 
     } else {
       activeNoteIndex = (noteFound + 1) % 4; 
     }
 
+    //check for note tie else add to noteOffTimer
   }
   //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
   self->cleared = false;
@@ -640,8 +646,6 @@ run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
 
-  //static float frequency; 
-
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
   const MetroURIs* uris = &self->uris;
@@ -664,6 +668,12 @@ run(LV2_Handle instance, uint32_t n_samples)
   }
   resetPhase(self);
   self->frequency = calculateFrequency(self->bpm, self->divisionRate);
+
+  //halftime speed when frequency goes out of range
+  if (self->frequency > self->nyquist)
+    self->frequency = self->frequency / 2;
+  
+  
   // Get the capacity
   const uint32_t outCapacity = handlePorts(self); 
   

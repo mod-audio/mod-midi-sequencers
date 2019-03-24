@@ -98,6 +98,7 @@ typedef struct Data {
 
   double  rate;   // Sample rate
   double  frequency;
+  double  nyquist;
   double  velPhase;
   double  x1;
   float   bpm;
