@@ -23,7 +23,7 @@
 float calculateFrequency(uint8_t bpm, float division)
 {
   float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  float frequency = bpm / rateValues[(int)division];
+  float frequency = (bpm / rateValues[(int)division]) * 0.5;
 
   return frequency;
 }

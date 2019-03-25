@@ -688,8 +688,8 @@ run(LV2_Handle instance, uint32_t n_samples)
     }
   }
   resetPhase(self);
-  self->frequency = calculateFrequency(self->bpm, self->divisionRate) / 2;
-
+  self->frequency = calculateFrequency(self->bpm, self->divisionRate);
+  debug_print("self->frequency = %f\n", self->frequency);
   //halftime speed when frequency goes out of range
   if (self->frequency > self->nyquist)
     self->frequency = self->frequency / 2;
