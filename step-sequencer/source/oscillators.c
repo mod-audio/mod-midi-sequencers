@@ -21,28 +21,10 @@
 //this is a LFO to use for timing of the beatsync
 float* phaseOsc(float frequency, float* phase, float rate, float swing)
 {
-  static float noteLength[2];
-  static float prevSwing = 0;
-  static int switchLength = 0;
-  static bool set = false;
-  
-  float pphase = *phase;
-  //only change swing param at the beginnen of new note
-  if (swing != prevSwing && pphase < 0.01 && !set) { 
-    float phaseParam = swing - 50;
-    noteLength[0] = (phaseParam * -1 + 100) * 0.01;  
-    noteLength[1] = (phaseParam + 100) * 0.01;
-    prevSwing = swing;
-    set = true;
-  }
-  else if (pphase > 0.01) {
-    set = false;
-  }
   *phase += frequency / rate;
 
-  if(*phase >= noteLength[switchLength]){ 
-    *phase = *phase - noteLength[switchLength];
-    switchLength ^= 1;
+  if(*phase >= 1){ 
+    *phase = *phase - 1;
   }
 
   return phase;
