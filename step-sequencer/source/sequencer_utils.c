@@ -101,6 +101,11 @@ void resetPhase(Data *self)
       self->phase = 0.0;
     }
 
+    debug_print("velPhase = %f\n", self->velPhase);
+    //if (self->velPhase > 0.989 || self->velPhase < 0.01) {
+    //  self->velPhase = 0.000000009;
+    //}
+
     resetPhase  = false;
 
   } else {

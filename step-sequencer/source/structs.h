@@ -101,11 +101,11 @@ typedef struct Data {
   double  nyquist;
   double  velPhase;
   double  x1;
+  double  phase;
+  double  velocityLFO;
   float   bpm;
   float   barsize;
   float   speed; // Transport speed (usually 0=stop, 1=play)
-  float   phase;
-  float   velocityLFO;
   float   noteLengthTime[2];
   int     activeNotes;
   uint8_t noteTie;
@@ -126,6 +126,7 @@ typedef struct Data {
   bool    trigger;
   bool    cleared;
   int     transpose;
+  int     countTicks;
 	
 	const float** pattern[8];
   Array* writeEvents;

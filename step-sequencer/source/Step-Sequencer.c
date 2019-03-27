@@ -77,6 +77,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->octaveIndex      = 0;
   self->noteOffIndex     = 0; 
   self->noteOffSendIndex = 0; 
+  self->countTicks       = 0;
 	debug_print("test debug\n");
   //init objects
   self->writeEvents  = (Array* )malloc(sizeof(Array));
@@ -483,6 +484,7 @@ switchMode(Data* self, const uint32_t outCapacity)
         stopSequence(self);
         self->playing    = false;
         modeHandle       = 0;
+        self->through    = true; 
         break;
       case RECORD:
         self->firstRecordedNote = false;
@@ -517,7 +519,15 @@ switchMode(Data* self, const uint32_t outCapacity)
       case RECORD_OVERWRITE:
         modeHandle    = 2;
         self->through = false;
-        self->playing = true;
+    
+        if ((int)*self->latchTranspose == 0 ) {
+          self->through = false;
+          self->playing = false;
+          clearNotes(self, outCapacity);
+        } else {
+          self->playing = true;
+        }
+        //self->playing = true;
         break;
       case UNDO_LAST:
         //TODO works but it should be aware of sequence
@@ -539,9 +549,11 @@ switchMode(Data* self, const uint32_t outCapacity)
 static void 
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
 {
-  static size_t count = 0;
-  
-  
+  static size_t  count = 0;
+  static size_t  inputIndex = 0;
+  static uint8_t prevThrough = 0;
+  static uint8_t midiThroughInput[16];
+
   switch (status)
   {
     static size_t   notesPressed = 0;
@@ -563,6 +575,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteMode);
           break;
         case 2:
+          self->playing = true;
           self->writeEvents->eventList[count++ % self->writeEvents->used][0] = midiNote;
           self->writeEvents->eventList[count][1] = (uint8_t)*self->noteMode; 
           break;
@@ -593,18 +606,29 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
     
     case LV2_MIDI_MSG_NOTE_OFF:
       notesPressed--;
-      if (modeHandle == 5 && notesPressed == 0) {
+      if ((modeHandle == 5 || modeHandle == 2 )&& notesPressed == 0 && *self->latchTranspose == 0) {
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
       }
       break;
   }
-
+   
 	//MIDI through   
 	if (self->through && (int)*self->noteMode > 0.0) {
+    midiThroughInput[inputIndex++ % 16] = msg[1]; 
     lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
+    prevThrough = 1;
   } 
+  else if (prevThrough == 1) {
+    for (size_t i = 0; i < inputIndex + 1; i++) {
+      //send note off
+      LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, midiThroughInput[i], 0);
+      lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
+    } 
+    inputIndex  = 0;
+    prevThrough = 0;
+  }
 }
 
 
@@ -687,9 +711,7 @@ run(LV2_Handle instance, uint32_t n_samples)
       }
     }
   }
-  resetPhase(self);
   self->frequency = calculateFrequency(self->bpm, self->divisionRate);
-  debug_print("self->frequency = %f\n", self->frequency);
   //halftime speed when frequency goes out of range
   if (self->frequency > self->nyquist)
     self->frequency = self->frequency / 2;
@@ -700,6 +722,7 @@ run(LV2_Handle instance, uint32_t n_samples)
   
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
+    resetPhase(self);
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);

@@ -19,7 +19,7 @@
 #include "oscillators.h"
 
 //this is a LFO to use for timing of the beatsync
-float* phaseOsc(float frequency, float* phase, float rate, float swing)
+double* phaseOsc(float frequency, double* phase, float rate, float swing)
 {
   *phase += frequency / rate;
 
@@ -32,7 +32,7 @@ float* phaseOsc(float frequency, float* phase, float rate, float swing)
 
 
 //phase distortion oscillator, used example from 'GroovyDSP: Introduction to Phase Distortion Synthesis', to control the velocity of the sequencer
-float* velOsc(float frequency, float* velocityLFO, float rate, 
+double* velOsc(float frequency, double* velocityLFO, float rate, 
   const float* velocityCurve, const float* curveDepth, const float* curveLength, const float* curveClip, Data* self)
 {
 
@@ -44,7 +44,7 @@ float* velOsc(float frequency, float* velocityLFO, float rate,
 	static double a = 1.0;
 	static double phaseLenght = 1.0;
 
-  phase = (frequency / (double)*curveLength) / rate;
+  phase = ((frequency * 2) / (double)*curveLength) / rate;
   m1 = a / self->x1;
   m2 = a / ( a - self->x1 );
 
