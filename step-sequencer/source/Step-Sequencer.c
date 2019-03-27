@@ -511,11 +511,6 @@ switchMode(Data* self, const uint32_t outCapacity)
           modeHandle = 0;
         }
         break;
-      case RECORD_APPEND: 
-        modeHandle    = 1;
-        self->through = false;
-        self->playing = true;
-        break;
       case RECORD_OVERWRITE:
         modeHandle    = 2;
         self->through = false;
@@ -528,6 +523,11 @@ switchMode(Data* self, const uint32_t outCapacity)
           self->playing = true;
         }
         //self->playing = true;
+        break;
+      case RECORD_APPEND: 
+        modeHandle    = 1;
+        self->through = false;
+        self->playing = true;
         break;
       case UNDO_LAST:
         //TODO works but it should be aware of sequence

@@ -70,8 +70,8 @@ a step sequencer with different record modes, focused on live playing.""" ;
            lv2:scalePoint [ rdfs:label "Clear All" ; rdf:value 0 ] ;
            lv2:scalePoint [ rdfs:label "Record" ; rdf:value 1  ] ;
            lv2:scalePoint [ rdfs:label "Play" ; rdf:value 2 ] ;
-           lv2:scalePoint [ rdfs:label "Record Append" ; rdf:value 3 ] ;
-           lv2:scalePoint [ rdfs:label "Record Overwrite" ; rdf:value 4 ] ;
+           lv2:scalePoint [ rdfs:label "Record Overwrite" ; rdf:value 3 ] ;
+           lv2:scalePoint [ rdfs:label "Record Append" ; rdf:value 4 ] ;
            lv2:scalePoint [ rdfs:label "Undo Last" ; rdf:value 5 ] ;
         ] , 
         [
