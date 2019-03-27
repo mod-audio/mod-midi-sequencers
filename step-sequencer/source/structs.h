@@ -70,8 +70,8 @@ typedef enum ModeEnum {
   CLEAR_ALL = 0,
   RECORD,
   PLAY,
-  RECORD_APPEND,
   RECORD_OVERWRITE,
+  RECORD_APPEND,
   UNDO_LAST
 } ModeEnum;
 
