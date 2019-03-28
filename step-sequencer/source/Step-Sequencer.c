@@ -74,10 +74,34 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->velPhase         = 0.000000009;
   self->x1               = 0.00000001; 
   self->velocityLFO      = 0;
+  self->velocity         = 0;
   self->octaveIndex      = 0;
   self->noteOffIndex     = 0; 
   self->noteOffSendIndex = 0; 
   self->countTicks       = 0;
+  self->patternIndex     = 0;
+  self->modeHandle       = 0;
+  self->prevMod          = 100;
+  self->prevLatch        = 100;
+  self->count            = 0;
+  self->inputIndex       = 0;
+  self->notesPressed     = 0;
+  //check this value
+  self->prevThrough      = 0;
+
+  self->placementIndex   = 0;
+  self->notePlacement[0] = 0;
+  self->notePlacement[1] = 0.5;
+
+  //resetPhase vars:
+  self->previousDevision = 12;
+  self->previousPlaying = false;
+  self->resetPhase      = true;
+
+  for (size_t i = 0; i < 16; i++) {
+    self->midiThroughInput[i] = 0;
+  }
+    
 	debug_print("test debug\n");
   //init objects
   self->writeEvents  = (Array* )malloc(sizeof(Array));
@@ -101,6 +125,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
   self->firstRecordedNote = false; 
   self->trigger           = false;
+  self->triggerSet        = false;
   self->cleared           = true; 
   self->through           = true;
   self->firstBar          = false;
@@ -361,23 +386,21 @@ octaveHandler(Data* self)
 static uint8_t 
 velocityHandler(Data* self)
 {
-  static uint8_t patternIndex = 0;
-  static uint8_t velocity;
 
   //TODO create function for velocity handling
   if ((int)*self->velocityMode == 0) {
-    velocity = 80;
+    self->velocity = 80;
   } else if ((int)*self->velocityMode == 1) { 
-    velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
+    self->velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
   } else if ((int)*self->velocityMode == 2) {
-    velocity = (uint8_t)floor(**self->pattern[patternIndex]);
-    patternIndex = (patternIndex + 1) % (int)*self->velocityPatternLength; 
+    self->velocity = (uint8_t)floor(**self->pattern[self->patternIndex]);
+    self->patternIndex = (self->patternIndex + 1) % (int)*self->velocityPatternLength; 
   }
 
   if (self->clip)
     self->clip = false;
 
-  return velocity;
+  return self->velocity;
 }
 
 static void 
@@ -470,12 +493,9 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 static int
 switchMode(Data* self, const uint32_t outCapacity)
 {
-  static int modeHandle  = 0;
   ModeEnum modeStatus    = (int)*self->mode;
   //TODO set normal value 
-  static int prevMod     = 100;
-  static int prevLatch   = 100; 
-  if ((int)*self->mode != prevMod || (int)*self->latchTranspose != prevLatch) 
+  if ((int)*self->mode != self->prevMod || (int)*self->latchTranspose != self->prevLatch) 
   {
     switch (modeStatus)
     {
@@ -483,13 +503,13 @@ switchMode(Data* self, const uint32_t outCapacity)
         clearNotes(self, outCapacity);
         stopSequence(self);
         self->playing    = false;
-        modeHandle       = 0;
+        self->modeHandle       = 0;
         self->through    = true; 
         break;
       case RECORD:
         self->firstRecordedNote = false;
         self->through           = true; 
-        modeHandle              = 6;  
+        self->modeHandle              = 6;  
         break;
       case PLAY:
 
@@ -498,21 +518,21 @@ switchMode(Data* self, const uint32_t outCapacity)
         
         //set MIDI input through 
         if ((int)*self->latchTranspose == 1 && self->playing == true) {
-          modeHandle = 3;
+          self->modeHandle = 3;
           self->through = false;
         } 
         else if ((int)*self->latchTranspose == 0 ) {
-          modeHandle = 5; 
+          self->modeHandle = 5; 
           self->through = false;
           self->playing = false;
           clearNotes(self, outCapacity);
         } else {
           self->through = true;
-          modeHandle = 0;
+          self->modeHandle = 0;
         }
         break;
       case RECORD_OVERWRITE:
-        modeHandle    = 2;
+        self->modeHandle    = 2;
         self->through = false;
     
         if ((int)*self->latchTranspose == 0 ) {
@@ -525,7 +545,7 @@ switchMode(Data* self, const uint32_t outCapacity)
         //self->playing = true;
         break;
       case RECORD_APPEND: 
-        modeHandle    = 1;
+        self->modeHandle    = 1;
         self->through = false;
         self->playing = true;
         break;
@@ -534,14 +554,14 @@ switchMode(Data* self, const uint32_t outCapacity)
         self->writeEvents->used--;
         break;
     }
-    prevMod = (int)*self->mode;
-    prevLatch = (int)*self->latchTranspose;
+    self->prevMod = (int)*self->mode;
+    self->prevLatch = (int)*self->latchTranspose;
   }
 //  if (*self->noteMode == 0) {
 //    modeHandle = 4;
 //  }
 
-  return modeHandle;
+  return self->modeHandle;
 }
 
 
@@ -549,18 +569,13 @@ switchMode(Data* self, const uint32_t outCapacity)
 static void 
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
 {
-  static size_t  count = 0;
-  static size_t  inputIndex = 0;
-  static uint8_t prevThrough = 0;
-  static uint8_t midiThroughInput[16];
-
+  
   switch (status)
   {
-    static size_t   notesPressed = 0;
-    static uint8_t  midiNote     = 0;
+    uint8_t midiNote;
 
     case LV2_MIDI_MSG_NOTE_ON:
-      notesPressed++;  
+      self->notesPressed++;  
 
       if ((uint8_t)*self->noteMode == 0)
         midiNote = 200;
@@ -575,9 +590,10 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteMode);
           break;
         case 2:
+          //TODO does count needs to be reset?
           self->playing = true;
-          self->writeEvents->eventList[count++ % self->writeEvents->used][0] = midiNote;
-          self->writeEvents->eventList[count][1] = (uint8_t)*self->noteMode; 
+          self->writeEvents->eventList[self->count++ % self->writeEvents->used][0] = midiNote;
+          self->writeEvents->eventList[self->count][1] = (uint8_t)*self->noteMode; 
           break;
         case 3:
           if (midiNote < 128)
@@ -605,8 +621,8 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
       break;
     
     case LV2_MIDI_MSG_NOTE_OFF:
-      notesPressed--;
-      if ((modeHandle == 5 || modeHandle == 2 )&& notesPressed == 0 && *self->latchTranspose == 0) {
+      self->notesPressed--;
+      if ((modeHandle == 5 || modeHandle == 2 )&& self->notesPressed == 0 && *self->latchTranspose == 0) {
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
@@ -616,18 +632,19 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
    
 	//MIDI through   
 	if (self->through && (int)*self->noteMode > 0.0) {
-    midiThroughInput[inputIndex++ % 16] = msg[1]; 
+    self->midiThroughInput[self->inputIndex++ % 16] = msg[1]; 
     lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
-    prevThrough = 1;
+    self->prevThrough = 1;
   } 
-  else if (prevThrough == 1) {
-    for (size_t i = 0; i < inputIndex + 1; i++) {
+  else if (self->prevThrough == 1) {
+    for (size_t i = 0; i < self->inputIndex + 1; i++) {
       //send note off
-      LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, midiThroughInput[i], 0);
+      //TODO does this need an init value?
+      LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->midiThroughInput[i], 0);
       lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
     } 
-    inputIndex  = 0;
-    prevThrough = 0;
+    self->inputIndex  = 0;
+    self->prevThrough = 0;
   }
 }
 
@@ -637,28 +654,25 @@ static void
 sequenceProcess(Data* self, const uint32_t outCapacity)
 {
   applyDifference(self);
-  static bool triggerSet = false;
-  static int placementIndex = 0;
-  static float notePlacement[2] = {0, 0.5};
- 
   //placement is used to control the amount of swing, the place of the of [0] is static the placement of note [1] can -
   //be moved  
-  notePlacement[1] = *self->swing * 0.01;
+  self->notePlacement[1] = *self->swing * 0.01;
 
   if (self->playing && self->firstBar) 
   {
     float offset = applyRandomTiming(self); 
-    if (self->phase >= notePlacement[placementIndex] && self->phase < (notePlacement[placementIndex] + 0.2) && !self->trigger && self->playEvents->used > 0) 
+    if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger && self->playEvents->used > 0) 
     { 
       handleNoteOn(self, outCapacity); 
-      triggerSet = false;
+      self->triggerSet = false;
     } else 
     { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
-      if (self->phase > notePlacement[placementIndex] + 0.2 && !triggerSet) 
+      if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
       {
-        placementIndex ^= 1;
+        self->placementIndex ^= 1;
         self->trigger = false;
-        triggerSet = true;    
+        //TODO does this trigger has to be reset as well?
+        self->triggerSet = true;    
       }
     }
   }  

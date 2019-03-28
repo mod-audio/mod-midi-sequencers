@@ -75,27 +75,24 @@ void copyEvents(Array* eventListA, Array* eventListB)
 
 void resetPhase(Data *self)
 {
-  static float previousDevision;
-  static bool  previousPlaying = false;
-  static bool  resetPhase      = true;
-  static float velInitVal      = 0.000000009;
+  float velInitVal      = 0.000000009;
 
-  if (self->beatInMeasure < 0.5 && resetPhase) {
+  if (self->beatInMeasure < 0.5 && self->resetPhase) {
 
     //TODO move elsewhere
-    if (self->playing != previousPlaying) {
+    if (self->playing != self->previousPlaying) {
       if (*self->mode > 1) {
         self->velPhase = velInitVal;
         self->firstBar = true;
       }  
-      previousPlaying = self->playing;
+      self->previousPlaying = self->playing;
     }
 
-    if (*self->division != previousDevision) {
+    if (*self->division != self->previousDevision) {
       self->phase        = 0.0;
       self->velPhase     = velInitVal;
       self->divisionRate = *self->division;  
-      previousDevision   = *self->division; 
+      self->previousDevision   = *self->division; 
     }
     if (self->phase > 0.989 || self->phase < 0.01) {
       self->phase = 0.0;
@@ -106,11 +103,11 @@ void resetPhase(Data *self)
     //  self->velPhase = 0.000000009;
     //}
 
-    resetPhase  = false;
+    self->resetPhase  = false;
 
   } else {
     if (self->beatInMeasure > 0.5) {
-      resetPhase = true;
+      self->resetPhase = true;
     } 
   }
 }

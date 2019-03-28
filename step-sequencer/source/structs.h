@@ -108,12 +108,34 @@ typedef struct Data {
   float   speed; // Transport speed (usually 0=stop, 1=play)
   float   noteLengthTime[2];
   int     activeNotes;
+
+  int     modeHandle;
+  int     prevMod;
+  int     prevLatch;
+  
+  int     placementIndex;
+  float   notePlacement[2];
+  
   uint8_t noteTie;
+  uint8_t velocity;
   int     noteStarted[2];
   uint8_t noteOffArr[4];
   float   noteOffTimer[4][2];
   float   beatInMeasure;
   float   divisionRate;
+
+  size_t  count;
+  size_t  inputIndex;
+  size_t  notesPressed;
+  uint8_t prevThrough;
+  uint8_t midiThroughInput[16];
+
+  //resetPhase vars:
+  float previousDevision;
+  bool  previousPlaying;
+  bool  resetPhase;
+
+  size_t  patternIndex;
   size_t  notePlayed;
   size_t  octaveIndex;
   size_t  noteOffIndex;
@@ -124,6 +146,7 @@ typedef struct Data {
   bool    playing;
   bool    clip;
   bool    trigger;
+  bool    triggerSet;
   bool    cleared;
   int     transpose;
   int     countTicks;

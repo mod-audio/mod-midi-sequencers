@@ -35,16 +35,15 @@ double* phaseOsc(float frequency, double* phase, float rate, float swing)
 double* velOsc(float frequency, double* velocityLFO, float rate, 
   const float* velocityCurve, const float* curveDepth, const float* curveLength, const float* curveClip, Data* self)
 {
+  double velOscPhase;
+	double warpedpos;
+	double m1;
+	double m2;
 
-  static double phase;
-	static double warpedpos;
-	static double m1;
-	static double m2;
+	double a = 1.0;
+	double phaseLenght = 1.0;
 
-	static double a = 1.0;
-	static double phaseLenght = 1.0;
-
-  phase = ((frequency * 2) / (double)*curveLength) / rate;
+  velOscPhase = ((frequency * 2) / (double)*curveLength) / rate;
   m1 = a / self->x1;
   m2 = a / ( a - self->x1 );
 
@@ -67,7 +66,7 @@ double* velOsc(float frequency, double* velocityLFO, float rate,
     } 
   }
 
-  self->velPhase+=phase;
+  self->velPhase+=velOscPhase;
 
   while (self->velPhase >= phaseLenght) {
     self->velPhase-= phaseLenght;
