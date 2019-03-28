@@ -70,8 +70,8 @@ typedef enum ModeEnum {
   CLEAR_ALL = 0,
   RECORD,
   PLAY,
-  RECORD_APPEND,
   RECORD_OVERWRITE,
+  RECORD_APPEND,
   UNDO_LAST
 } ModeEnum;
 
@@ -90,7 +90,7 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t eventList[248];
+  uint8_t eventList[248][2];
   size_t used;
 } Array;
 
@@ -98,20 +98,44 @@ typedef struct Data {
 
   double  rate;   // Sample rate
   double  frequency;
+  double  nyquist;
   double  velPhase;
   double  x1;
+  double  phase;
+  double  velocityLFO;
   float   bpm;
   float   barsize;
   float   speed; // Transport speed (usually 0=stop, 1=play)
-  float   phase;
-  float   velocityLFO;
   float   noteLengthTime[2];
   int     activeNotes;
+
+  int     modeHandle;
+  int     prevMod;
+  int     prevLatch;
+  
+  int     placementIndex;
+  float   notePlacement[2];
+  
+  uint8_t noteTie;
+  uint8_t velocity;
   int     noteStarted[2];
   uint8_t noteOffArr[4];
   float   noteOffTimer[4][2];
   float   beatInMeasure;
   float   divisionRate;
+
+  size_t  count;
+  size_t  inputIndex;
+  size_t  notesPressed;
+  uint8_t prevThrough;
+  uint8_t midiThroughInput[16];
+
+  //resetPhase vars:
+  float previousDevision;
+  bool  previousPlaying;
+  bool  resetPhase;
+
+  size_t  patternIndex;
   size_t  notePlayed;
   size_t  octaveIndex;
   size_t  noteOffIndex;
@@ -122,8 +146,10 @@ typedef struct Data {
   bool    playing;
   bool    clip;
   bool    trigger;
+  bool    triggerSet;
   bool    cleared;
   int     transpose;
+  int     countTicks;
 	
 	const float** pattern[8];
   Array* writeEvents;
@@ -143,14 +169,14 @@ typedef struct Data {
   const float* curveClip;
   const float* octaveSpread;
 	const float* velocityPatternLength;
-	const float* patternVel1;
-	const float* patternVel2;
-	const float* patternVel3;
-	const float* patternVel4;
-	const float* patternVel5;
-	const float* patternVel6;
-	const float* patternVel7;
-	const float* patternVel8;
+	const float*   patternVel1;
+	const float*   patternVel2;
+	const float*   patternVel3;
+	const float*   patternVel4;
+	const float*   patternVel5;
+	const float*   patternVel6;
+	const float*   patternVel7;
+	const float*   patternVel8;
 
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;
