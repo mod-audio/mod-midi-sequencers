@@ -68,6 +68,7 @@ typedef enum PortEnum {
 
 typedef enum ModeEnum {
   CLEAR_ALL = 0,
+  STOP,
   RECORD,
   PLAY,
   RECORD_OVERWRITE,

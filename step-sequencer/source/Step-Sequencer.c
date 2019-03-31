@@ -394,8 +394,9 @@ velocityHandler(Data* self)
     self->velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepth);
   } else if ((int)*self->velocityMode == 2) {
     self->velocity = (uint8_t)floor(**self->pattern[self->patternIndex]);
-    self->patternIndex = (self->patternIndex + 1) % (int)*self->velocityPatternLength; 
   }
+  
+  self->patternIndex = (self->patternIndex + 1) % (int)*self->velocityPatternLength; 
 
   if (self->clip)
     self->clip = false;
@@ -503,8 +504,14 @@ switchMode(Data* self, const uint32_t outCapacity)
         clearNotes(self, outCapacity);
         stopSequence(self);
         self->playing    = false;
-        self->modeHandle       = 0;
+        self->modeHandle = 0;
         self->through    = true; 
+        break;
+      case STOP:
+        self->playing    = false;
+        self->modeHandle = 0;
+        self->through    = true; 
+        self->notePlayed = 0;
         break;
       case RECORD:
         self->firstRecordedNote = false;
@@ -542,12 +549,17 @@ switchMode(Data* self, const uint32_t outCapacity)
         } else {
           self->playing = true;
         }
-        //self->playing = true;
         break;
       case RECORD_APPEND: 
         self->modeHandle    = 1;
         self->through = false;
-        self->playing = true;
+        
+        if ((int)*self->latchTranspose == 0 ) {
+          self->playing = false;
+          clearNotes(self, outCapacity);
+        } else {
+          self->playing = true;
+        }
         break;
       case UNDO_LAST:
         //TODO works but it should be aware of sequence
@@ -588,6 +600,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           break;
         case 1:
           insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteMode);
+          self->playing=true;
           break;
         case 2:
           //TODO does count needs to be reset?
@@ -622,7 +635,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
     
     case LV2_MIDI_MSG_NOTE_OFF:
       self->notesPressed--;
-      if ((modeHandle == 5 || modeHandle == 2 )&& self->notesPressed == 0 && *self->latchTranspose == 0) {
+      if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTranspose == 0) {
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
