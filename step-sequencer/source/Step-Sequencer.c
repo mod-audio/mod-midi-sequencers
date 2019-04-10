@@ -636,6 +636,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
     case LV2_MIDI_MSG_NOTE_OFF:
       self->notesPressed--;
       if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTranspose == 0) {
+        debug_print("self->playing=false");
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
