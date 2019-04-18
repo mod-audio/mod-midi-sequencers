@@ -41,6 +41,7 @@
 typedef enum PortEnum {
   PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
+  PORT_METROME_OUT,
   METRO_CONTROL,
 	NOTEMODE,
   MODE,
@@ -111,6 +112,7 @@ typedef struct Data {
   double  phase;
   double  phaseRecord;
   double  velocityLFO;
+  float   *metroOut;
   float   amplitude;
   float   bpm;
   float   barsize;

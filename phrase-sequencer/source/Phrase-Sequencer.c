@@ -177,6 +177,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 		case PORT_ATOM_OUT1:
 			self->port_events_out1 = (LV2_Atom_Sequence*)data;
 			break;
+    case PORT_METROME_OUT:
+      self->metroOut = (float*)data; 
+      break;
 		case METRO_CONTROL:
 			self->control = (LV2_Atom_Sequence*)data;
 			break;
