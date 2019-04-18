@@ -24,6 +24,7 @@
 
 #define PI_2 6.28318530717959
 
+double sinOsc(float frequency, double* phase, float rate);
 double* phaseOsc(float frequency, double* phase, float rate, float swing);
 double* phaseRecord(float frequency, double* phase, float rate);
 double* velOsc(float frequency, double* velocityLFO, float rate, const float* velocityCurve, 

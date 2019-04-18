@@ -81,6 +81,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->beatInMeasure    = 0;
   self->divisionRate     = 4;
 	self->phase            = 0;
+  self->sinePhase        = 0;
   self->amplitude        = 0;
   self->phaseRecord      = 0;
   self->velPhase         = 0.000000009;
@@ -768,8 +769,10 @@ run(LV2_Handle instance, uint32_t n_samples)
   
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
+    attackRelease(self);
+    precount(self);
+    self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(440, &self->sinePhase, self->rate);
     resetPhase(self);
-    startRecording(self); 
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,

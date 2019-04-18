@@ -110,6 +110,7 @@ typedef struct Data {
   double  velPhase;
   double  x1;
   double  phase;
+  double  sinePhase;
   double  phaseRecord;
   double  velocityLFO;
   float   *metroOut;

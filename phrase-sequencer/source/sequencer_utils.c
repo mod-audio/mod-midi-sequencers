@@ -56,41 +56,43 @@ void attackRelease(Data *self)
   switch(self->ARStatus)
   {
     case IDLE:
-      self->amplitude = 0.0;
       break;
     case ATTACK:
-      if (self->amplitude < 1.0) {
-        self->amplitude += 0.0001;
-      } else {
+      self->amplitude += 0.001;
+      if (self->amplitude >= 1.0) {
         self->ARStatus = RELEASE;
-      }
+      } 
       break;
     case RELEASE:
-      if (self->amplitude > 0.0) {
-        self->amplitude -= 0.000001;
+      if (self->amplitude >= 0.0) {
+        self->amplitude -= 0.001;
       } else {
         self->ARStatus = IDLE;
       }
       break;
   }
+  debug_print("amplitude value = %f\n", self->amplitude);
 }
 
 
 
 void precount(Data *self)
 {
+  if (self->phase < 0.5 && !self->preCountTrigger)
+  {
+    debug_print("send attack\n");
+    //play short sine ping 
+    self->ARStatus = ATTACK;
+    self->preCountTrigger = true;
+    //triggerAttackRelease(self);
+  }
+  else if (self->phase > 0.5 && self->preCountTrigger)
+  {
+    self->preCountTrigger = false;
+  }
+
   if (self->beatInMeasure < 0.2 && self->startPreCount == true)
   {
-    if (self->phase < 0.5 && !self->preCountTrigger)
-    {
-      //play short sine ping 
-      self->ARStatus = ATTACK;
-      //triggerAttackRelease(self);
-    }
-    else if (self->phase > 0.5 && self->preCountTrigger)
-    {
-      self->preCountTrigger = false;
-    }
   }
 }
 

@@ -18,6 +18,22 @@
 
 #include "oscillators.h"
 
+
+//this is a LFO to use for timing of the beatsync
+double sinOsc(float frequency, double* phase, float rate)
+{
+  *phase += frequency / rate;
+
+  double output = sin(*phase * PI_2);
+
+  if(*phase >= 1){ 
+    *phase = *phase - 1;
+  }
+
+  return output;
+}
+
+
 //this is a LFO to use for timing of the beatsync
 double* phaseOsc(float frequency, double* phase, float rate, float swing)
 {
