@@ -18,26 +18,18 @@
 #ifndef _H_SEQ_UTILS_
 #define _H_SEQ_UTILS_
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-
 #include "structs.h"
+#include "oscillators.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-#define debug_print(...) \
-((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
-float* phaseOsc(float frequency, float* phase, float rate, float swing);
 float calculateFrequency(uint8_t bpm, float division);
-bool checkDifference(uint8_t* arrayA, uint8_t* arrayB, size_t lengthA, size_t lengthB);
-void insertNote(Array* arr, uint8_t note);
-void recordNote(Array* arr, uint8_t note);
+bool checkDifference(uint8_t (*arrayA) [2],  uint8_t (*arrayB) [2], size_t lengthA, size_t lengthB);
+void insertNote(Array *arr, uint8_t note, uint8_t noteMode);
+void attackRelease(Data *self);
+void precount(Data *self);
 void clearSequence(Array *arr);
+void recordNotes(Data *self, uint8_t midiNote);
 void copyEvents(Array* eventListA, Array* eventListB);
-void renderRecordedNotes(Data* self);
 void resetPhase(Data* self);
 
-#endif
+#endif //_H_SEQ_UTILS_
