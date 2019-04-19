@@ -78,7 +78,8 @@ void attackRelease(Data *self)
 
 void precount(Data *self)
 {
-  if (self->phase < 0.5 && !self->preCountTrigger)
+  debug_print("self->beat %f\n", self->beat);
+  if (self->beat < 0.5 && !self->preCountTrigger)
   {
     debug_print("send attack\n");
     //play short sine ping 
@@ -86,7 +87,7 @@ void precount(Data *self)
     self->preCountTrigger = true;
     //triggerAttackRelease(self);
   }
-  else if (self->phase > 0.5 && self->preCountTrigger)
+  else if (self->beat > 0.5 && self->preCountTrigger)
   {
     self->preCountTrigger = false;
   }

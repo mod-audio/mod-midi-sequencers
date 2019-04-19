@@ -79,6 +79,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->nyquist          = rate / 2; 
   self->bpm              = 120.0f;
   self->beatInMeasure    = 0;
+  self->beat             = 0;
   self->divisionRate     = 4;
 	self->phase            = 0;
   self->sinePhase        = 0;
@@ -308,6 +309,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
     const float bar_beats       = ((LV2_Atom_Float*)beat)->body;
     const float beat_beats      = bar_beats - floorf(bar_beats);
     const float beat_barsize    = ((LV2_Atom_Float*)barsize)->body;  
+    self->beat                  = bar_beats - floorf(bar_beats);
     self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
     self->barsize = beat_barsize; 
     
