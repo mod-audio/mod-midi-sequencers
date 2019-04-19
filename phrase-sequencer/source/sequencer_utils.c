@@ -90,7 +90,6 @@ void precount(Data *self)
 int barCounter(Data *self, uint8_t recordingLength)
 {
   //return three when the amount of bars has been reached
-  debug_print("self->barCount = %i\n", self->barCount); 
   if (self->barCount > recordingLength) {
     self->barCount = 0;
     return 2;
@@ -117,22 +116,21 @@ void handleBarSyncRecording(Data *self)
         self->startPreCount = false;
         self->recordingStatus = 2;
       }
-      debug_print("WAITING FOR FIRST BAR\n"); 
+      //debug_print("WAITING FOR FIRST BAR\n"); 
       break;
     case 1: //count bars while pre-counting
       precount(self);
       self->recordingStatus = barCounter(self, 1);
-      //debug_print("barCounter = %i\n",barCounter(self, 1));
-      debug_print("PRE-COUNTING\n"); 
+      //debug_print("PRE-COUNTING\n"); 
       break;
     case 2: //record
       self->recording = true;
       self->startPreCount = false;
       self->recordingStatus = (barCounter(self, 4)) + 1;
-      debug_print("RECORDING\n"); 
+      //debug_print("RECORDING\n"); 
       break;
     case 3: //stop recording 
-      debug_print("STOP RECORDING\n"); 
+      //debug_print("STOP RECORDING\n"); 
       self->recording = false;
       self->recordingStatus = 1;
       break;
@@ -152,14 +150,6 @@ void recordNotes(Data *self, uint8_t midiNote)
     midiNotes[recIndex++ % 4][snappedIndex][0] = midiNote;
   }
 
-}
-
-
-void insertNote(Array *arr, uint8_t note, uint8_t noteTie)
-{
-  arr->eventList[arr->used][0] = note;
-  arr->eventList[arr->used][1] = noteTie;
-  arr->used = (arr->used + 1) % 248;
 }
 
 

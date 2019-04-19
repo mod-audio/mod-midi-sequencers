@@ -188,11 +188,11 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 		case METRO_CONTROL:
 			self->control = (LV2_Atom_Sequence*)data;
 			break;
-		case NOTEMODE:
-			self->noteMode = (const float*)data;
-			break;
 		case MODE:
 			self->mode = (const float*)data;
+			break;
+		case ACTIVATERECORDING:
+			self->recordTrigger = (const float*)data;
 			break;
 		case DIVISION:
 			self->division = (const float*)data;
@@ -576,7 +576,6 @@ switchMode(Data* self, const uint32_t outCapacity)
         }
         break;
       case RECORD_APPEND: 
-        self->modeHandle    = 1;
         self->through = false;
         
         if ((int)*self->latchTranspose == 0 ) {
@@ -594,9 +593,10 @@ switchMode(Data* self, const uint32_t outCapacity)
     self->prevMod = (int)*self->mode;
     self->prevLatch = (int)*self->latchTranspose;
   }
-//  if (*self->noteMode == 0) {
-//    modeHandle = 4;
-//  }
+  if (*self->recordTrigger == 1 && !self->recording) {
+    self->startPreCount = true;
+    debug_print("START RECORDING\n");
+  }
 
   return self->modeHandle;
 }
@@ -614,11 +614,6 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
     case LV2_MIDI_MSG_NOTE_ON:
       self->notesPressed++;  
 
-      if ((uint8_t)*self->noteMode == 0)
-        midiNote = 200;
-      else
-        midiNote = msg[1];
-
       switch (modeHandle)
       {
         case 0:
@@ -627,32 +622,14 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
           recordNotes(self, midiNote);
           break;
         case 2:
-          //TODO does count needs to be reset?
-          self->playing = true;
-          self->writeEvents->eventList[self->count++ % self->writeEvents->used][0] = midiNote;
-          self->writeEvents->eventList[self->count][1] = (uint8_t)*self->noteMode; 
           break;
         case 3:
-          if (midiNote < 128)
-            self->transpose = midiNote - self->writeEvents->eventList[0][0];
           break;
         case 4:
-          //200 = rest
-          insertNote(self->writeEvents, 200, (uint8_t)*self->noteMode);
           break;
         case 5:
-          self->playing = true;
-          self->transpose = midiNote - self->writeEvents->eventList[0][0];
           break;
         case 6:
-          if (!self->firstRecordedNote) {
-            self->playing = false;
-            stopSequence(self);
-            insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteMode);
-            self->firstRecordedNote = true;
-          } else {
-            insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteMode);
-          }
           break;
       }
       break;
@@ -660,7 +637,6 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
     case LV2_MIDI_MSG_NOTE_OFF:
       self->notesPressed--;
       if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTranspose == 0) {
-        debug_print("self->playing=false");
         self->playing = false;
         self->notePlayed = 0;
         clearNotes(self, outCapacity);
@@ -669,7 +645,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   }
    
 	//MIDI through   
-	if (self->through && (int)*self->noteMode > 0.0) {
+	if (self->through) {
     self->midiThroughInput[self->inputIndex++ % 16] = msg[1]; 
     lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
     self->prevThrough = 1;

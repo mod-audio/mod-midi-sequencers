@@ -43,8 +43,8 @@ typedef enum PortEnum {
   PORT_ATOM_OUT1,
   PORT_METROME_OUT,
   METRO_CONTROL,
-	NOTEMODE,
   MODE,
+  ACTIVATERECORDING,
   DIVISION,
   NOTELENGTH,
   OCTAVESPREAD,
@@ -175,7 +175,7 @@ typedef struct Data {
   Array* playEvents;
   AttackReleaseEnum  ARStatus;
 
-  const float* noteMode;
+  const float* recordTrigger;
   const float* mode;
   const float* preCountLength;
   const float* recordingLength;
