@@ -80,6 +80,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->bpm              = 120.0f;
   self->beatInMeasure    = 0;
   self->beat             = 0;
+  self->barCount         = 0;
+  self->recordingStatus  = 0;
   self->divisionRate     = 4;
 	self->phase            = 0;
   self->sinePhase        = 0;
@@ -139,6 +141,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->transpose   = 0;
 
   self->firstRecordedNote = false; 
+  self->barCounted        = false;
   self->startPreCount     = false;
   self->recording         = false; 
   self->trigger           = false;
@@ -531,15 +534,15 @@ switchMode(Data* self, const uint32_t outCapacity)
         self->through    = true; 
         break;
       case STOP:
-        self->playing    = false;
-        self->modeHandle = 0;
-        self->through    = true; 
-        self->notePlayed = 0;
+        self->recordingStatus = 0;
+        self->modeHandle      = 0;
+        self->notePlayed      = 0;
+        self->through         = true; 
+        self->startPreCount   = false;
+        self->playing         = false;
         break;
       case RECORD:
-        self->firstRecordedNote = false;
-        self->through           = true; 
-        self->modeHandle        = 1;  
+        self->startPreCount = true;
         break;
       case PLAY:
         if (self->writeEvents->used > 0)
@@ -772,13 +775,13 @@ run(LV2_Handle instance, uint32_t n_samples)
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
     attackRelease(self);
-    precount(self);
     self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(440, &self->sinePhase, self->rate);
     resetPhase(self);
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);
+    handleBarSyncRecording(self);
     sequenceProcess(self, outCapacity);
   }
   handleEvents(self, outCapacity);

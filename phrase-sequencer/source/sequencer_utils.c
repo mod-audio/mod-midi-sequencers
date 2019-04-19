@@ -50,7 +50,7 @@ bool checkDifference(uint8_t (*arrayA) [2], uint8_t (*arrayB) [2], size_t length
 }
 
 
-//simple attack release envelope
+//simple linear attack release envelope, this is used for the clicktrack
 void attackRelease(Data *self)
 {
   switch(self->ARStatus)
@@ -71,31 +71,75 @@ void attackRelease(Data *self)
       }
       break;
   }
-  debug_print("amplitude value = %f\n", self->amplitude);
 }
 
 
 
 void precount(Data *self)
 {
-  debug_print("self->beat %f\n", self->beat);
-  if (self->beat < 0.5 && !self->preCountTrigger)
-  {
-    debug_print("send attack\n");
-    //play short sine ping 
+  if (self->beat < 0.5 && !self->preCountTrigger) {
     self->ARStatus = ATTACK;
     self->preCountTrigger = true;
-    //triggerAttackRelease(self);
-  }
-  else if (self->beat > 0.5 && self->preCountTrigger)
-  {
+  } else if (self->beat > 0.5 && self->preCountTrigger) {
     self->preCountTrigger = false;
   }
+}
 
-  if (self->beatInMeasure < 0.2 && self->startPreCount == true)
-  {
+
+
+int barCounter(Data *self, uint8_t recordingLength)
+{
+  //return three when the amount of bars has been reached
+  debug_print("self->barCount = %i\n", self->barCount); 
+  if (self->barCount > recordingLength) {
+    self->barCount = 0;
+    return 2;
+  } else {
+    if (self->beatInMeasure < 0.5 && !self->barCounted) {
+      self->barCount += 1;
+      self->barCounted = true;
+    } else if (self->beatInMeasure > 0.5 && self->barCounted) {
+      self->barCounted = false;
+    }
+    return 1;
   }
 }
+
+
+/*function that handles the process of starting the pre-count at the beginning of next bar,
+pre-count length and recording length.*/
+void handleBarSyncRecording(Data *self)
+{
+  switch(self->recordingStatus)
+  {
+    case 0: //start pre-counting at next bar
+      if (self->beatInMeasure < 0.1 && self->startPreCount) {
+        self->startPreCount = false;
+        self->recordingStatus = 2;
+      }
+      debug_print("WAITING FOR FIRST BAR\n"); 
+      break;
+    case 1: //count bars while pre-counting
+      precount(self);
+      self->recordingStatus = barCounter(self, 1);
+      //debug_print("barCounter = %i\n",barCounter(self, 1));
+      debug_print("PRE-COUNTING\n"); 
+      break;
+    case 2: //record
+      self->recording = true;
+      self->startPreCount = false;
+      self->recordingStatus = (barCounter(self, 4)) + 1;
+      debug_print("RECORDING\n"); 
+      break;
+    case 3: //stop recording 
+      debug_print("STOP RECORDING\n"); 
+      self->recording = false;
+      self->recordingStatus = 1;
+      break;
+  }
+}
+
+
 
 void recordNotes(Data *self, uint8_t midiNote)
 {
@@ -129,13 +173,6 @@ void copyEvents(Array* eventListA, Array* eventListB)
       eventListB->eventList[noteIndex][noteMeta] = eventListA->eventList[noteIndex][noteMeta];
     }
   }   
-}
-
-void startRecording(Data *self)
-{
-  if (self->beatInMeasure < 0.2 && !self->recording)
-    self->recording = true;
-
 }
 
 void resetPhase(Data *self)

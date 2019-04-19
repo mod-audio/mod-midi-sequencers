@@ -27,6 +27,7 @@ bool checkDifference(uint8_t (*arrayA) [2],  uint8_t (*arrayB) [2], size_t lengt
 void insertNote(Array *arr, uint8_t note, uint8_t noteMode);
 void attackRelease(Data *self);
 void precount(Data *self);
+void handleBarSyncRecording(Data *self);
 void clearSequence(Array *arr);
 void recordNotes(Data *self, uint8_t midiNote);
 void copyEvents(Array* eventListA, Array* eventListB);

@@ -142,10 +142,12 @@ typedef struct Data {
   size_t  notesPressed;
   uint8_t prevThrough;
   uint8_t midiThroughInput[16];
-
+  uint8_t recordingStatus;
+  uint8_t barCount;
   uint8_t ARstate;
   //resetPhase vars:
   float previousDevision;
+  bool  barCounted;
   bool  startPreCount;
   bool  recording;
   bool  previousPlaying;
@@ -175,6 +177,8 @@ typedef struct Data {
 
   const float* noteMode;
   const float* mode;
+  const float* preCountLength;
+  const float* recordingLength;
   const float* division;
   const float* noteLengthParam;
   const float* latchTranspose;
