@@ -114,25 +114,26 @@ void handleBarSyncRecording(Data *self)
     case 0: //start pre-counting at next bar
       if (self->beatInMeasure < 0.1 && self->startPreCount) {
         self->startPreCount = false;
-        self->recordingStatus = 2;
+        self->recordingStatus = 1;
       }
-      //debug_print("WAITING FOR FIRST BAR\n"); 
+      debug_print("WAITING FOR FIRST BAR\n"); 
       break;
     case 1: //count bars while pre-counting
       precount(self);
       self->recordingStatus = barCounter(self, 1);
-      //debug_print("PRE-COUNTING\n"); 
+      debug_print("PRE-COUNTING\n"); 
       break;
     case 2: //record
       self->recording = true;
       self->startPreCount = false;
       self->recordingStatus = (barCounter(self, 4)) + 1;
-      //debug_print("RECORDING\n"); 
+      debug_print("RECORDING\n"); 
       break;
     case 3: //stop recording 
-      //debug_print("STOP RECORDING\n"); 
+      debug_print("STOP RECORDING\n"); 
       self->recording = false;
-      self->recordingStatus = 1;
+      self->playing   = true;
+      self->recordingStatus = 0;
       break;
   }
 }

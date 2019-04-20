@@ -70,7 +70,6 @@ typedef enum PortEnum {
 typedef enum ModeEnum {
   CLEAR_ALL = 0,
   STOP,
-  RECORD,
   PLAY,
   RECORD_OVERWRITE,
   RECORD_APPEND,
@@ -140,6 +139,7 @@ typedef struct Data {
   size_t  count;
   size_t  inputIndex;
   size_t  notesPressed;
+  size_t  activeNoteIndex; 
   uint8_t prevThrough;
   uint8_t midiThroughInput[16];
   uint8_t recordingStatus;
