@@ -23,7 +23,6 @@
 
 
 float calculateFrequency(uint8_t bpm, float division);
-bool checkDifference(uint8_t (*arrayA) [2],  uint8_t (*arrayB) [2], size_t lengthA, size_t lengthB);
 void attackRelease(Data *self);
 void precount(Data *self);
 void handleBarSyncRecording(Data *self);

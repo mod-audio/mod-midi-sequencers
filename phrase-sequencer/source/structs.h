@@ -97,7 +97,7 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t eventList[248][2];
+  uint8_t eventList[4][248][2];
   size_t used;
 } Array;
 

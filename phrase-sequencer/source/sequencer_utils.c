@@ -29,27 +29,6 @@ float calculateFrequency(uint8_t bpm, float division)
 }
 
 
-//check difference between array A and B
-bool checkDifference(uint8_t (*arrayA) [2], uint8_t (*arrayB) [2], size_t lengthA, size_t lengthB)
-{
-  if (lengthA != lengthB) {
-    return true;
-  } else {  
-    for (size_t index = 0; index < lengthA; index++) {
-      for (size_t y = 0; y < 2; y++) {
-        if (arrayA[index] != arrayB[index]) {
-          return true;
-        } 
-        else if (arrayA[index][y] != arrayB[index][y]) {
-          return true;    
-        }
-      }
-    }
-  }
-  return false;
-}
-
-
 //simple linear attack release envelope, this is used for the clicktrack
 void attackRelease(Data *self)
 {
@@ -132,7 +111,7 @@ void handleBarSyncRecording(Data *self)
     case 3: //stop recording 
       debug_print("STOP RECORDING\n"); 
       self->recording = false;
-      self->playing   = true;
+      copyEvents(self->writeEvents, self->playEvents);
       self->recordingStatus = 0;
       break;
   }
@@ -142,13 +121,12 @@ void handleBarSyncRecording(Data *self)
 
 void recordNotes(Data *self, uint8_t midiNote)
 {
-  static float midiNotes[4][248][2];
   static int   snappedIndex = 0;
   static int   recIndex     = 0;
   
   if(midiNote > 0) {
     snappedIndex = (int)roundf(self->phaseRecord);
-    midiNotes[recIndex++ % 4][snappedIndex][0] = midiNote;
+    self->writeEvents->eventList[recIndex++ % 4][snappedIndex][0] = midiNote;
   }
 
 }
@@ -158,13 +136,16 @@ void recordNotes(Data *self, uint8_t midiNote)
 void copyEvents(Array* eventListA, Array* eventListB)
 {
   eventListB->used = eventListA->used;
-
-  for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
-    for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
-      eventListB->eventList[noteIndex][noteMeta] = eventListA->eventList[noteIndex][noteMeta];
+  for (size_t voices = 0; voices < 4; voices++) {
+    for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
+      for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
+        eventListB->eventList[voices][noteIndex][noteMeta] = eventListA->eventList[voices][noteIndex][noteMeta];
+      }
     }
   }   
 }
+
+
 
 void resetPhase(Data *self)
 {
