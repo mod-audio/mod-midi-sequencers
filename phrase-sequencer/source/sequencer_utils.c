@@ -56,8 +56,11 @@ void attackRelease(Data *self)
 
 void precount(Data *self)
 {
+  static size_t amountOfClicks = 0;
   if (self->beat < 0.5 && !self->preCountTrigger) {
     self->ARStatus = ATTACK;
+    amountOfClicks++;
+    debug_print("amountOfClicks = %li\n", amountOfClicks);
     self->preCountTrigger = true;
   } else if (self->beat > 0.5 && self->preCountTrigger) {
     self->preCountTrigger = false;
@@ -71,10 +74,15 @@ int barCounter(Data *self, uint8_t recordingLength)
   //return three when the amount of bars has been reached
   if (self->barCount > recordingLength) {
     self->barCount = 0;
+    debug_print("self->barCount %i\n", self->barCount);
+    debug_print("recordingLength =  %i\n", recordingLength);
+    debug_print("BARS ARE DONE\n");
     return 2;
   } else {
     if (self->beatInMeasure < 0.5 && !self->barCounted) {
       self->barCount += 1;
+//      debug_print("self->barCount = %i\n", self->barCount);
+//      debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
       self->barCounted = true;
     } else if (self->beatInMeasure > 0.5 && self->barCounted) {
       self->barCounted = false;
@@ -88,28 +96,33 @@ int barCounter(Data *self, uint8_t recordingLength)
 pre-count length and recording length.*/
 void handleBarSyncRecording(Data *self)
 {
+  static int notePrinted = 1;
   switch(self->recordingStatus)
   {
     case 0: //start pre-counting at next bar
-      if (self->beatInMeasure < 0.1 && self->startPreCount) {
+      if (self->beatInMeasure < 0.01 && self->startPreCount) {
+        debug_print("self->beatInMeasure while waiting = %f\n", self->beatInMeasure);
         self->startPreCount = false;
         self->recordingStatus = 1;
       }
-      debug_print("WAITING FOR FIRST BAR\n"); 
+//      debug_print("WAITING FOR FIRST BAR\n"); 
       break;
     case 1: //count bars while pre-counting
+      if (notePrinted == 1) 
+        debug_print("self->beatInMeasure while precounting = %f\n", self->beatInMeasure);
+      notePrinted = 0;
       precount(self);
       self->recordingStatus = barCounter(self, 1);
-      debug_print("PRE-COUNTING\n"); 
+//      debug_print("PRE-COUNTING\n"); 
       break;
     case 2: //record
       self->recording = true;
       self->startPreCount = false;
       self->recordingStatus = (barCounter(self, 4)) + 1;
-      debug_print("RECORDING\n"); 
+//      debug_print("RECORDING\n"); 
       break;
     case 3: //stop recording 
-      debug_print("STOP RECORDING\n"); 
+//      debug_print("STOP RECORDING\n"); 
       self->recording = false;
       copyEvents(self->writeEvents, self->playEvents);
       self->recordingStatus = 0;

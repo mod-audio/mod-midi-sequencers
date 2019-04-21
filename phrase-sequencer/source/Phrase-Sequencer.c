@@ -109,6 +109,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->placementIndex   = 0;
   self->notePlacement[0] = 0;
   self->notePlacement[1] = 0.5;
+  self->previousSpeed    = 0;
 
   //resetPhase vars:
   self->previousDevision = 12;
@@ -140,6 +141,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
   self->notePlayed  = 0;
   self->transpose   = 0;
+  self->noteFound   = 0;
+
 
   self->firstRecordedNote = false; 
   self->barCounted        = false;
@@ -153,6 +156,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->firstBar          = false;
   self->playing           = false;
   self->clip              = false;
+  self->alreadyPlaying    = false;
 
 	//init pointer for velocity pattern
 	self->pattern[0] = &self->patternVel1;
@@ -299,7 +303,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
       uris->time_speed, &speed, uris->time_beatsPerBar, &barsize, 
       NULL);
 
-  static int previousSpeed = 0; 
+  self->previousSpeed = 0; 
 
   if (bpm && bpm->type == uris->atom_Float) {
     // Tempo changed, update BPM
@@ -317,9 +321,9 @@ update_position(Data* self, const LV2_Atom_Object* obj)
     self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
     self->barsize = beat_barsize; 
     
-    if (self->speed != previousSpeed) {
+    if (self->speed != self->previousSpeed) {
       self->phase = beat_beats;
-      previousSpeed = self->speed;
+      self->previousSpeed = self->speed;
     }
   }
 }
@@ -420,8 +424,6 @@ velocityHandler(Data* self)
 static void 
 handleNoteOn(Data* self, const uint32_t outCapacity)
 {
-  static bool   alreadyPlaying = false;
-  static size_t noteFound      = 0;
   //get octave and velocity
   for (size_t voices = 0; voices < 4; voices++) { 
     if ( self->playEvents->eventList[voices][self->notePlayed][0] > 0 && self->playEvents->eventList[voices][self->notePlayed][0] < 128)
@@ -436,14 +438,14 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
       for (size_t i = 0; i < 4; i++) {
         if ((uint8_t)self->noteOffTimer[i][0] == midiNote) { 
           self->noteOffTimer[i][1] = 0;
-          alreadyPlaying = true;
-          noteFound = i; 
+          self->alreadyPlaying = true;
+          self->noteFound = i; 
         } else {
-          alreadyPlaying = false;
+          self->alreadyPlaying = false;
         }
       }
 
-      if (!alreadyPlaying) {
+      if (!self->alreadyPlaying) {
         //send MIDI note on message
         LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
@@ -462,7 +464,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
           self->noteTie = midiNote;
         }
       } else {
-        self->activeNoteIndex = (noteFound + 1) % 4; 
+        self->activeNoteIndex = (self->noteFound + 1) % 4; 
       }
 
       //check for note tie else add to noteOffTimer

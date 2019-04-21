@@ -120,6 +120,7 @@ typedef struct Data {
   float   speed; // Transport speed (usually 0=stop, 1=play)
   float   noteLengthTime[2];
   int     activeNotes;
+  int     previousSpeed;
 
   int     modeHandle;
   int     prevMod;
@@ -152,7 +153,9 @@ typedef struct Data {
   bool  recording;
   bool  previousPlaying;
   bool  resetPhase;
+  bool  alreadyPlaying;
 
+  size_t  noteFound;
   size_t  patternIndex;
   size_t  notePlayed;
   size_t  octaveIndex;
