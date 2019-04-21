@@ -25,7 +25,7 @@
 float calculateFrequency(uint8_t bpm, float division);
 void attackRelease(Data *self);
 void precount(Data *self);
-void handleBarSyncRecording(Data *self);
+int  barCounter(Data *self, uint8_t recordingLength);
 void clearSequence(Array *arr);
 void recordNotes(Data *self, uint8_t midiNote);
 void copyEvents(Array* eventListA, Array* eventListB);

@@ -56,11 +56,8 @@ void attackRelease(Data *self)
 
 void precount(Data *self)
 {
-  static size_t amountOfClicks = 0;
   if (self->beat < 0.5 && !self->preCountTrigger) {
     self->ARStatus = ATTACK;
-    amountOfClicks++;
-    debug_print("amountOfClicks = %li\n", amountOfClicks);
     self->preCountTrigger = true;
   } else if (self->beat > 0.5 && self->preCountTrigger) {
     self->preCountTrigger = false;
@@ -71,62 +68,29 @@ void precount(Data *self)
 
 int barCounter(Data *self, uint8_t recordingLength)
 {
+  static int previousBeat = 10;
+  static size_t counter = 0;
   //return three when the amount of bars has been reached
   if (self->barCount > recordingLength) {
     self->barCount = 0;
+    self->barCounted = false;
     debug_print("self->barCount %i\n", self->barCount);
-    debug_print("recordingLength =  %i\n", recordingLength);
     debug_print("BARS ARE DONE\n");
     return 2;
   } else {
-    if (self->beatInMeasure < 0.5 && !self->barCounted) {
-      self->barCount += 1;
-//      debug_print("self->barCount = %i\n", self->barCount);
-//      debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
-      self->barCounted = true;
-    } else if (self->beatInMeasure > 0.5 && self->barCounted) {
-      self->barCounted = false;
-    }
-    return 1;
-  }
-}
-
-
-/*function that handles the process of starting the pre-count at the beginning of next bar,
-pre-count length and recording length.*/
-void handleBarSyncRecording(Data *self)
-{
-  static int notePrinted = 1;
-  switch(self->recordingStatus)
-  {
-    case 0: //start pre-counting at next bar
-      if (self->beatInMeasure < 0.01 && self->startPreCount) {
-        debug_print("self->beatInMeasure while waiting = %f\n", self->beatInMeasure);
-        self->startPreCount = false;
-        self->recordingStatus = 1;
+      if((int)self->beatInMeasure != previousBeat) {
+        debug_print("self->beatInMeasure in INT BEAT = %f\n", self->beatInMeasure);
+        previousBeat = (int)self->beatInMeasure;
+        counter++;
       }
-//      debug_print("WAITING FOR FIRST BAR\n"); 
-      break;
-    case 1: //count bars while pre-counting
-      if (notePrinted == 1) 
-        debug_print("self->beatInMeasure while precounting = %f\n", self->beatInMeasure);
-      notePrinted = 0;
-      precount(self);
-      self->recordingStatus = barCounter(self, 1);
-//      debug_print("PRE-COUNTING\n"); 
-      break;
-    case 2: //record
-      self->recording = true;
-      self->startPreCount = false;
-      self->recordingStatus = (barCounter(self, 4)) + 1;
-//      debug_print("RECORDING\n"); 
-      break;
-    case 3: //stop recording 
-//      debug_print("STOP RECORDING\n"); 
-      self->recording = false;
-      copyEvents(self->writeEvents, self->playEvents);
-      self->recordingStatus = 0;
-      break;
+      if (counter > 4) {
+        self->barCount += 1;
+        counter = 0;
+        previousBeat = 10;
+        debug_print("self->beatInMeasure in BARCOUNT = %f\n", self->beatInMeasure);
+        debug_print("self->barCount = %i\n", self->barCount);
+      }
+    return 1;
   }
 }
 
@@ -157,43 +121,6 @@ void copyEvents(Array* eventListA, Array* eventListB)
     }
   }   
 }
-
-
-
-void resetPhase(Data *self)
-{
-  float velInitVal      = 0.000000009;
-
-  if (self->beatInMeasure < 0.5 && self->resetPhase) {
-
-    //TODO move elsewhere
-    if (self->playing != self->previousPlaying) {
-      if (*self->mode > 1) {
-        self->velPhase = velInitVal;
-        self->firstBar = true;
-      }  
-      self->previousPlaying = self->playing;
-    }
-
-    if (*self->division != self->previousDevision) {
-      self->phase        = 0.0;
-      self->velPhase     = velInitVal;
-      self->divisionRate = *self->division;  
-      self->previousDevision   = *self->division; 
-    }
-    if (self->phase > 0.989 || self->phase < 0.01) {
-      self->phase = 0.0;
-    }
-
-    self->resetPhase  = false;
-
-  } else {
-    if (self->beatInMeasure > 0.5) {
-      self->resetPhase = true;
-    } 
-  }
-}
-
 
 
 void clearSequence(Array *arr)

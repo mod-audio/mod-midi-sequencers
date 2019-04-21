@@ -78,7 +78,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->rate             = rate;
   self->nyquist          = rate / 2; 
   self->bpm              = 120.0f;
-  self->beatInMeasure    = 0;
   self->beat             = 0;
   self->barCount         = 0;
   self->recordingStatus  = 0;
@@ -144,19 +143,20 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->noteFound   = 0;
 
 
-  self->firstRecordedNote = false; 
-  self->barCounted        = false;
-  self->startPreCount     = false;
-  self->recording         = false; 
-  self->trigger           = false;
-  self->triggerSet        = false;
-  self->preCountTrigger   = false;
-  self->cleared           = true; 
-  self->through           = true;
-  self->firstBar          = false;
-  self->playing           = false;
-  self->clip              = false;
-  self->alreadyPlaying    = false;
+  self->firstRecordedNote  = false; 
+  self->barCounted         = false;
+  self->startPreCount      = false;
+  self->recording          = false; 
+  self->trigger            = false;
+  self->triggerSet         = false;
+  self->preCountTrigger    = false;
+  self->cleared            = true; 
+  self->through            = true;
+  self->firstBar           = false;
+  self->playing            = false;
+  self->clip               = false;
+  self->alreadyPlaying     = false;
+  self->recordingTriggered = false;
 
 	//init pointer for velocity pattern
 	self->pattern[0] = &self->patternVel1;
@@ -197,7 +197,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 			self->mode = (const float*)data;
 			break;
 		case ACTIVATERECORDING:
-			self->recordTrigger = (const float*)data;
+			self->recordTrigger = (float*)data;
 			break;
 		case DIVISION:
 			self->division = (const float*)data;
@@ -518,12 +518,10 @@ switchMode(Data* self, const uint32_t outCapacity)
         clearNotes(self, outCapacity);
         stopSequence(self);
         self->playing    = false;
-        self->modeHandle = 0;
         self->through    = true; 
         break;
       case STOP:
         self->recordingStatus = 0;
-        self->modeHandle      = 0;
         self->notePlayed      = 0;
         self->through         = true; 
         self->playing         = false;
@@ -544,16 +542,54 @@ switchMode(Data* self, const uint32_t outCapacity)
     self->prevMod = (int)*self->mode;
     self->prevLatch = (int)*self->latchTranspose;
   }
-  static bool firstRecording = true;
-  if (*self->recordTrigger == 1 && !self->recording && firstRecording) {
+  if (*self->recordTrigger == 1 && !self->recordingTriggered) {
+    debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
+    *self->recordTrigger = 0;
+    self->recordingTriggered = true;
     self->startPreCount = true;
-    firstRecording = false;
   }
 
   return self->modeHandle;
 }
 
 
+/*function that handles the process of starting the pre-count at the beginning of next bar,
+pre-count length and recording length.*/
+static void 
+handleBarSyncRecording(Data *self)
+{
+  switch(self->recordingStatus)
+  {
+    case 0: //start pre-counting at next bar
+      if (self->beatInMeasure < 0.01 && self->startPreCount) {
+        debug_print("self->beatInMeasure while waiting = %f\n", self->beatInMeasure);
+        self->startPreCount = false;
+        self->recordingStatus = 1;
+      }
+//      debug_print("WAITING FOR FIRST BAR\n"); 
+      break;
+    case 1: //count bars while pre-counting
+      precount(self);
+      self->recordingStatus = barCounter(self, 1);
+//      debug_print("PRE-COUNTING\n"); 
+      break;
+    case 2: //record
+      self->recording = true;
+      self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
+      self->recordingStatus = (barCounter(self, 4)) + 1;
+//      debug_print("RECORDING\n"); 
+      break;
+    case 3: //stop recording 
+//      debug_print("STOP RECORDING\n"); 
+      self->recording   = false;
+      self->recordingTriggered = false;
+      self->startPreCount = false;
+      self->phaseRecord = 0;
+      copyEvents(self->writeEvents, self->playEvents);
+      self->recordingStatus = 0;
+      break;
+  }
+}
 
 static void 
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
@@ -565,38 +601,12 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
     case LV2_MIDI_MSG_NOTE_ON:
       self->notesPressed++;  
-
       if (self->recording) {
         recordNotes(self, midiNote);
       }
-
-      switch (modeHandle)
-      {
-        case 0:
-          break;
-        case 1:
-//          recordNotes(self, midiNote);
-          break;
-        case 2:
-          break;
-        case 3:
-          break;
-        case 4:
-          break;
-        case 5:
-          break;
-        case 6:
-          break;
-      }
       break;
-    
     case LV2_MIDI_MSG_NOTE_OFF:
       self->notesPressed--;
-      if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTranspose == 0) {
-        self->playing = false;
-        self->notePlayed = 0;
-        clearNotes(self, outCapacity);
-      }
       break;
   }
    
@@ -630,7 +640,8 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
   if (self->playing && self->firstBar) 
   {
     float offset = applyRandomTiming(self); 
-    if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger && self->playEvents->used > 0) 
+    if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
+        && !self->trigger && self->playEvents->used > 0) 
     { 
       handleNoteOn(self, outCapacity); 
       self->triggerSet = false;
@@ -705,14 +716,12 @@ run(LV2_Handle instance, uint32_t n_samples)
   
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
-    attackRelease(self);
-    self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(440, &self->sinePhase, self->rate);
-    resetPhase(self);
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
-    self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);
     handleBarSyncRecording(self);
+    attackRelease(self);
+    self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(440, &self->sinePhase, self->rate);
     sequenceProcess(self, outCapacity);
   }
   handleEvents(self, outCapacity);

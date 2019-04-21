@@ -149,6 +149,7 @@ typedef struct Data {
   //resetPhase vars:
   float previousDevision;
   bool  barCounted;
+  bool  recordingTriggered;
   bool  startPreCount;
   bool  recording;
   bool  previousPlaying;
@@ -178,7 +179,7 @@ typedef struct Data {
   Array* playEvents;
   AttackReleaseEnum  ARStatus;
 
-  const float* recordTrigger;
+  float* recordTrigger;
   const float* mode;
   const float* preCountLength;
   const float* recordingLength;
