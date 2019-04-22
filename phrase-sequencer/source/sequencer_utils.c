@@ -68,30 +68,16 @@ void precount(Data *self)
 //TODO make suitable for all time signatures 
 int barCounter(Data *self, uint8_t recordingLength)
 {
-  static int previousBeat = 10;
-  static size_t counter = 0;
-  //return three when the amount of bars has been reached
-  if (self->barCount > recordingLength) {
-    self->barCount = 0;
-    self->barCounted = false;
-    debug_print("self->barCount %i\n", self->barCount);
-    debug_print("BARS ARE DONE\n");
-    return 2;
-  } else {
-      if((int)self->beatInMeasure != previousBeat) {
-        debug_print("self->beatInMeasure in INT BEAT = %f\n", self->beatInMeasure);
-        previousBeat = (int)self->beatInMeasure;
-        counter++;
-      }
-      if (counter > 4) {
-        self->barCount += 1;
-        counter = 0;
-        previousBeat = 10;
-        debug_print("self->beatInMeasure in BARCOUNT = %f\n", self->beatInMeasure);
-        debug_print("self->barCount = %i\n", self->barCount);
-      }
-    return 1;
+  static int barCounter = 0;
+  static bool barNotCounted = false;
+
+  if (self->beatInMeasure < 3.9 && !barNotCounted) {
+    barNotCounted = true;
+    barCounter++;
+  } else if (self->beatInMeasure > 3.9) {
+    barNotCounted = false;
   }
+  return barCounter;
 }
 
 

@@ -567,41 +567,63 @@ switchMode(Data* self, const uint32_t outCapacity)
 /*function that handles the process of starting the pre-count at the beginning of next bar,
 pre-count length and recording length.*/
 static void 
-handleBarSyncRecording(Data *self)
+handleBarSyncRecording(Data *self, uint32_t pos)
 {
+  static bool countBars = false;
+  static int  recordingLengths[2] = {1,5};
+  static int barsCounted = 0;
+  
+  double frequency;
+
+  if (self->beatInMeasure > 3.9 && self->startPreCount) {
+    countBars = true;
+  }
+  
+  if (countBars) {
+    barsCounted = barCounter(self, 1);
+    debug_print("countBars %i\n", barsCounted);
+    if (barsCounted > recordingLengths[0])
+      self->recordingStatus = 2;
+    else
+      self->recordingStatus = 1;
+  }
+
+  if (barsCounted > recordingLengths[1]) {
+    countBars = false;
+    self->recordingStatus = 3;
+    barsCounted = 0;
+  }
+
   switch(self->recordingStatus)
   {
-    case 0: //start pre-counting at next bar
-      if (self->beatInMeasure < 0.01 && self->startPreCount) {
-        debug_print("self->beatInMeasure while waiting = %f\n", self->beatInMeasure);
-        self->startPreCount = false;
-        self->recordingStatus = 1;
-      }
-//      debug_print("WAITING FOR FIRST BAR\n"); 
+    case 0:
+      frequency = 0;
       break;
-    case 1: //count bars while pre-counting
+    case 1:
       precount(self);
-      self->recordingStatus = barCounter(self, 0);
-//      debug_print("PRE-COUNTING\n"); 
+      frequency = 660;
       break;
     case 2: //record
+      frequency = 440;
+      precount(self);
       self->recording = true;
       self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-      self->recordingStatus = (barCounter(self, 3)) + 1;
-//      debug_print("RECORDING\n"); 
       break;
     case 3: //stop recording 
-//      debug_print("STOP RECORDING\n"); 
+      countBars = false;
+      frequency = 220;
       self->recording   = false;
       self->recordingTriggered = false;
       self->startPreCount = false;
       self->phaseRecord = 0;
       copyEvents(self->writeEvents, self->playEvents);
-      self->recordingStatus = 0;
       self->playing = true;
       break;
   }
+  self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(frequency, &self->sinePhase, self->rate);
 }
+
+
 
 static void 
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
@@ -737,9 +759,8 @@ run(LV2_Handle instance, uint32_t n_samples)
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);
-    handleBarSyncRecording(self);
+    handleBarSyncRecording(self, pos);
     attackRelease(self);
-    self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(440, &self->sinePhase, self->rate);
     sequenceProcess(self, outCapacity);
   }
   handleEvents(self, outCapacity);
