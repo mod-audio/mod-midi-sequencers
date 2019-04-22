@@ -134,6 +134,15 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
       self->noteOffTimer[row][index] = 0;
     }
   }
+
+  for (size_t voice = 0; voice < 4; voice++) {
+    for (uint8_t note = 0; note < 248; note++) {
+      for (size_t noteProp = 0; noteProp < 2; noteProp++) {
+        self->writeEvents->eventList[voice][note][noteProp] = 0;
+        self->playEvents->eventList[voice][note][noteProp] = 0;
+      }
+    }
+  }
   //init vars
   self->writeEvents->used  = 0;
   self->playEvents->used   = 0;
@@ -426,8 +435,10 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
 {
   //get octave and velocity
   for (size_t voices = 0; voices < 4; voices++) { 
+    debug_print("voices in play = %li\n", voices);
     if ( self->playEvents->eventList[voices][self->notePlayed][0] > 0 && self->playEvents->eventList[voices][self->notePlayed][0] < 128)
     {
+      debug_print("play a note");
       uint8_t octave = octaveHandler(self);
       uint8_t velocity = velocityHandler(self);
 
@@ -479,10 +490,10 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     self->cleared = false;
     self->trigger = true;
 
-    //increment sequence index 
-    self->notePlayed++;
-    self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
   }
+  //increment sequence index 
+  self->notePlayed++;
+  self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
 }
 
 
@@ -570,13 +581,13 @@ handleBarSyncRecording(Data *self)
       break;
     case 1: //count bars while pre-counting
       precount(self);
-      self->recordingStatus = barCounter(self, 1);
+      self->recordingStatus = barCounter(self, 0);
 //      debug_print("PRE-COUNTING\n"); 
       break;
     case 2: //record
       self->recording = true;
       self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-      self->recordingStatus = (barCounter(self, 4)) + 1;
+      self->recordingStatus = (barCounter(self, 3)) + 1;
 //      debug_print("RECORDING\n"); 
       break;
     case 3: //stop recording 
@@ -587,6 +598,7 @@ handleBarSyncRecording(Data *self)
       self->phaseRecord = 0;
       copyEvents(self->writeEvents, self->playEvents);
       self->recordingStatus = 0;
+      self->playing = true;
       break;
   }
 }
@@ -597,12 +609,16 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
   
   switch (status)
   {
-    uint8_t midiNote;
 
     case LV2_MIDI_MSG_NOTE_ON:
       self->notesPressed++;  
+      uint8_t midiNote;
+      midiNote = msg[1];
+      debug_print("message = %i\n", msg[1]);
+
       if (self->recording) {
         recordNotes(self, midiNote);
+        debug_print("midiNote in RECORD = %i\n", midiNote);
       }
       break;
     case LV2_MIDI_MSG_NOTE_OFF:
@@ -637,12 +653,14 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
   //be moved  
   self->notePlacement[1] = *self->swing * 0.01;
 
-  if (self->playing && self->firstBar) 
+  if (self->playing) 
   {
+    debug_print("self->playEvents->used = %li\n", self->playEvents->used);
     float offset = applyRandomTiming(self); 
     if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
         && !self->trigger && self->playEvents->used > 0) 
     { 
+      debug_print("handleNoteOn is triggered");
       handleNoteOn(self, outCapacity); 
       self->triggerSet = false;
     } else 
