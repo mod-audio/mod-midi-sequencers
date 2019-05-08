@@ -42,6 +42,8 @@ typedef enum PortEnum {
   PORT_ATOM_IN = 0,
   PORT_ATOM_OUT1,
   METRO_CONTROL,
+  CVLFO1,
+  CVLFO2,
 	NOTEMODE,
   MODE,
   DIVISION,
@@ -156,6 +158,8 @@ typedef struct Data {
   Array* writeEvents;
   Array* playEvents;
 
+  const float* lfo1;
+  const float* lfo2;
   const float* noteMode;
   const float* mode;
   const float* division;

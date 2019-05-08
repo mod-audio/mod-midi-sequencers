@@ -163,6 +163,12 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 		case METRO_CONTROL:
 			self->control = (LV2_Atom_Sequence*)data;
 			break;
+    case CVLFO1:
+      self->lfo1 = (const float*)data;
+      break;
+    case CVLFO2:
+      self->lfo2 = (const float*)data;
+      break;
 		case NOTEMODE:
 			self->noteMode = (const float*)data;
 			break;
