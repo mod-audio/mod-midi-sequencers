@@ -124,6 +124,9 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
   self->writeEvents  = (Array* )malloc(sizeof(Array));
   self->playEvents   = (Array* )malloc(sizeof(Array));
   self->ARStatus     = IDLE;
+  
+  self->recordingLengths[0] = &self->preCountLength;
+  self->recordingLengths[1] = &self->recordingLength;
 
   for (size_t i = 0; i < 4; i++) {
     self->noteOffArr[i] = 0;
@@ -208,6 +211,12 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 		case ACTIVATERECORDING:
 			self->recordTrigger = (float*)data;
 			break;
+    case PRECOUNT:
+      self->preCountLength = (const float*)data;
+      break;
+    case RECORDINGLENGTH:
+      self->recordingLength = (const float*)data;
+      break;
 		case DIVISION:
 			self->division = (const float*)data;
 			break;
@@ -570,30 +579,33 @@ static void
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
   static bool countBars = false;
-  static int  recordingLengths[2] = {1,5};
   static int barsCounted = 0;
   
   double frequency;
 
+  //TODO change 3.9 to a procentage of the total size of the bar
+  //enable counting of bars right before the of the current bar
   if (self->beatInMeasure > 3.9 && self->startPreCount) {
     countBars = true;
   }
   
+  //count amount of bars to record included pre-count
   if (countBars) {
     barsCounted = barCounter(self, 1);
-    debug_print("countBars %i\n", barsCounted);
-    if (barsCounted > recordingLengths[0])
+    if (barsCounted > **self->recordingLengths[0])
       self->recordingStatus = 2;
     else
       self->recordingStatus = 1;
   }
 
-  if (barsCounted > recordingLengths[1]) {
+  //stop recording 
+  if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
     countBars = false;
     self->recordingStatus = 3;
     barsCounted = 0;
   }
 
+  //run different things acording to the current recordStatus
   switch(self->recordingStatus)
   {
     case 0:
@@ -724,46 +736,43 @@ static void
 run(LV2_Handle instance, uint32_t n_samples)
 {
   Data* self = (Data*)instance;
-
 	self->port_events_out1->atom.type = self->port_events_in->atom.type;
-
   const MetroURIs* uris = &self->uris;
   
   // Work forwards in time frame by frame, handling events as we go
   const LV2_Atom_Sequence* in     = self->control;
 
-  for (const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&in->body);
-      !lv2_atom_sequence_is_end(&in->body, in->atom.size, ev);
-      ev = lv2_atom_sequence_next(ev)) {
-
-    if (ev->body.type == uris->atom_Object ||
-        ev->body.type == uris->atom_Blank) {
-      const LV2_Atom_Object* obj = (const LV2_Atom_Object*)&ev->body;
-      if (obj->body.otype == uris->time_Position) {
-        // Received position information, update
-        update_position(self, obj);
-      }
-    }
-  }
-  self->frequency = calculateFrequency(self->bpm, self->divisionRate);
-  //halftime speed when frequency goes out of range
-  if (self->frequency > self->nyquist)
-    self->frequency = self->frequency / 2;
-  
-  
-  //get the capacity
-  const uint32_t outCapacity = handlePorts(self); 
-  
   //a phase Oscillator that we use for the tempo of the midi-sequencer
   for (uint32_t pos = 0; pos < n_samples; pos++) {
+
+    for (const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&in->body);
+        !lv2_atom_sequence_is_end(&in->body, in->atom.size, ev);
+        ev = lv2_atom_sequence_next(ev)) {
+      if (ev->body.type == uris->atom_Object ||
+          ev->body.type == uris->atom_Blank) {
+        const LV2_Atom_Object* obj = (const LV2_Atom_Object*)&ev->body;
+        if (obj->body.otype == uris->time_Position) {
+          // Received position information, update
+          update_position(self, obj);
+        }
+      }
+    }
+    self->frequency = calculateFrequency(self->bpm, self->divisionRate);
+    //halftime speed when frequency goes out of range
+    if (self->frequency > self->nyquist)
+      self->frequency = self->frequency / 2;
+
+    //get the capacity
+    const uint32_t outCapacity = handlePorts(self); 
+
     self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
     self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
         self->curveLength, self->curveClip, self);
     handleBarSyncRecording(self, pos);
     attackRelease(self);
     sequenceProcess(self, outCapacity);
+    handleEvents(self, outCapacity);
   }
-  handleEvents(self, outCapacity);
 }
 
 

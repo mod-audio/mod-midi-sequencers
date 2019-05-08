@@ -45,6 +45,8 @@ typedef enum PortEnum {
   METRO_CONTROL,
   MODE,
   ACTIVATERECORDING,
+  PRECOUNT,
+  RECORDINGLENGTH,
   DIVISION,
   NOTELENGTH,
   OCTAVESPREAD,
@@ -195,14 +197,16 @@ typedef struct Data {
   const float* curveClip;
   const float* octaveSpread;
 	const float* velocityPatternLength;
-	const float*   patternVel1;
-	const float*   patternVel2;
-	const float*   patternVel3;
-	const float*   patternVel4;
-	const float*   patternVel5;
-	const float*   patternVel6;
-	const float*   patternVel7;
-	const float*   patternVel8;
+	const float* patternVel1;
+	const float* patternVel2;
+	const float* patternVel3;
+	const float* patternVel4;
+	const float* patternVel5;
+	const float* patternVel6;
+	const float* patternVel7;
+	const float* patternVel8;
+
+  const float** recordingLengths[2];
 
   const LV2_Atom_Sequence* port_events_in;
   LV2_Atom_Sequence*       port_events_out1;

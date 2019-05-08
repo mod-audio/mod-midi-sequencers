@@ -1,0 +1,360 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/45968eff/
+$(NAME)-build	Makefile	/^$(NAME)-build: $(NAME).lv2\/$(NAME)$(LIB_EXT)$/;"	t
+$(NAME).lv2/$(NAME)$(LIB_EXT)	Makefile	/^$(NAME).lv2\/$(NAME)$(LIB_EXT): $(NAME).c sequencer_utils.c oscillators.c$/;"	t
+ACTIVATERECORDING	structs.h	/^  ACTIVATERECORDING,$/;"	e	enum:PortEnum	access:public
+AR	Makefile.mk	/^AR  ?= ar$/;"	m
+ARStatus	structs.h	/^  AttackReleaseEnum  ARStatus;$/;"	m	struct:Data	typeref:typename:AttackReleaseEnum	access:public
+ARstate	structs.h	/^  uint8_t ARstate;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+ATTACK	structs.h	/^  ATTACK,$/;"	e	enum:AttackReleaseEnum	access:public
+Array	structs.h	/^typedef struct Array {$/;"	s
+Array	structs.h	/^} Array;$/;"	t	typeref:struct:Array
+Array::eventList	structs.h	/^  uint8_t eventList[4][248][2];$/;"	m	struct:Array	typeref:typename:uint8_t[4][248][2]	access:public
+Array::used	structs.h	/^  size_t used;$/;"	m	struct:Array	typeref:typename:size_t	access:public
+AttackReleaseEnum	structs.h	/^typedef enum AttackReleaseEnum {$/;"	g
+AttackReleaseEnum	structs.h	/^} AttackReleaseEnum;$/;"	t	typeref:enum:AttackReleaseEnum
+BASE_FLAGS	Makefile.mk	/^BASE_FLAGS = -Wall -Wextra -pipe -Wno-unused-parameter$/;"	m
+BASE_OPTS	Makefile.mk	/^BASE_OPTS  = -O3 -ffast-math$/;"	m
+BUILD_CXX_FLAGS	Makefile.mk	/^BUILD_CXX_FLAGS = $(BASE_FLAGS) -std=c++11 $(CXXFLAGS) $(CPPFLAGS)$/;"	m
+BUILD_C_FLAGS	Makefile.mk	/^BUILD_C_FLAGS   = $(BASE_FLAGS) -std=c99 -std=gnu99 $(CFLAGS)$/;"	m
+CC	Makefile.mk	/^CC  ?= gcc$/;"	m
+CLEAR_ALL	structs.h	/^  CLEAR_ALL = 0,$/;"	e	enum:ModeEnum	access:public
+COMPLETE_INSTALL_PATH	Makefile	/^COMPLETE_INSTALL_PATH = $(DESTDIR)$(INSTALL_PATH)\/$(NAME).lv2$/;"	m
+CURVECLIP	structs.h	/^  CURVECLIP,$/;"	e	enum:PortEnum	access:public
+CURVEDEPTH	structs.h	/^  CURVEDEPTH,$/;"	e	enum:PortEnum	access:public
+CURVELENGTH	structs.h	/^  CURVELENGTH,$/;"	e	enum:PortEnum	access:public
+CXX	Makefile.mk	/^CXX ?= g++$/;"	m
+DEBUG	structs.h	/^#define DEBUG /;"	d
+DIVISION	structs.h	/^  DIVISION,$/;"	e	enum:PortEnum	access:public
+Data	structs.h	/^typedef struct Data {$/;"	s
+Data	structs.h	/^} Data;$/;"	t	typeref:struct:Data
+Data::ARStatus	structs.h	/^  AttackReleaseEnum  ARStatus;$/;"	m	struct:Data	typeref:typename:AttackReleaseEnum	access:public
+Data::ARstate	structs.h	/^  uint8_t ARstate;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::activeNoteIndex	structs.h	/^  size_t  activeNoteIndex; $/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::activeNotes	structs.h	/^  int     activeNotes;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::alreadyPlaying	structs.h	/^  bool  alreadyPlaying;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::amplitude	structs.h	/^  float   amplitude;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::barCount	structs.h	/^  uint8_t barCount;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::barCounted	structs.h	/^  bool  barCounted;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::barsize	structs.h	/^  float   barsize;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::beat	structs.h	/^  float   beat;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::beatInMeasure	structs.h	/^  float   beatInMeasure;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::bpm	structs.h	/^  float   bpm;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::cleared	structs.h	/^  bool    cleared;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::clip	structs.h	/^  bool    clip;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::control	structs.h	/^  LV2_Atom_Sequence* control;$/;"	m	struct:Data	typeref:typename:LV2_Atom_Sequence *	access:public
+Data::count	structs.h	/^  size_t  count;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::countTicks	structs.h	/^  int     countTicks;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::curveClip	structs.h	/^  const float* curveClip;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::curveDepth	structs.h	/^  const float* curveDepth;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::curveLength	structs.h	/^  const float* curveLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::division	structs.h	/^  const float* division;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::divisionRate	structs.h	/^  float   divisionRate;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::firstBar	structs.h	/^  bool    firstBar;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::firstRecordedNote	structs.h	/^  bool    firstRecordedNote;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::frequency	structs.h	/^  double  frequency;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::inputIndex	structs.h	/^  size_t  inputIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::latchTranspose	structs.h	/^  const float* latchTranspose;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::map	structs.h	/^  LV2_URID_Map*      map;     \/\/ URID map feature$/;"	m	struct:Data	typeref:typename:LV2_URID_Map *	access:public
+Data::metroOut	structs.h	/^  float   *metroOut;$/;"	m	struct:Data	typeref:typename:float *	access:public
+Data::midiThroughInput	structs.h	/^  uint8_t midiThroughInput[16];$/;"	m	struct:Data	typeref:typename:uint8_t[16]	access:public
+Data::mode	structs.h	/^  const float* mode;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::modeHandle	structs.h	/^  int     modeHandle;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::noteFound	structs.h	/^  size_t  noteFound;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::noteLengthParam	structs.h	/^  const float* noteLengthParam;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::noteLengthTime	structs.h	/^  float   noteLengthTime[2];$/;"	m	struct:Data	typeref:typename:float[2]	access:public
+Data::noteOffArr	structs.h	/^  uint8_t noteOffArr[4];$/;"	m	struct:Data	typeref:typename:uint8_t[4]	access:public
+Data::noteOffIndex	structs.h	/^  size_t  noteOffIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::noteOffSendIndex	structs.h	/^  size_t  noteOffSendIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::noteOffTimer	structs.h	/^  float   noteOffTimer[4][2];$/;"	m	struct:Data	typeref:typename:float[4][2]	access:public
+Data::notePlacement	structs.h	/^  float   notePlacement[2];$/;"	m	struct:Data	typeref:typename:float[2]	access:public
+Data::notePlayed	structs.h	/^  size_t  notePlayed;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::noteStarted	structs.h	/^  int     noteStarted[2];$/;"	m	struct:Data	typeref:typename:int[2]	access:public
+Data::noteTie	structs.h	/^  uint8_t noteTie;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::notesPressed	structs.h	/^  size_t  notesPressed;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::nyquist	structs.h	/^  double  nyquist;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::octaveIndex	structs.h	/^  size_t  octaveIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::octaveSpread	structs.h	/^  const float* octaveSpread;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::pattern	structs.h	/^	const float** pattern[8];$/;"	m	struct:Data	typeref:typename:const float ** [8]	access:public
+Data::patternIndex	structs.h	/^  size_t  patternIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+Data::patternVel1	structs.h	/^	const float*   patternVel1;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel2	structs.h	/^	const float*   patternVel2;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel3	structs.h	/^	const float*   patternVel3;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel4	structs.h	/^	const float*   patternVel4;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel5	structs.h	/^	const float*   patternVel5;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel6	structs.h	/^	const float*   patternVel6;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel7	structs.h	/^	const float*   patternVel7;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::patternVel8	structs.h	/^	const float*   patternVel8;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::phase	structs.h	/^  double  phase;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::phaseRecord	structs.h	/^  double  phaseRecord;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::placementIndex	structs.h	/^  int     placementIndex;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::playEvents	structs.h	/^  Array* playEvents;$/;"	m	struct:Data	typeref:typename:Array *	access:public
+Data::playing	structs.h	/^  bool    playing;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::port_events_in	structs.h	/^  const LV2_Atom_Sequence* port_events_in;$/;"	m	struct:Data	typeref:typename:const LV2_Atom_Sequence *	access:public
+Data::port_events_out1	structs.h	/^  LV2_Atom_Sequence*       port_events_out1;$/;"	m	struct:Data	typeref:typename:LV2_Atom_Sequence *	access:public
+Data::preCountLength	structs.h	/^  const float* preCountLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::preCountTrigger	structs.h	/^  bool    preCountTrigger;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::prevLatch	structs.h	/^  int     prevLatch;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::prevMod	structs.h	/^  int     prevMod;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::prevThrough	structs.h	/^  uint8_t prevThrough;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::previousDevision	structs.h	/^  float previousDevision;$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::previousPlaying	structs.h	/^  bool  previousPlaying;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::previousSpeed	structs.h	/^  int     previousSpeed;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::randomizeTimming	structs.h	/^  const float* randomizeTimming;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::rate	structs.h	/^  double  rate;   \/\/ Sample rate$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::recordTrigger	structs.h	/^  float* recordTrigger;$/;"	m	struct:Data	typeref:typename:float *	access:public
+Data::recording	structs.h	/^  bool  recording;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::recordingLength	structs.h	/^  const float* recordingLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::recordingStatus	structs.h	/^  uint8_t recordingStatus;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::recordingTriggered	structs.h	/^  bool  recordingTriggered;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::resetPhase	structs.h	/^  bool  resetPhase;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::sinePhase	structs.h	/^  double  sinePhase;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::speed	structs.h	/^  float   speed; \/\/ Transport speed (usually 0=stop, 1=play)$/;"	m	struct:Data	typeref:typename:float	access:public
+Data::startPreCount	structs.h	/^  bool  startPreCount;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::swing	structs.h	/^  const float* swing;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::through	structs.h	/^  bool    through;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::transpose	structs.h	/^  int     transpose;$/;"	m	struct:Data	typeref:typename:int	access:public
+Data::trigger	structs.h	/^  bool    trigger;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::triggerSet	structs.h	/^  bool    triggerSet;$/;"	m	struct:Data	typeref:typename:bool	access:public
+Data::urid_midiEvent	structs.h	/^  LV2_URID           urid_midiEvent;$/;"	m	struct:Data	typeref:typename:LV2_URID	access:public
+Data::uris	structs.h	/^  MetroURIs          uris;    \/\/ Cache of mapped URIDs$/;"	m	struct:Data	typeref:typename:MetroURIs	access:public
+Data::velPhase	structs.h	/^  double  velPhase;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::velocity	structs.h	/^  uint8_t velocity;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+Data::velocityCurve	structs.h	/^  const float* velocityCurve;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::velocityLFO	structs.h	/^  double  velocityLFO;$/;"	m	struct:Data	typeref:typename:double	access:public
+Data::velocityMode	structs.h	/^	const float* velocityMode;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::velocityPatternLength	structs.h	/^	const float* velocityPatternLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+Data::writeEvents	structs.h	/^  Array* writeEvents;$/;"	m	struct:Data	typeref:typename:Array *	access:public
+Data::x1	structs.h	/^  double  x1;$/;"	m	struct:Data	typeref:typename:double	access:public
+IDLE	structs.h	/^  IDLE = 0,$/;"	e	enum:AttackReleaseEnum	access:public
+INSTALL_PATH	Makefile	/^INSTALL_PATH = \/usr\/local\/lib\/lv2$/;"	m
+LIB_EXT	Makefile.mk	/^LIB_EXT = .dll$/;"	m
+LIB_EXT	Makefile.mk	/^LIB_EXT = .dylib$/;"	m
+LIB_EXT	Makefile.mk	/^LIB_EXT = .so$/;"	m
+LINK_FLAGS	Makefile.mk	/^LINK_FLAGS      = $(LINK_OPTS) $(LDFLAGS)$/;"	m
+LINK_FLAGS	Makefile.mk	/^LINK_FLAGS      = $(LINK_OPTS) -Wl,--no-undefined $(LDFLAGS)$/;"	m
+LINK_OPTS	Makefile.mk	/^LINK_OPTS   =$/;"	m
+LINK_OPTS	Makefile.mk	/^LINK_OPTS  = -Wl,-O1 -Wl,--as-needed -Wl,--strip-all$/;"	m
+LINK_OPTS	Makefile.mk	/^LINK_OPTS  = -Wl,-dead_strip -Wl,-dead_strip_dylibs$/;"	m
+LV2_Atom_MIDI	Phrase-Sequencer.c	/^} LV2_Atom_MIDI;$/;"	t	typeref:struct:__anone5b9b7b10108	file:
+METRO_CONTROL	structs.h	/^  METRO_CONTROL,$/;"	e	enum:PortEnum	access:public
+MODE	structs.h	/^  MODE,$/;"	e	enum:PortEnum	access:public
+MetroURIs	structs.h	/^typedef struct MetroURIs {$/;"	s
+MetroURIs	structs.h	/^} MetroURIs;$/;"	t	typeref:struct:MetroURIs
+MetroURIs::atom_Blank	structs.h	/^  LV2_URID atom_Blank;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::atom_Float	structs.h	/^  LV2_URID atom_Float;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::atom_Object	structs.h	/^  LV2_URID atom_Object;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::atom_Path	structs.h	/^  LV2_URID atom_Path;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::atom_Resource	structs.h	/^  LV2_URID atom_Resource;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::atom_Sequence	structs.h	/^  LV2_URID atom_Sequence;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::time_Position	structs.h	/^  LV2_URID time_Position;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::time_barBeat	structs.h	/^  LV2_URID time_barBeat;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::time_beatsPerBar	structs.h	/^  LV2_URID time_beatsPerBar;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::time_beatsPerMinute	structs.h	/^  LV2_URID time_beatsPerMinute;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+MetroURIs::time_speed	structs.h	/^  LV2_URID time_speed;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+ModeEnum	structs.h	/^typedef enum ModeEnum {$/;"	g
+ModeEnum	structs.h	/^} ModeEnum;$/;"	t	typeref:enum:ModeEnum
+NAME	Makefile	/^NAME = Phrase-Sequencer$/;"	m
+NOTELENGTH	structs.h	/^  NOTELENGTH,$/;"	e	enum:PortEnum	access:public
+OCTAVESPREAD	structs.h	/^  OCTAVESPREAD,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL1	structs.h	/^	PATTERNVEL1,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL2	structs.h	/^	PATTERNVEL2,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL3	structs.h	/^	PATTERNVEL3,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL4	structs.h	/^	PATTERNVEL4,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL5	structs.h	/^	PATTERNVEL5,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL6	structs.h	/^	PATTERNVEL6,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL7	structs.h	/^	PATTERNVEL7,$/;"	e	enum:PortEnum	access:public
+PATTERNVEL8	structs.h	/^	PATTERNVEL8$/;"	e	enum:PortEnum	access:public
+PI_2	oscillators.h	/^#define PI_2 /;"	d
+PLAY	structs.h	/^  PLAY,$/;"	e	enum:ModeEnum	access:public
+PORT_ATOM_IN	structs.h	/^  PORT_ATOM_IN = 0,$/;"	e	enum:PortEnum	access:public
+PORT_ATOM_OUT1	structs.h	/^  PORT_ATOM_OUT1,$/;"	e	enum:PortEnum	access:public
+PORT_METROME_OUT	structs.h	/^  PORT_METROME_OUT,$/;"	e	enum:PortEnum	access:public
+PortEnum	structs.h	/^typedef enum PortEnum {$/;"	g
+PortEnum	structs.h	/^} PortEnum;$/;"	t	typeref:enum:PortEnum
+RANDOMIZETIMMING	structs.h	/^  RANDOMIZETIMMING,$/;"	e	enum:PortEnum	access:public
+RECORD_APPEND	structs.h	/^  RECORD_APPEND,$/;"	e	enum:ModeEnum	access:public
+RECORD_OVERWRITE	structs.h	/^  RECORD_OVERWRITE,$/;"	e	enum:ModeEnum	access:public
+RELEASE	structs.h	/^  RELEASE$/;"	e	enum:AttackReleaseEnum	access:public
+SHARED	Makefile.mk	/^SHARED = -dynamiclib$/;"	m
+SHARED	Makefile.mk	/^SHARED = -shared$/;"	m
+STOP	structs.h	/^  STOP,$/;"	e	enum:ModeEnum	access:public
+SWING	structs.h	/^  SWING,$/;"	e	enum:PortEnum	access:public
+TRANSPOSE	structs.h	/^  TRANSPOSE,$/;"	e	enum:PortEnum	access:public
+UNDO_LAST	structs.h	/^  UNDO_LAST$/;"	e	enum:ModeEnum	access:public
+VELOCITYCURVE	structs.h	/^  VELOCITYCURVE,$/;"	e	enum:PortEnum	access:public
+VELOCITYMODE	structs.h	/^	VELOCITYMODE,$/;"	e	enum:PortEnum	access:public
+VELOCITYPATTERNLENGTH	structs.h	/^	VELOCITYPATTERNLENGTH,$/;"	e	enum:PortEnum	access:public
+_H_OSCILLATORS_	oscillators.h	/^#define _H_OSCILLATORS_$/;"	d
+_H_SEQ_UTILS_	sequencer_utils.h	/^#define _H_SEQ_UTILS_$/;"	d
+_H_STRUCTS_	structs.h	/^#define _H_STRUCTS_$/;"	d
+__anone5b9b7b10108	Phrase-Sequencer.c	/^typedef struct {$/;"	s	file:
+__anone5b9b7b10108::event	Phrase-Sequencer.c	/^  LV2_Atom_Event event;$/;"	m	struct:__anone5b9b7b10108	typeref:typename:LV2_Atom_Event	file:	access:public
+__anone5b9b7b10108::msg	Phrase-Sequencer.c	/^  uint8_t        msg[3];$/;"	m	struct:__anone5b9b7b10108	typeref:typename:uint8_t[3]	file:	access:public
+activate	Phrase-Sequencer.c	/^activate(LV2_Handle instance)$/;"	f	typeref:typename:void	file:	signature:(LV2_Handle instance)
+activeNoteIndex	structs.h	/^  size_t  activeNoteIndex; $/;"	m	struct:Data	typeref:typename:size_t	access:public
+activeNotes	structs.h	/^  int     activeNotes;$/;"	m	struct:Data	typeref:typename:int	access:public
+all	Makefile	/^all: build$/;"	t
+alreadyPlaying	structs.h	/^  bool  alreadyPlaying;$/;"	m	struct:Data	typeref:typename:bool	access:public
+amplitude	structs.h	/^  float   amplitude;$/;"	m	struct:Data	typeref:typename:float	access:public
+applyRandomTiming	Phrase-Sequencer.c	/^applyRandomTiming(Data* self)$/;"	f	typeref:typename:float	file:	signature:(Data * self)
+atom_Blank	structs.h	/^  LV2_URID atom_Blank;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+atom_Float	structs.h	/^  LV2_URID atom_Float;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+atom_Object	structs.h	/^  LV2_URID atom_Object;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+atom_Path	structs.h	/^  LV2_URID atom_Path;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+atom_Resource	structs.h	/^  LV2_URID atom_Resource;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+atom_Sequence	structs.h	/^  LV2_URID atom_Sequence;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+attackRelease	sequencer_utils.c	/^void attackRelease(Data *self)$/;"	f	typeref:typename:void	signature:(Data * self)
+attackRelease	sequencer_utils.h	/^void attackRelease(Data *self);$/;"	p	typeref:typename:void	signature:(Data * self)
+barCount	structs.h	/^  uint8_t barCount;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+barCounted	structs.h	/^  bool  barCounted;$/;"	m	struct:Data	typeref:typename:bool	access:public
+barCounter	sequencer_utils.c	/^int barCounter(Data *self, uint8_t recordingLength)$/;"	f	typeref:typename:int	signature:(Data * self,uint8_t recordingLength)
+barCounter	sequencer_utils.h	/^int  barCounter(Data *self, uint8_t recordingLength);$/;"	p	typeref:typename:int	signature:(Data * self,uint8_t recordingLength)
+barsize	structs.h	/^  float   barsize;$/;"	m	struct:Data	typeref:typename:float	access:public
+beat	structs.h	/^  float   beat;$/;"	m	struct:Data	typeref:typename:float	access:public
+beatInMeasure	structs.h	/^  float   beatInMeasure;$/;"	m	struct:Data	typeref:typename:float	access:public
+bpm	structs.h	/^  float   bpm;$/;"	m	struct:Data	typeref:typename:float	access:public
+build	Makefile	/^build: $(NAME)-build$/;"	t
+calculateFrequency	sequencer_utils.c	/^float calculateFrequency(uint8_t bpm, float division)$/;"	f	typeref:typename:float	signature:(uint8_t bpm,float division)
+calculateFrequency	sequencer_utils.h	/^float calculateFrequency(uint8_t bpm, float division);$/;"	p	typeref:typename:float	signature:(uint8_t bpm,float division)
+clean	Makefile	/^clean:$/;"	t
+cleanup	Phrase-Sequencer.c	/^static void cleanup(LV2_Handle instance)$/;"	f	typeref:typename:void	file:	signature:(LV2_Handle instance)
+clearNotes	Phrase-Sequencer.c	/^clearNotes(Data *self, const uint32_t outCapacity)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint32_t outCapacity)
+clearSequence	sequencer_utils.c	/^void clearSequence(Array *arr)$/;"	f	typeref:typename:void	signature:(Array * arr)
+clearSequence	sequencer_utils.h	/^void clearSequence(Array *arr);$/;"	p	typeref:typename:void	signature:(Array * arr)
+cleared	structs.h	/^  bool    cleared;$/;"	m	struct:Data	typeref:typename:bool	access:public
+clip	structs.h	/^  bool    clip;$/;"	m	struct:Data	typeref:typename:bool	access:public
+connect_port	Phrase-Sequencer.c	/^connect_port(LV2_Handle instance, uint32_t port, void* data)$/;"	f	typeref:typename:void	file:	signature:(LV2_Handle instance,uint32_t port,void * data)
+control	structs.h	/^  LV2_Atom_Sequence* control;$/;"	m	struct:Data	typeref:typename:LV2_Atom_Sequence *	access:public
+copyEvents	sequencer_utils.c	/^void copyEvents(Array* eventListA, Array* eventListB)$/;"	f	typeref:typename:void	signature:(Array * eventListA,Array * eventListB)
+copyEvents	sequencer_utils.h	/^void copyEvents(Array* eventListA, Array* eventListB);$/;"	p	typeref:typename:void	signature:(Array * eventListA,Array * eventListB)
+count	structs.h	/^  size_t  count;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+countTicks	structs.h	/^  int     countTicks;$/;"	m	struct:Data	typeref:typename:int	access:public
+createMidiEvent	Phrase-Sequencer.c	/^createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)$/;"	f	typeref:typename:LV2_Atom_MIDI	file:	signature:(Data * self,uint8_t status,uint8_t note,uint8_t velocity)
+curveClip	structs.h	/^  const float* curveClip;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+curveDepth	structs.h	/^  const float* curveDepth;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+curveLength	structs.h	/^  const float* curveLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+debug_print	structs.h	/^#define debug_print(/;"	d	signature:(...)
+descriptor	Phrase-Sequencer.c	/^static const LV2_Descriptor descriptor = {$/;"	v	typeref:typename:const LV2_Descriptor	file:
+division	structs.h	/^  const float* division;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+divisionRate	structs.h	/^  float   divisionRate;$/;"	m	struct:Data	typeref:typename:float	access:public
+event	Phrase-Sequencer.c	/^  LV2_Atom_Event event;$/;"	m	struct:__anone5b9b7b10108	typeref:typename:LV2_Atom_Event	file:	access:public
+eventList	structs.h	/^  uint8_t eventList[4][248][2];$/;"	m	struct:Array	typeref:typename:uint8_t[4][248][2]	access:public
+file_exist	Phrase-Sequencer.c	/^int file_exist (char *filename)$/;"	f	typeref:typename:int	signature:(char * filename)
+firstBar	structs.h	/^  bool    firstBar;$/;"	m	struct:Data	typeref:typename:bool	access:public
+firstRecordedNote	structs.h	/^  bool    firstRecordedNote;$/;"	m	struct:Data	typeref:typename:bool	access:public
+frequency	structs.h	/^  double  frequency;$/;"	m	struct:Data	typeref:typename:double	access:public
+handleBarSyncRecording	Phrase-Sequencer.c	/^handleBarSyncRecording(Data *self)$/;"	f	typeref:typename:void	file:	signature:(Data * self)
+handleEvents	Phrase-Sequencer.c	/^handleEvents(Data* self, const uint32_t outCapacity)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint32_t outCapacity)
+handleNoteOff	Phrase-Sequencer.c	/^handleNoteOff(Data* self, const uint32_t outCapacity)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint32_t outCapacity)
+handleNoteOn	Phrase-Sequencer.c	/^handleNoteOn(Data* self, const uint32_t outCapacity)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint32_t outCapacity)
+handleNotes	Phrase-Sequencer.c	/^handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCa/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint8_t * const msg,uint8_t status,int modeHandle,uint32_t outCapacity,void * ev)
+handlePorts	Phrase-Sequencer.c	/^handlePorts(Data* self)$/;"	f	typeref:typename:uint32_t	file:	signature:(Data * self)
+inputIndex	structs.h	/^  size_t  inputIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+install	Makefile	/^install: build$/;"	t
+instantiate	Phrase-Sequencer.c	/^static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,$/;"	f	typeref:typename:LV2_Handle	file:	signature:(const LV2_Descriptor * descriptor,double rate,const char * path,const LV2_Feature * const * features)
+latchTranspose	structs.h	/^  const float* latchTranspose;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+lv2_descriptor	Phrase-Sequencer.c	/^const LV2_Descriptor* lv2_descriptor(uint32_t index)$/;"	f	typeref:typename:LV2_SYMBOL_EXPORT const LV2_Descriptor *	signature:(uint32_t index)
+map	structs.h	/^  LV2_URID_Map*      map;     \/\/ URID map feature$/;"	m	struct:Data	typeref:typename:LV2_URID_Map *	access:public
+metroOut	structs.h	/^  float   *metroOut;$/;"	m	struct:Data	typeref:typename:float *	access:public
+midiThroughInput	structs.h	/^  uint8_t midiThroughInput[16];$/;"	m	struct:Data	typeref:typename:uint8_t[16]	access:public
+mode	structs.h	/^  const float* mode;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+modeHandle	structs.h	/^  int     modeHandle;$/;"	m	struct:Data	typeref:typename:int	access:public
+msg	Phrase-Sequencer.c	/^  uint8_t        msg[3];$/;"	m	struct:__anone5b9b7b10108	typeref:typename:uint8_t[3]	file:	access:public
+noteFound	structs.h	/^  size_t  noteFound;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+noteLengthParam	structs.h	/^  const float* noteLengthParam;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+noteLengthTime	structs.h	/^  float   noteLengthTime[2];$/;"	m	struct:Data	typeref:typename:float[2]	access:public
+noteOffArr	structs.h	/^  uint8_t noteOffArr[4];$/;"	m	struct:Data	typeref:typename:uint8_t[4]	access:public
+noteOffIndex	structs.h	/^  size_t  noteOffIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+noteOffSendIndex	structs.h	/^  size_t  noteOffSendIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+noteOffTimer	structs.h	/^  float   noteOffTimer[4][2];$/;"	m	struct:Data	typeref:typename:float[4][2]	access:public
+notePlacement	structs.h	/^  float   notePlacement[2];$/;"	m	struct:Data	typeref:typename:float[2]	access:public
+notePlayed	structs.h	/^  size_t  notePlayed;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+noteStarted	structs.h	/^  int     noteStarted[2];$/;"	m	struct:Data	typeref:typename:int[2]	access:public
+noteTie	structs.h	/^  uint8_t noteTie;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+notesPressed	structs.h	/^  size_t  notesPressed;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+nyquist	structs.h	/^  double  nyquist;$/;"	m	struct:Data	typeref:typename:double	access:public
+octaveHandler	Phrase-Sequencer.c	/^octaveHandler(Data* self)$/;"	f	typeref:typename:uint8_t	file:	signature:(Data * self)
+octaveIndex	structs.h	/^  size_t  octaveIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+octaveSpread	structs.h	/^  const float* octaveSpread;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+pattern	structs.h	/^	const float** pattern[8];$/;"	m	struct:Data	typeref:typename:const float ** [8]	access:public
+patternIndex	structs.h	/^  size_t  patternIndex;$/;"	m	struct:Data	typeref:typename:size_t	access:public
+patternVel1	structs.h	/^	const float*   patternVel1;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel2	structs.h	/^	const float*   patternVel2;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel3	structs.h	/^	const float*   patternVel3;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel4	structs.h	/^	const float*   patternVel4;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel5	structs.h	/^	const float*   patternVel5;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel6	structs.h	/^	const float*   patternVel6;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel7	structs.h	/^	const float*   patternVel7;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+patternVel8	structs.h	/^	const float*   patternVel8;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+phase	structs.h	/^  double  phase;$/;"	m	struct:Data	typeref:typename:double	access:public
+phaseOsc	oscillators.c	/^double* phaseOsc(float frequency, double* phase, float rate, float swing)$/;"	f	typeref:typename:double *	signature:(float frequency,double * phase,float rate,float swing)
+phaseOsc	oscillators.h	/^double* phaseOsc(float frequency, double* phase, float rate, float swing);$/;"	p	typeref:typename:double *	signature:(float frequency,double * phase,float rate,float swing)
+phaseRecord	oscillators.c	/^double* phaseRecord(float frequency, double* phase, float rate)$/;"	f	typeref:typename:double *	signature:(float frequency,double * phase,float rate)
+phaseRecord	oscillators.h	/^double* phaseRecord(float frequency, double* phase, float rate);$/;"	p	typeref:typename:double *	signature:(float frequency,double * phase,float rate)
+phaseRecord	structs.h	/^  double  phaseRecord;$/;"	m	struct:Data	typeref:typename:double	access:public
+placementIndex	structs.h	/^  int     placementIndex;$/;"	m	struct:Data	typeref:typename:int	access:public
+playEvents	structs.h	/^  Array* playEvents;$/;"	m	struct:Data	typeref:typename:Array *	access:public
+playing	structs.h	/^  bool    playing;$/;"	m	struct:Data	typeref:typename:bool	access:public
+port_events_in	structs.h	/^  const LV2_Atom_Sequence* port_events_in;$/;"	m	struct:Data	typeref:typename:const LV2_Atom_Sequence *	access:public
+port_events_out1	structs.h	/^  LV2_Atom_Sequence*       port_events_out1;$/;"	m	struct:Data	typeref:typename:LV2_Atom_Sequence *	access:public
+preCountLength	structs.h	/^  const float* preCountLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+preCountTrigger	structs.h	/^  bool    preCountTrigger;$/;"	m	struct:Data	typeref:typename:bool	access:public
+precount	sequencer_utils.c	/^void precount(Data *self)$/;"	f	typeref:typename:void	signature:(Data * self)
+precount	sequencer_utils.h	/^void precount(Data *self);$/;"	p	typeref:typename:void	signature:(Data * self)
+prevLatch	structs.h	/^  int     prevLatch;$/;"	m	struct:Data	typeref:typename:int	access:public
+prevMod	structs.h	/^  int     prevMod;$/;"	m	struct:Data	typeref:typename:int	access:public
+prevThrough	structs.h	/^  uint8_t prevThrough;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+previousDevision	structs.h	/^  float previousDevision;$/;"	m	struct:Data	typeref:typename:float	access:public
+previousPlaying	structs.h	/^  bool  previousPlaying;$/;"	m	struct:Data	typeref:typename:bool	access:public
+previousSpeed	structs.h	/^  int     previousSpeed;$/;"	m	struct:Data	typeref:typename:int	access:public
+randomizeTimming	structs.h	/^  const float* randomizeTimming;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+rate	structs.h	/^  double  rate;   \/\/ Sample rate$/;"	m	struct:Data	typeref:typename:double	access:public
+recordNotes	sequencer_utils.c	/^void recordNotes(Data *self, uint8_t midiNote)$/;"	f	typeref:typename:void	signature:(Data * self,uint8_t midiNote)
+recordNotes	sequencer_utils.h	/^void recordNotes(Data *self, uint8_t midiNote);$/;"	p	typeref:typename:void	signature:(Data * self,uint8_t midiNote)
+recordTrigger	structs.h	/^  float* recordTrigger;$/;"	m	struct:Data	typeref:typename:float *	access:public
+recording	structs.h	/^  bool  recording;$/;"	m	struct:Data	typeref:typename:bool	access:public
+recordingLength	structs.h	/^  const float* recordingLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+recordingStatus	structs.h	/^  uint8_t recordingStatus;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+recordingTriggered	structs.h	/^  bool  recordingTriggered;$/;"	m	struct:Data	typeref:typename:bool	access:public
+resetPhase	sequencer_utils.h	/^void resetPhase(Data* self);$/;"	p	typeref:typename:void	signature:(Data * self)
+resetPhase	structs.h	/^  bool  resetPhase;$/;"	m	struct:Data	typeref:typename:bool	access:public
+run	Phrase-Sequencer.c	/^run(LV2_Handle instance, uint32_t n_samples)$/;"	f	typeref:typename:void	file:	signature:(LV2_Handle instance,uint32_t n_samples)
+sequenceProcess	Phrase-Sequencer.c	/^sequenceProcess(Data* self, const uint32_t outCapacity)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const uint32_t outCapacity)
+sinOsc	oscillators.c	/^double sinOsc(float frequency, double* phase, float rate)$/;"	f	typeref:typename:double	signature:(float frequency,double * phase,float rate)
+sinOsc	oscillators.h	/^double sinOsc(float frequency, double* phase, float rate);$/;"	p	typeref:typename:double	signature:(float frequency,double * phase,float rate)
+sinePhase	structs.h	/^  double  sinePhase;$/;"	m	struct:Data	typeref:typename:double	access:public
+speed	structs.h	/^  float   speed; \/\/ Transport speed (usually 0=stop, 1=play)$/;"	m	struct:Data	typeref:typename:float	access:public
+startPreCount	structs.h	/^  bool  startPreCount;$/;"	m	struct:Data	typeref:typename:bool	access:public
+stopSequence	Phrase-Sequencer.c	/^stopSequence(Data* self)$/;"	f	typeref:typename:void	file:	signature:(Data * self)
+swing	structs.h	/^  const float* swing;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+switchMode	Phrase-Sequencer.c	/^switchMode(Data* self, const uint32_t outCapacity)$/;"	f	typeref:typename:int	file:	signature:(Data * self,const uint32_t outCapacity)
+through	structs.h	/^  bool    through;$/;"	m	struct:Data	typeref:typename:bool	access:public
+time_Position	structs.h	/^  LV2_URID time_Position;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+time_barBeat	structs.h	/^  LV2_URID time_barBeat;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+time_beatsPerBar	structs.h	/^  LV2_URID time_beatsPerBar;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+time_beatsPerMinute	structs.h	/^  LV2_URID time_beatsPerMinute;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+time_speed	structs.h	/^  LV2_URID time_speed;$/;"	m	struct:MetroURIs	typeref:typename:LV2_URID	access:public
+transpose	structs.h	/^  int     transpose;$/;"	m	struct:Data	typeref:typename:int	access:public
+trigger	structs.h	/^  bool    trigger;$/;"	m	struct:Data	typeref:typename:bool	access:public
+triggerSet	structs.h	/^  bool    triggerSet;$/;"	m	struct:Data	typeref:typename:bool	access:public
+update_position	Phrase-Sequencer.c	/^update_position(Data* self, const LV2_Atom_Object* obj)$/;"	f	typeref:typename:void	file:	signature:(Data * self,const LV2_Atom_Object * obj)
+urid_midiEvent	structs.h	/^  LV2_URID           urid_midiEvent;$/;"	m	struct:Data	typeref:typename:LV2_URID	access:public
+uris	structs.h	/^  MetroURIs          uris;    \/\/ Cache of mapped URIDs$/;"	m	struct:Data	typeref:typename:MetroURIs	access:public
+used	structs.h	/^  size_t used;$/;"	m	struct:Array	typeref:typename:size_t	access:public
+velOsc	oscillators.c	/^double* velOsc(float frequency, double* velocityLFO, float rate, $/;"	f	typeref:typename:double *	signature:(float frequency,double * velocityLFO,float rate,const float * velocityCurve,const float * curveDepth,const float * curveLength,const float * curveClip,Data * self)
+velOsc	oscillators.h	/^double* velOsc(float frequency, double* velocityLFO, float rate, const float* velocityCurve, $/;"	p	typeref:typename:double *	signature:(float frequency,double * velocityLFO,float rate,const float * velocityCurve,const float * velocityDepth,const float * curveLength,const float * curveClip,Data * self)
+velPhase	structs.h	/^  double  velPhase;$/;"	m	struct:Data	typeref:typename:double	access:public
+velocity	structs.h	/^  uint8_t velocity;$/;"	m	struct:Data	typeref:typename:uint8_t	access:public
+velocityCurve	structs.h	/^  const float* velocityCurve;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+velocityHandler	Phrase-Sequencer.c	/^velocityHandler(Data* self)$/;"	f	typeref:typename:uint8_t	file:	signature:(Data * self)
+velocityLFO	structs.h	/^  double  velocityLFO;$/;"	m	struct:Data	typeref:typename:double	access:public
+velocityMode	structs.h	/^	const float* velocityMode;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+velocityPatternLength	structs.h	/^	const float* velocityPatternLength;$/;"	m	struct:Data	typeref:typename:const float *	access:public
+writeEvents	structs.h	/^  Array* writeEvents;$/;"	m	struct:Data	typeref:typename:Array *	access:public
+x1	structs.h	/^  double  x1;$/;"	m	struct:Data	typeref:typename:double	access:public

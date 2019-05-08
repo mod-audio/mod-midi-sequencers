@@ -81,6 +81,42 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
         [
            a lv2:InputPort, lv2:ControlPort ;
            lv2:index 6 ;
+           lv2:name "preCountLength" ;
+           lv2:symbol "preCountLength" ;
+           lv2:default 1 ;
+           lv2:minimum 1 ;
+           lv2:maximum 8 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "1 bar" ; rdf:value 1 ] ;
+           lv2:scalePoint [ rdfs:label "2 bar" ; rdf:value 2 ] ;
+           lv2:scalePoint [ rdfs:label "3 bar" ; rdf:value 3 ] ;
+           lv2:scalePoint [ rdfs:label "4 bar" ; rdf:value 4 ] ;
+           lv2:scalePoint [ rdfs:label "5 bar" ; rdf:value 5 ] ;
+           lv2:scalePoint [ rdfs:label "6 bar" ; rdf:value 6 ] ;
+           lv2:scalePoint [ rdfs:label "7 bar" ; rdf:value 7 ] ;
+           lv2:scalePoint [ rdfs:label "8 bar" ; rdf:value 8 ] ;
+        ] ,
+        [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 7 ;
+           lv2:name "recordingLength" ;
+           lv2:symbol "recordingLength" ;
+           lv2:default 2 ;
+           lv2:minimum 1 ;
+           lv2:maximum 8 ;
+           lv2:portProperty lv2:enumeration, lv2:integer;
+           lv2:scalePoint [ rdfs:label "1 bar" ; rdf:value 1 ] ;
+           lv2:scalePoint [ rdfs:label "2 bar" ; rdf:value 2 ] ;
+           lv2:scalePoint [ rdfs:label "3 bar" ; rdf:value 3 ] ;
+           lv2:scalePoint [ rdfs:label "4 bar" ; rdf:value 4 ] ;
+           lv2:scalePoint [ rdfs:label "5 bar" ; rdf:value 5 ] ;
+           lv2:scalePoint [ rdfs:label "6 bar" ; rdf:value 6 ] ;
+           lv2:scalePoint [ rdfs:label "7 bar" ; rdf:value 7 ] ;
+           lv2:scalePoint [ rdfs:label "8 bar" ; rdf:value 8 ] ;
+        ] ,
+        [
+           a lv2:InputPort, lv2:ControlPort ;
+           lv2:index 8 ;
            lv2:name "division" ;
            lv2:symbol "division" ;
            lv2:default 2 ;
@@ -101,7 +137,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
         ],
         [ 
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 7 ;
+           lv2:index 9 ;
            lv2:name "noteLength"  ;
            lv2:symbol "noteLength" ;
            lv2:default 0.3 ;
@@ -110,7 +146,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ],
          [
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 8 ;
+           lv2:index 10 ;
            lv2:name "octaveSpread"  ;
            lv2:symbol "octaveSpread" ;
            lv2:default 1 ;
@@ -120,7 +156,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ], 
          [ 
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 9 ;
+           lv2:index 11 ;
            lv2:name "playmode" ;
            lv2:symbol "playmode" ;
            lv2:default 1 ;
@@ -133,7 +169,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ],
          [
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 10 ;
+           lv2:index 12 ;
            lv2:name "swing"  ;
            lv2:symbol "swing" ;
            lv2:default 50 ;
@@ -142,7 +178,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ], 
          [ 
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 11 ;
+           lv2:index 13 ;
            lv2:name "randomizetimming"  ;
            lv2:symbol "randomizetimming" ;
            lv2:default 0.0 ;
@@ -151,7 +187,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ], 
 				 [
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 12 ;
+           lv2:index 14 ;
            lv2:name "velocitymode" ;
            lv2:symbol "velocitymode" ;
            lv2:default 0 ;
@@ -164,7 +200,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				 ], 
 			   [
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 13 ;
+           lv2:index 15 ;
            lv2:name "velocitycurve"  ;
            lv2:symbol "velocitycurve" ;
            lv2:default 0 ;
@@ -174,7 +210,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
          ], 
          [
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 14 ;
+        	 lv2:index 16 ;
         	 lv2:symbol "curvedepth" ;
         	 lv2:name "curvedepth" ;
         	 lv2:default 0.0 ;
@@ -183,7 +219,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
           ],
           [
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 15 ;
+        	 lv2:index 17 ;
         	 lv2:symbol "curveClip" ;
         	 lv2:name "curveClip" ;
 					 lv2:default 0.0 ;
@@ -193,7 +229,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
           ], 
 					[
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 16 ;
+           lv2:index 18 ;
            lv2:name "curvelength" ;
            lv2:symbol "curvelength" ;
            lv2:default 3 ;
@@ -218,7 +254,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] ,
 				[
            a lv2:InputPort, lv2:ControlPort ;
-           lv2:index 17 ;
+           lv2:index 19 ;
            lv2:name "velocitypatternlength" ;
            lv2:symbol "velocitypatternlength" ;
            lv2:default 4 ;
@@ -236,7 +272,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] , 
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 18 ;
+        	 lv2:index 20 ;
         	 lv2:symbol "velocityNote1" ;
         	 lv2:name "velocityNote1" ;
         	 lv2:default 60 ;
@@ -246,7 +282,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] , 
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 19 ;
+        	 lv2:index 21 ;
         	 lv2:symbol "velocityNote2" ;
         	 lv2:name "velocityNote2" ;
         	 lv2:default 60 ;
@@ -256,7 +292,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] , 
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 20 ;
+        	 lv2:index 22 ;
         	 lv2:symbol "velocityNote3" ;
         	 lv2:name "velocityNote3" ;
         	 lv2:default 60 ;
@@ -266,7 +302,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				], 
 				[ 
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 21 ;
+        	 lv2:index 23 ;
         	 lv2:symbol "velocityNote4" ;
         	 lv2:name "velocityNote4" ;
         	 lv2:default 60 ;
@@ -276,7 +312,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
         ] ,
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 22 ;
+        	 lv2:index 24 ;
         	 lv2:symbol "velocityNote5" ;
         	 lv2:name "velocityNote5" ;
         	 lv2:default 60 ;
@@ -286,7 +322,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] , 
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 23 ;
+        	 lv2:index 25 ;
         	 lv2:symbol "velocityNote6" ;
         	 lv2:name "velocityNote6" ;
         	 lv2:default 60 ;
@@ -296,7 +332,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				] , 
 				[
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 24 ;
+        	 lv2:index 26 ;
         	 lv2:symbol "velocityNote7" ;
         	 lv2:name "velocityNote7" ;
         	 lv2:default 60 ;
@@ -306,7 +342,7 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
 				], 
 				[ 
 					 a lv2:InputPort, lv2:ControlPort ;
-        	 lv2:index 25 ;
+        	 lv2:index 27 ;
         	 lv2:symbol "velocityNote8" ;
         	 lv2:name "velocityNote8" ;
         	 lv2:default 60 ;
