@@ -90,14 +90,7 @@ void recordNotes(Data *self, uint8_t midiNote)
   if (midiNote > 0) {
     snappedIndex = (int)roundf(self->phaseRecord);
     self->writeEvents->eventList[recIndex++ % 4][snappedIndex][0] = midiNote;
-    debug_print("snappedIndex = %i\n", snappedIndex);
-    debug_print("recordIndex = %i\n", recIndex);
-    debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[0][snappedIndex][0]);
-    debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[1][snappedIndex][0]);
-    debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[2][snappedIndex][0]);
-    debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[3][snappedIndex][0]);
   }
-
 }
 
 
