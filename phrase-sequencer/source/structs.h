@@ -36,185 +36,166 @@
 #define DEBUG 0
 #endif
 #define debug_print(...) \
-((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
+    ((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
 typedef enum PortEnum {
-  PORT_ATOM_IN = 0,
-  PORT_ATOM_OUT1,
-  PORT_METROME_OUT,
-  METRO_CONTROL,
-  MODE,
-  ACTIVATERECORDING,
-  PRECOUNT,
-  RECORDINGLENGTH,
-  DIVISION,
-  NOTELENGTH,
-  OCTAVESPREAD,
-  TRANSPOSE,
-  SWING,
-  RANDOMIZETIMMING,
-	VELOCITYMODE,
-  VELOCITYCURVE,
-  CURVEDEPTH,
-  CURVECLIP,
-  CURVELENGTH,
-	VELOCITYPATTERNLENGTH,
-	PATTERNVEL1,
-	PATTERNVEL2,
-	PATTERNVEL3,
-	PATTERNVEL4,
-	PATTERNVEL5,
-	PATTERNVEL6,
-	PATTERNVEL7,
-	PATTERNVEL8
+    PORT_ATOM_IN = 0,
+    PORT_ATOM_OUT1,
+    PORT_METROME_OUT,
+    METRO_CONTROL,
+    MODE,
+    ACTIVATERECORDING,
+    PRECOUNT,
+    RECORDINGLENGTH,
+    DIVISION,
+    NOTELENGTH,
+    OCTAVESPREAD,
+    TRANSPOSE,
+    SWING,
+    RANDOMIZETIMMING,
 } PortEnum;
 
 typedef enum ModeEnum {
-  CLEAR_ALL = 0,
-  STOP,
-  PLAY,
-  RECORD_OVERWRITE,
-  RECORD_APPEND,
-  UNDO_LAST
+    CLEAR_ALL = 0,
+    STOP,
+    PLAY,
+    RECORD_OVERWRITE,
+    RECORD_APPEND,
+    UNDO_LAST
 } ModeEnum;
 
+typedef enum RecordEnum {
+    R_IDLE = 0,
+    R_PRE_COUNT,
+    R_RECORDING,
+    R_STOP_RECORDING
+} RecordEnum;
+
 typedef enum AttackReleaseEnum {
-  IDLE = 0,
-  ATTACK,
-  RELEASE
+    IDLE = 0,
+    ATTACK,
+    RELEASE
 } AttackReleaseEnum;
 
 typedef struct MetroURIs {
-  LV2_URID atom_Blank;
-  LV2_URID atom_Float;
-  LV2_URID atom_Object;
-  LV2_URID atom_Path;
-  LV2_URID atom_Resource;
-  LV2_URID atom_Sequence;
-  LV2_URID time_Position;
-  LV2_URID time_barBeat;
-  LV2_URID time_beatsPerMinute;
-  LV2_URID time_beatsPerBar;
-  LV2_URID time_speed;
+    LV2_URID atom_Blank;
+    LV2_URID atom_Float;
+    LV2_URID atom_Object;
+    LV2_URID atom_Path;
+    LV2_URID atom_Resource;
+    LV2_URID atom_Sequence;
+    LV2_URID time_Position;
+    LV2_URID time_barBeat;
+    LV2_URID time_beatsPerMinute;
+    LV2_URID time_beatsPerBar;
+    LV2_URID time_speed;
 } MetroURIs;
 
 typedef struct Array {
-  uint8_t eventList[4][248][2];
-  size_t used;
+    uint8_t eventList[4][248][2];
+    size_t used;
 } Array;
 
 typedef struct Data {
 
-  double  rate;   // Sample rate
-  double  frequency;
-  double  nyquist;
-  double  velPhase;
-  double  x1;
-  double  phase;
-  double  sinePhase;
-  double  phaseRecord;
-  double  velocityLFO;
-  float   *metroOut;
-  float   amplitude;
-  float   bpm;
-  float   barsize;
-  float   beat;
-  float   speed; // Transport speed (usually 0=stop, 1=play)
-  float   noteLengthTime[2];
-  int     activeNotes;
-  int     previousSpeed;
+    double  rate;   // Sample rate
+    double  frequency;
+    double  nyquist;
+    double  velPhase;
+    double  x1;
+    double  phase;
+    double  sinePhase;
+    double  phaseRecord;
+    float   *metroOut;
+    float   amplitude;
+    float   bpm;
+    float   barsize;
+    float   beat;
+    float   speed; // Transport speed (usually 0=stop, 1=play)
+    float   noteLengthTime[2];
+    int     activeNotes;
+    int     previousSpeed;
 
-  int     modeHandle;
-  int     prevMod;
-  int     prevLatch;
-  
-  int     placementIndex;
-  float   notePlacement[2];
-  
-  uint8_t noteTie;
-  uint8_t velocity;
-  int     noteStarted[2];
-  uint8_t noteOffArr[4];
-  float   noteOffTimer[4][2];
-  float   beatInMeasure;
-  float   divisionRate;
+    int     modeHandle;
+    int     prevMod;
+    int     prevLatch;
 
-  size_t  count;
-  size_t  inputIndex;
-  size_t  notesPressed;
-  size_t  activeNoteIndex; 
-  uint8_t prevThrough;
-  uint8_t midiThroughInput[16];
-  uint8_t recordingStatus;
-  uint8_t barCount;
-  uint8_t ARstate;
-  //resetPhase vars:
-  float previousDevision;
-  bool  barCounted;
-  bool  recordingTriggered;
-  bool  startPreCount;
-  bool  recording;
-  bool  previousPlaying;
-  bool  resetPhase;
-  bool  alreadyPlaying;
+    int     placementIndex;
+    float   notePlacement[2];
 
-  size_t  noteFound;
-  size_t  patternIndex;
-  size_t  notePlayed;
-  size_t  octaveIndex;
-  size_t  noteOffIndex;
-  size_t  noteOffSendIndex;
-  bool    firstRecordedNote;
-  bool    through;
-  bool    firstBar;
-  bool    playing;
-  bool    clip;
-  bool    trigger;
-  bool    triggerSet;
-  bool    preCountTrigger;
-  bool    cleared;
-  int     transpose;
-  int     countTicks;
-	
-	const float** pattern[8];
-  Array* writeEvents;
-  Array* playEvents;
-  AttackReleaseEnum  ARStatus;
+    uint8_t noteTie;
+    uint8_t velocity;
+    int     noteStarted[2];
+    uint8_t noteOffArr[4];
+    float   noteOffTimer[4][2];
+    float   beatInMeasure;
+    float   divisionRate;
 
-  float* recordTrigger;
-  const float* mode;
-  const float* preCountLength;
-  const float* recordingLength;
-  const float* division;
-  const float* noteLengthParam;
-  const float* latchTranspose;
-  const float* swing;
-  const float* randomizeTimming;
-	const float* velocityMode;
-  const float* velocityCurve;
-  const float* curveDepth;
-  const float* curveLength;
-  const float* curveClip;
-  const float* octaveSpread;
-	const float* velocityPatternLength;
-	const float* patternVel1;
-	const float* patternVel2;
-	const float* patternVel3;
-	const float* patternVel4;
-	const float* patternVel5;
-	const float* patternVel6;
-	const float* patternVel7;
-	const float* patternVel8;
+    size_t  count;
+    size_t  inputIndex;
+    size_t  notesPressed;
+    size_t  activeNoteIndex; 
+    uint8_t prevThrough;
+    uint8_t midiThroughInput[16];
+    uint8_t recordingStatus;
+    uint8_t barCount;
+    uint8_t ARstate;
+    //resetPhase vars:
+    float previousDevision;
+    bool  barCounted;
+    bool  recordingTriggered;
+    bool  startPreCount;
+    bool  recording;
+    bool  previousPlaying;
+    bool  resetPhase;
+    bool  alreadyPlaying;
 
-  const float** recordingLengths[2];
+    size_t  noteFound;
+    size_t  patternIndex;
+    size_t  notePlayed;
+    size_t  octaveIndex;
+    size_t  noteOffIndex;
+    size_t  noteOffSendIndex;
+    bool    firstRecordedNote;
+    bool    through;
+    bool    firstBar;
+    bool    playing;
+    bool    clip;
+    bool    trigger;
+    bool    triggerSet;
+    bool    preCountTrigger;
+    bool    cleared;
+    int     transpose;
+    int     countTicks;
 
-  const LV2_Atom_Sequence* port_events_in;
-  LV2_Atom_Sequence*       port_events_out1;
+    const float** pattern[8];
+    Array* writeEvents;
+    Array* playEvents;
+    AttackReleaseEnum  ARStatus;
 
-  LV2_URID           urid_midiEvent;
-  LV2_URID_Map*      map;     // URID map feature
-  LV2_Atom_Sequence* control;
-  MetroURIs          uris;    // Cache of mapped URIDs
+    float* recordTrigger;
+    const float* mode;
+    const float* preCountLength;
+    const float* recordingLength;
+    const float* division;
+    const float* noteLengthParam;
+    const float* latchTranspose;
+    const float* swing;
+    const float* randomizeTimming;
+    const float* curveDepth;
+    const float* curveLength;
+    const float* curveClip;
+    const float* octaveSpread;
+
+    const float** recordingLengths[2];
+
+    const LV2_Atom_Sequence* port_events_in;
+    LV2_Atom_Sequence*       port_events_out1;
+
+    LV2_URID           urid_midiEvent;
+    LV2_URID_Map*      map;     // URID map feature
+    LV2_Atom_Sequence* control;
+    MetroURIs          uris;    // Cache of mapped URIDs
 
 } Data;
 #endif //_H_STRUCTS_

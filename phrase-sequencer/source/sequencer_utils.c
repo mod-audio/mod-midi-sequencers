@@ -96,7 +96,6 @@ void recordNotes(Data *self, uint8_t midiNote)
     debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[1][snappedIndex][0]);
     debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[2][snappedIndex][0]);
     debug_print("self->writeEvents->eventList = %i\n", self->writeEvents->eventList[3][snappedIndex][0]);
-    self->writeEvents->used = (int)self->phaseRecord;
   }
 
 }
