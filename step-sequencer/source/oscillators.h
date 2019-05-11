@@ -25,7 +25,7 @@
 #define PI_2 6.28318530717959
 
 double* phaseOsc(float frequency, double* phase, float rate, float swing);
-double* velOsc(float frequency, double* velocityLFO, float rate, const float* velocityCurve, 
-    const float* velocityDepth, const float* curveLength, const float* curveClip, Data* self);
+double* velOsc(float frequency, double* velocityLFO, float rate, float velocityCurve, 
+        float velocityDepth, const float* curveLength, float curveClip, Data* self);
 
 #endif // _H_OSCILLATORS_
