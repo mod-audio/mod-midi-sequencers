@@ -134,32 +134,24 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->playing           = false;
     self->clip              = false;
 
-    //init pointer for velocity pattern
-    self->pattern[0] = &self->patternVel1Param;
-    self->pattern[1] = &self->patternVel2Param;
-    self->pattern[2] = &self->patternVel3Param;
-    self->pattern[3] = &self->patternVel4Param;
-    self->pattern[4] = &self->patternVel5Param;
-    self->pattern[5] = &self->patternVel6Param;
-    self->pattern[6] = &self->patternVel7Param;
-    self->pattern[7] = &self->patternVel8Param;
-    self->parameters[0]   = &self->divisionParam;
-    self->parameters[1]   = &self->noteLengthParam;
-    self->parameters[2]   = &self->octaveSpreadParam;
-    self->parameters[3]   = &self->swingParam;
-    self->parameters[4]   = &self->randomizeTimmingParam;
-    self->parameters[5]   = &self->velocityModeParam;
-    self->parameters[6]   = &self->velocityCurveParam;
-    self->parameters[7]   = &self->curveDepthParam;
-    self->parameters[8]   = &self->curveClipParam;
-    self->parameters[9]   = &self->patternVel1Param;
-    self->parameters[10]  = &self->patternVel2Param;
-    self->parameters[11]  = &self->patternVel3Param;
-    self->parameters[12]  = &self->patternVel4Param;
-    self->parameters[13]  = &self->patternVel5Param;
-    self->parameters[14]  = &self->patternVel6Param;
-    self->parameters[15]  = &self->patternVel7Param;
-    self->parameters[16]  = &self->patternVel8Param;      ;
+    self->parameters[0]   = NULL;
+    self->parameters[1]   = &self->divisionParam;
+    self->parameters[2]   = &self->noteLengthParam;
+    self->parameters[3]   = &self->octaveSpreadParam;
+    self->parameters[4]   = &self->swingParam;
+    self->parameters[5]   = &self->randomizeTimmingParam;
+    self->parameters[6]   = &self->velocityModeParam;
+    self->parameters[7]   = &self->velocityCurveParam;
+    self->parameters[8]   = &self->curveDepthParam;
+    self->parameters[9]   = &self->curveClipParam;
+    self->parameters[10]  = &self->patternVel1Param;
+    self->parameters[11]  = &self->patternVel2Param;
+    self->parameters[12]  = &self->patternVel3Param;
+    self->parameters[13]  = &self->patternVel4Param;
+    self->parameters[14]  = &self->patternVel5Param;
+    self->parameters[15]  = &self->patternVel6Param;
+    self->parameters[16]  = &self->patternVel7Param;
+    self->parameters[17]  = &self->patternVel8Param;      ;
 
     return self;
 }
@@ -298,8 +290,8 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 static float     
 getParamMinRange(int param)
 {
-    float maxParamValue[17] = 
-    {0, 0, 1, 25, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+    float maxParamValue[18] = 
+    {0, 0, 0, 1, 25, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
 
     return maxParamValue[param];
 }
@@ -309,8 +301,8 @@ getParamMinRange(int param)
 static float 
 getParamMaxRange(int param)
 {
-    float maxParamValue[17] = 
-    {10, 0, 4, 75, 1, 2, 70, 1, 0, 127, 127, 127, 127, 127, 127, 127, 127};
+    float maxParamValue[18] = 
+    {0, 10, 0.99, 4, 75, 1, 2, 70, 1, 0, 127, 127, 127, 127, 127, 127, 127, 127};
 
     return maxParamValue[param];
 }
@@ -321,42 +313,47 @@ static void
 applyLfoToParameters(Data* self)
 {
     size_t amountParam = 18;
-    float lfoValue1 = 0;
-    float lfoValue2 = 0;
+    float lfoValue = 0;
+    int param;
 
-    for (size_t param = 1; param < amountParam; param++) {
-        if (*self->lfo1ConnectParam == param)
-            lfoValue1 = *self->lfo1PortParam; 
-        if (*self->lfo2ConnectParam == param)
-            lfoValue2 = *self->lfo2PortParam; 
-        self->variables[param] = **self->parameters[param] + lfoValue1 + lfoValue2; 
+
+    for (size_t parameters = 1; parameters < amountParam; parameters++) {
+        self->variables[parameters] = **self->parameters[parameters]; 
     }
 
-    self->variables[(int)*self->lfo1ConnectParam] = applyRange(self->variables[(int)*self->lfo1ConnectParam],
-            getParamMinRange((int)*self->lfo1ConnectParam),
-            getParamMaxRange((int)*self->lfo1ConnectParam));
-    self->variables[(int)*self->lfo2ConnectParam] = applyRange(self->variables[(int)*self->lfo2ConnectParam], 
-            getParamMinRange((int)*self->lfo2ConnectParam),
-            getParamMaxRange((int)*self->lfo2ConnectParam));
 
-    self->division         = self->variables[1];
-    self->noteLength       = self->variables[2];
-    self->octaveSpread     = self->variables[3];
-    self->swing            = self->variables[4];
-    self->randomizeTimming = self->variables[5];
-    self->velocityMode     = self->variables[6];
-    self->velocityCurve    = self->variables[7];
-    self->curveDepth       = self->variables[8];
-    self->curveClip        = self->variables[9];
-    self->patternVel1      = self->variables[10];
-    self->patternVel2      = self->variables[11];
-    self->patternVel3      = self->variables[12];
-    self->patternVel4      = self->variables[13];
-    self->patternVel5      = self->variables[14];
-    self->patternVel6      = self->variables[15];
-    self->patternVel7      = self->variables[16];
-    self->patternVel8      = self->variables[17];
+    //TODO fix remap when there is no LFO connected
+    param = (int)*self->lfo1ConnectParam;
+    if (param > 0) {
+        lfoValue = remap(*self->lfo1PortParam, -1, 1, getParamMinRange(param), getParamMaxRange(param)) * *self->lfo1DepthParam; 
+        self->variables[param] = **self->parameters[param] + lfoValue; 
+        self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
+    }
+    param = (int)*self->lfo2ConnectParam;
+    if (param > 0) {
+        lfoValue = remap(*self->lfo2PortParam, -1, 1, getParamMinRange(param), getParamMaxRange(param)) * *self->lfo2DepthParam; 
+        self->variables[param] = **self->parameters[param] + lfoValue; 
+        self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
+    }
 
+
+    self->division           = self->variables[1];
+    self->noteLength         = self->variables[2];
+    self->octaveSpread       = self->variables[3];
+    self->swing              = self->variables[4];
+    self->randomizeTimming   = self->variables[5];
+    self->velocityMode       = (int)self->variables[6];
+    self->velocityCurve      = self->variables[7];
+    self->curveDepth         = self->variables[8];
+    self->curveClip          = self->variables[9];
+    self->velocityPattern[0] = (uint8_t)self->variables[10];
+    self->velocityPattern[1] = (uint8_t)self->variables[11];
+    self->velocityPattern[2] = (uint8_t)self->variables[12];
+    self->velocityPattern[3] = (uint8_t)self->variables[13];
+    self->velocityPattern[4] = (uint8_t)self->variables[14];
+    self->velocityPattern[5] = (uint8_t)self->variables[15];
+    self->velocityPattern[6] = (uint8_t)self->variables[16];
+    self->velocityPattern[7] = (uint8_t)self->variables[17];
 }
 
 
@@ -478,7 +475,7 @@ applyRandomTiming(Data* self)
 octaveHandler(Data* self)
 {
     uint8_t octave = 12 * self->octaveIndex; 
-    self->octaveIndex = (self->octaveIndex + 1) % (int)*self->octaveSpreadParam + (int)round(self->lfo1);
+    self->octaveIndex = (self->octaveIndex + 1) % (int)self->octaveSpread;
 
     return octave;
 }
@@ -489,12 +486,12 @@ velocityHandler(Data* self)
 {
 
     //TODO create function for velocity handling
-    if ((int)*self->velocityModeParam == 0) {
+    if (self->velocityMode == 0) {
         self->velocity = 80;
-    } else if ((int)*self->velocityModeParam == 1) { 
-        self->velocity = 127 + (int)floor(((self->velocityLFO) - 127) * *self->curveDepthParam);
-    } else if ((int)*self->velocityModeParam == 2) {
-        self->velocity = (uint8_t)floor(**self->pattern[self->patternIndex]);
+    } else if (self->velocityMode == 1) { 
+        self->velocity = 127 + (int)floor(((self->velocityLFO) - 127) * self->curveDepth);
+    } else if (self->velocityMode == 2) {
+        self->velocity = floor(self->velocityPattern[self->patternIndex]);
     }
 
     self->patternIndex = (self->patternIndex + 1) % (int)*self->velocityPatternLengthParam; 
@@ -580,7 +577,6 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
     for (int i = 0; i < 4; i++) {
         if (self->noteOffTimer[i][0] > 0) {
             self->noteOffTimer[i][1] += self->frequency / self->rate;
-            debug_print("self->noteLength = %f\n", self->noteLength);
             if (self->noteOffTimer[i][1] > self->noteLength) {
                 LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
@@ -819,7 +815,6 @@ handleEvents(Data* self, const uint32_t outCapacity)
 run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
-    applyLfoToParameters(self);
     self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
     const MetroURIs* uris = &self->uris;
@@ -851,6 +846,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     //a phase Oscillator that we use for the tempo of the midi-sequencer
     for (uint32_t pos = 0; pos < n_samples; pos++) {
+        applyLfoToParameters(self);
         resetPhase(self);
         self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, self->swing);
         self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,

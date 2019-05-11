@@ -160,8 +160,8 @@ typedef struct Data {
     int     transpose;
     int     countTicks;
 
-    const float** pattern[8];
     const float** parameters[18];
+    uint8_t velocityPattern[8];
     Array* writeEvents;
     Array* playEvents;
 
