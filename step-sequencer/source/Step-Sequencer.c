@@ -324,13 +324,13 @@ applyLfoToParameters(Data* self)
 
     param = (int)*self->lfo1ConnectParam;
     if (param > 0) {
-        lfoValue = getParamMaxRange(param) * *self->lfo1DepthParam; 
+        lfoValue = getParamMaxRange(param) * *self->lfo1DepthParam * *self->lfo1PortParam; 
         self->variables[param] = **self->parameters[param] + lfoValue; 
         self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
     }
     param = (int)*self->lfo2ConnectParam;
     if (param > 0) {
-        lfoValue = getParamMaxRange(param) * *self->lfo2DepthParam; 
+        lfoValue = getParamMaxRange(param) * *self->lfo2DepthParam * *self->lfo2PortParam; 
         self->variables[param] = **self->parameters[param] + lfoValue; 
         self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
     }
