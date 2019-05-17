@@ -102,7 +102,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         self->midiThroughInput[i] = 0;
     }
 
-    debug_print("test debug\n");
+    debug_print("DEBUG MODE\n");
     //init objects
     self->writeEvents  = (Array* )malloc(sizeof(Array));
     self->playEvents   = (Array* )malloc(sizeof(Array));
@@ -322,16 +322,15 @@ applyLfoToParameters(Data* self)
     }
 
 
-    //TODO fix remap when there is no LFO connected
     param = (int)*self->lfo1ConnectParam;
     if (param > 0) {
-        lfoValue = remap(*self->lfo1PortParam, -1, 1, getParamMinRange(param), getParamMaxRange(param)) * *self->lfo1DepthParam; 
+        lfoValue = getParamMaxRange(param) * *self->lfo1DepthParam; 
         self->variables[param] = **self->parameters[param] + lfoValue; 
         self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
     }
     param = (int)*self->lfo2ConnectParam;
     if (param > 0) {
-        lfoValue = remap(*self->lfo2PortParam, -1, 1, getParamMinRange(param), getParamMaxRange(param)) * *self->lfo2DepthParam; 
+        lfoValue = getParamMaxRange(param) * *self->lfo2DepthParam; 
         self->variables[param] = **self->parameters[param] + lfoValue; 
         self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
     }
@@ -339,6 +338,7 @@ applyLfoToParameters(Data* self)
 
     self->division           = self->variables[1];
     self->noteLength         = self->variables[2];
+    debug_print("note length = %f\n", self->noteLength);
     self->octaveSpread       = self->variables[3];
     self->swing              = self->variables[4];
     self->randomizeTimming   = self->variables[5];
@@ -527,7 +527,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 alreadyPlaying = false;
             }
         }
-
+        //TODO remove static
         static size_t activeNoteIndex = 0;
 
         if (!alreadyPlaying) {
@@ -734,7 +734,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
         case LV2_MIDI_MSG_NOTE_OFF:
         self->notesPressed--;
         if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTransposeParam == 0) {
-            debug_print("self->playing=false");
+            //debug_print("self->playing=false");
             self->playing = false;
             self->notePlayed = 0;
             clearNotes(self, outCapacity);
@@ -773,7 +773,8 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
     if (self->playing && self->firstBar) 
     {
         float offset = applyRandomTiming(self); 
-        if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger && self->playEvents->used > 0) 
+        if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
+                && !self->trigger && self->playEvents->used > 0) 
         { 
             handleNoteOn(self, outCapacity); 
             self->triggerSet = false;

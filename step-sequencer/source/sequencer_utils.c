@@ -105,17 +105,16 @@ void resetPhase(Data *self)
             self->previousPlaying = self->playing;
         }
 
-        if (*self->divisionParam != self->previousDevision) {
+        if (self->division != self->previousDevision) {
             self->phase        = 0.0;
             self->velPhase     = velInitVal;
-            self->divisionRate = *self->divisionParam;  
-            self->previousDevision   = *self->divisionParam; 
+            self->previousDevision = self->divisionRate; 
+            self->divisionRate     = self->division;  
         }
         if (self->phase > 0.989 || self->phase < 0.01) {
             self->phase = 0.0;
         }
 
-        debug_print("velPhase = %f\n", self->velPhase);
         //if (self->velPhase > 0.989 || self->velPhase < 0.01) {
         //  self->velPhase = 0.000000009;
         //}
