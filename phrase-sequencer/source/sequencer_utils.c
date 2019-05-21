@@ -84,14 +84,94 @@ int barCounter(Data *self, uint8_t recordingLength)
 
 void recordNotes(Data *self, uint8_t midiNote)
 {
-  static int   snappedIndex = 0;
-  static int   recIndex     = 0;
-  
-  if (midiNote > 0) {
-    snappedIndex = (int)roundf(self->phaseRecord);
-    self->writeEvents->eventList[recIndex++ % 4][snappedIndex][0] = midiNote;
-  }
 }
+
+
+
+void calculateNoteLength(Data* self, int recordingLength)
+{
+
+    bool noteFound = false;
+    static float foundNote[1][2];
+    float totalamountOftime;
+    float noteLength;
+    float totalAmountOfTime;
+    int recordingLength = 16;
+    int searchIndex = 0;
+    int noteOffIndex;
+
+    FindNoteEnum calculateNoteLength;
+    calculateNoteLength = FIND_NOTE_ON;
+    float matchingNoteOffPos = 0;
+
+    while (searchIndex < recordingLength) {
+
+
+        switch (calculateNoteLength)
+        {
+            case FIND_NOTE_ON:
+                if (self->writeEvents.recordedEvents[searchIndex][0] < 128 &&
+                        self->writeEvents.recordedEvents[searchIndex][1] == 144)
+                {
+                    foundNote[0][0] = self->writeEvents.recordedEvents[searchIndex][0];
+                    foundNote[0][1] = self->writeEvents.recordedEvents[searchIndex][2];
+                    calculateNoteLength = FIND_NOTE_OFF;
+                } else {
+                    calculateNoteLength = NEXT_INDEX;
+                }
+                break;
+            case FIND_NOTE_OFF:
+                noteOffIndex = searchIndex;
+                while (noteOffIndex < recordingLength) {
+                    noteOffIndex++;
+                    if (self->writeEvents.recordedEvents[noteOffIndex][0] == foundNote[0][0] &&
+                            self->writeEvents.recordedEvents[noteOffIndex][1] == 128)
+                    {
+                        matchingNoteOffPos = self->writeEvents.recordedEvents[noteOffIndex][2];
+                        noteFound = true;
+                        calculateNoteLength = CALCULATE_NOTE_LENGTH;
+                    } 
+                }
+                calculateNoteLength = CALCULATE_NOTE_LENGTH;
+                break;
+            case CALCULATE_NOTE_LENGTH:
+                if (!noteFound) {
+                    noteLength = totalAmountOfTime - foundNote[0][1]; 
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength; 
+                } else {
+                    noteLength = matchingNoteOffPos - foundNote[0][1];
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength;
+                    noteFound = false;
+                }
+                calculateNoteLength = NEXT_INDEX;
+                break;
+            case NEXT_INDEX:
+                searchIndex++;
+                calculateNoteLength = FIND_NOTE_ON;
+                break;
+        }
+    }
+}
+
+
+
+void quantizeNotes(Array events, float startPos, uint8_t midiNote)
+{
+    int snappedIndex    = 0;
+    static int recIndex = 0;
+    
+    for (int recordedNote = 0; recordedNote < self->events.writeEvents.amountRecordedNotes; recordedNote++) {
+        float note = events.writeEvents.recordedNotes[recordedNote][0];
+        float startPos = events.writeEvents.recordedNotes[recordedNote][2];
+        float noteLength = events.writeEvents.recordedNotes[recordedNote][3];
+        float velocity = 120; 
+        snappedIndex = (int)roundf(startPos);
+        self->writeEvents->eventList[recIndex++ % 4][snappedIndex][0] = midiNote;
+        self->writeEvents->eventList[recIndex][snappedIndex][1]       = noteLength;
+        self->writeEvents->eventList[recIndex][snappedIndex][2]       = velocity;
+    }
+}
+
 
 
 //make copy of events from eventList A to eventList B

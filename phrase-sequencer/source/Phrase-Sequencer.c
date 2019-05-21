@@ -335,13 +335,15 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     //get octave and velocity
     for (size_t voice = 0; voice < 4; voice++)
     {
-        if ( self->playEvents->eventList[voice][self->notePlayed][0] > 0 && self->playEvents->eventList[voice][self->notePlayed][0] < 128)
+        if ( self->playEvents->eventList[voice][self->notePlayed][0] > 0 
+                && self->playEvents->eventList[voice][self->notePlayed][0] < 128)
         {
             uint8_t octave = 0;
             uint8_t velocity = 100;
 
             //create MIDI note on message
-            uint8_t midiNote = self->playEvents->eventList[voice][self->notePlayed][0] + self->transpose + octave;
+            uint8_t midiNote = self->playEvents->eventList[voice][self->notePlayed][0] 
+                + self->transpose + octave;
 
             //check if note is already playing
             for (size_t i = 0; i < 4; i++) {
@@ -361,15 +363,9 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
 
-                if (self->noteTie > 0) {
-                    //sendNoteOff
-                    LV2_Atom_MIDI noteTieMsg = createMidiEvent(self, 128, self->noteTie, 0);
-                    lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&noteTieMsg);
-                    self->noteTie = 0;
-                }
-
                 if (self->playEvents->eventList[voice][self->notePlayed][1] != 2) { 
                     self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
+                    self->noteOffTimer[activeNoteIndex][2] = noteLength;
                     activeNoteIndex = (activeNoteIndex + 1) % 4; 
                 } else {
                     self->noteTie = midiNote;
@@ -377,14 +373,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
             } else {
                 activeNoteIndex = (noteFound + 1) % 4; 
             }
-
-            //check for note tie else add to noteOffTimer
-        } else if (self->noteTie > 0) {
-            //TODO check for better structure, this code is included twice because it wasn't working when playing a rest
-            LV2_Atom_MIDI noteTieMsg = createMidiEvent(self, 128, self->noteTie, 0);
-            lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&noteTieMsg);
-            self->noteTie = 0;
-        }
+        } 
     } 
     //set boolean for active notes send and set boolean for trigger to prevent multiple triggers
     self->cleared = false;
@@ -402,11 +391,12 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
   for (int i = 0; i < 4; i++) {
     if (self->noteOffTimer[i][0] > 0) {
       self->noteOffTimer[i][1] += self->frequency / self->rate;
-      if (self->noteOffTimer[i][1] > *self->noteLengthParam) {
+      if (self->noteOffTimer[i][1] > self->noteOffTimer[i][2]) {
         LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
         self->noteOffTimer[i][0] = 0;
         self->noteOffTimer[i][1] = 0;
+        self->noteOffTimer[i][2] = 0;
       }
     }  
   }

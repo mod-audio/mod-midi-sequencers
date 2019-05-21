@@ -71,6 +71,13 @@ typedef enum RecordEnum {
     R_STOP_RECORDING
 } RecordEnum;
 
+typedef enum FindNoteEnum {
+    FIND_NOTE_ON = 0,
+    FIND_NOTE_OFF,
+    CALCULATE_NOTE_LENGTH,
+    NEXT_INDEX
+} FindNoteEnum;
+
 typedef enum AttackReleaseEnum {
     IDLE = 0,
     ATTACK,
@@ -92,7 +99,8 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-    uint8_t eventList[4][248][2];
+    float eventList[4][248][3];
+    float recordedEvents[248][4];
     size_t used;
 } Array;
 
@@ -127,7 +135,7 @@ typedef struct Data {
     uint8_t velocity;
     int     noteStarted[2];
     uint8_t noteOffArr[4];
-    float   noteOffTimer[4][2];
+    float   noteOffTimer[4][3];
     float   beatInMeasure;
     float   divisionRate;
 
@@ -169,8 +177,8 @@ typedef struct Data {
     int     countTicks;
 
     const float** pattern[8];
-    Array* writeEvents;
-    Array* playEvents;
+    Array writeEvents;
+    Array playEvents;
     AttackReleaseEnum  ARStatus;
 
     float* recordTrigger;
