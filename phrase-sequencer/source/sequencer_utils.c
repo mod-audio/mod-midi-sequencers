@@ -82,8 +82,17 @@ int barCounter(Data *self, uint8_t recordingLength)
 
 
 
-void recordNotes(Data *self, uint8_t midiNote)
+void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
 {
+    //recordedEvents[0] = midiNote
+    //recordedEvents[1] = note On/Off
+    //recordedEvents[2] = recordedPosition
+    //recordedEvents[3] = calculated noteLength
+    size_t rIndex = self->writeEvents.amountRecordedEvents;
+    self->writeEvents.recordedEvents[rIndex][0] = (float)midiNote;
+    self->writeEvents.recordedEvents[rIndex][1] = (float)noteType;
+    self->writeEvents.recordedEvents[rIndex][2] = (float)notePos;
+    self->writeEvents.amountRecordedEvents++;
 }
 
 
@@ -93,10 +102,8 @@ void calculateNoteLength(Data* self, int recordingLength)
 
     bool noteFound = false;
     static float foundNote[1][2];
-    float totalamountOftime;
-    float noteLength;
-    float totalAmountOfTime;
-    int recordingLength = 16;
+    float noteLength = 0;
+    float totalAmountOfTime = 0;
     int searchIndex = 0;
     int noteOffIndex;
 
@@ -155,28 +162,35 @@ void calculateNoteLength(Data* self, int recordingLength)
 
 
 
-void quantizeNotes(Array events, float startPos, uint8_t midiNote)
+void quantizeNotes(Data* self)
 {
     int snappedIndex    = 0;
     static int recIndex = 0;
     
-    for (int recordedNote = 0; recordedNote < self->events.writeEvents.amountRecordedNotes; recordedNote++) {
-        float note = events.writeEvents.recordedNotes[recordedNote][0];
-        float startPos = events.writeEvents.recordedNotes[recordedNote][2];
-        float noteLength = events.writeEvents.recordedNotes[recordedNote][3];
+    self->writeEvents.used = 8;
+
+    for (size_t recordedNote = 0; recordedNote < self->writeEvents.amountRecordedEvents; recordedNote++) {
+        debug_print("recordedNote = %li\n", recordedNote);
+        float note = self->writeEvents.recordedEvents[recordedNote][0];
+
+        debug_print("note in quantize notes = %f\n", note);
+        float startPos = self->writeEvents.recordedEvents[recordedNote][2];
+        float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
         float velocity = 120; 
         snappedIndex = (int)roundf(startPos);
-        self->writeEvents->eventList[recIndex++ % 4][snappedIndex][0] = midiNote;
-        self->writeEvents->eventList[recIndex][snappedIndex][1]       = noteLength;
-        self->writeEvents->eventList[recIndex][snappedIndex][2]       = velocity;
+        self->writeEvents.eventList[recIndex++ % 4][snappedIndex][0] = note;
+        self->writeEvents.eventList[recIndex][snappedIndex][1]       = noteLength;
+        self->writeEvents.eventList[recIndex][snappedIndex][2]       = velocity;
     }
 }
 
 
 
 //make copy of events from eventList A to eventList B
-void copyEvents(Array* eventListA, Array* eventListB)
+void copyEvents(Array *eventListA, Array *eventListB)
 {
+  //eventListB = &eventListA;
+  //eventListA->used = 0;
   eventListB->used = eventListA->used;
   for (size_t voices = 0; voices < 4; voices++) {
     for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {

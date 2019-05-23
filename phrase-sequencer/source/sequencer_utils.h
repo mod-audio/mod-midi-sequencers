@@ -26,11 +26,11 @@ float calculateFrequency(uint8_t bpm, float division);
 void attackRelease(Data *self);
 void precount(Data *self);
 void calculateNoteLength(Data* self, int recordingLength);
-void quantizeNotes(Array* events, float startPos, uint8_t midiNote);
+void quantizeNotes(Data *self);
 int  barCounter(Data *self, uint8_t recordingLength);
 void clearSequence(Array *arr);
-void recordNotes(Data *self, uint8_t midiNote);
-void copyEvents(Array* eventListA, Array* eventListB);
+void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos);
+void copyEvents(Array *eventListA, Array *eventListB);
 void resetPhase(Data* self);
 
 #endif //_H_SEQ_UTILS_

@@ -113,8 +113,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     debug_print("test debug\n");
     //init objects
-    self->writeEvents  = (Array* )malloc(sizeof(Array));
-    self->playEvents   = (Array* )malloc(sizeof(Array));
     self->ARStatus     = IDLE;
 
     self->recordingLengths[0] = &self->preCountLength;
@@ -133,14 +131,14 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     for (size_t voice = 0; voice < 4; voice++) {
         for (uint8_t note = 0; note < 248; note++) {
             for (size_t noteProp = 0; noteProp < 2; noteProp++) {
-                self->writeEvents->eventList[voice][note][noteProp] = 0;
-                self->playEvents->eventList[voice][note][noteProp] = 0;
+                self->writeEvents.eventList[voice][note][noteProp] = 0;
+                self->playEvents.eventList[voice][note][noteProp] = 0;
             }
         }
     }
     //init vars
-    self->writeEvents->used  = 0;
-    self->playEvents->used   = 0;
+    self->writeEvents.used  = 0;
+    self->playEvents.used   = 0;
 
     self->notePlayed  = 0;
     self->transpose   = 0;
@@ -335,14 +333,14 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     //get octave and velocity
     for (size_t voice = 0; voice < 4; voice++)
     {
-        if ( self->playEvents->eventList[voice][self->notePlayed][0] > 0 
-                && self->playEvents->eventList[voice][self->notePlayed][0] < 128)
+        if ( self->playEvents.eventList[voice][self->notePlayed][0] > 0 
+                && self->playEvents.eventList[voice][self->notePlayed][0] < 128)
         {
             uint8_t octave = 0;
             uint8_t velocity = 100;
 
             //create MIDI note on message
-            uint8_t midiNote = self->playEvents->eventList[voice][self->notePlayed][0] 
+            uint8_t midiNote = (uint8_t)self->playEvents.eventList[voice][self->notePlayed][0] 
                 + self->transpose + octave;
 
             //check if note is already playing
@@ -363,9 +361,10 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
 
-                if (self->playEvents->eventList[voice][self->notePlayed][1] != 2) { 
+                if (self->playEvents.eventList[voice][self->notePlayed][1] != 2) { 
                     self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
-                    self->noteOffTimer[activeNoteIndex][2] = noteLength;
+                    //TODO check this error
+                    self->noteOffTimer[activeNoteIndex][2] = *self->playEvents.eventList[self->notePlayed][1];
                     activeNoteIndex = (activeNoteIndex + 1) % 4; 
                 } else {
                     self->noteTie = midiNote;
@@ -380,7 +379,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     self->trigger = true;
     //increment sequence index 
     self->notePlayed++;
-    self->notePlayed = (self->notePlayed > (self->playEvents->used - 1)) ? 0 : self->notePlayed;
+    self->notePlayed = (self->notePlayed > (self->playEvents.used - 1)) ? 0 : self->notePlayed;
 }
 
 
@@ -428,7 +427,7 @@ switchMode(Data* self, const uint32_t outCapacity)
                 self->playing         = false;
                 break;
             case PLAY:
-                if (self->writeEvents->used > 0 && !self->recording)
+                if (self->writeEvents.used > 0 && !self->recording)
                     self->playing = true;
                 break;
             case RECORD_OVERWRITE:
@@ -437,7 +436,7 @@ switchMode(Data* self, const uint32_t outCapacity)
                 break;
             case UNDO_LAST:
                 //TODO works but it should be aware of sequence
-                self->writeEvents->used--;
+                self->writeEvents.used--;
                 break;
         }
         self->prevMod = (int)*self->mode;
@@ -486,7 +485,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     }
 
     RecordEnum recordMode = self->recordingStatus;
-
+    
     switch(recordMode)
     {
         case IDLE:
@@ -505,23 +504,35 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         case R_STOP_RECORDING: //stop recording 
             countBars = false;
             frequency = 220;
-            self->recording   = false;
+            self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
-            //TODO created fixed number depending on the bar length
-            self->writeEvents->used = 8;
-            static bool printed = false;
-            if (!printed) {
-                debug_print("self->phaseRecord %li\n", self->writeEvents->used);
-                for (size_t y = 0; y < 4; y++) {
-                    for (size_t i = 0; i < 8; i++) {
-                        debug_print("self->writeEvents->eventList[y][i][0] = %i\n", self->writeEvents->eventList[y][i][0]);
-                    }
+            debug_print("DEBUG 1\n");
+            calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
+            debug_print("DEBUG 2\n");
+            quantizeNotes(self);
+            debug_print("DEBUG 3\n");
+            copyEvents(&self->writeEvents, &self->playEvents);
+            debug_print("DEBUG 4\n");
+            for (size_t y = 0; y < 4; y++) {
+                for (size_t i = 0; i < self->writeEvents.used; i++) {
+                    debug_print("self->writeEvents->eventList[y][i][0] = %f\n", self->writeEvents.eventList[y][i][0]);
                 }
-                printed = true;
             }
-            copyEvents(self->writeEvents, self->playEvents);
+            for (size_t y = 0; y < 4; y++) {
+                for (size_t i = 0; i < self->writeEvents.used; i++) {
+                    debug_print("self->writeEvents->eventList[y][i][1] = %f\n", self->writeEvents.eventList[y][i][1]);
+                }
+            }
+            for (size_t y = 0; y < 4; y++) {
+                for (size_t i = 0; i < self->writeEvents.used; i++) {
+                    debug_print("self->writeEvents->eventList[y][i][1] = %f\n", self->writeEvents.eventList[y][i][2]);
+                }
+            }
             self->playing = true;
+            debug_print("DEBUG 5\n");
+            self->recordingStatus = 0;
+            
             break;
     }
     self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(frequency, &self->sinePhase, self->rate);
@@ -542,14 +553,14 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
             midiNote = msg[1];
             noteType = msg[0];
             if (self->recording) {
-                recordNotes(self, midiNote);
+                recordNotes(self, midiNote, noteType, self->phaseRecord);
             }
             break;
         case LV2_MIDI_MSG_NOTE_OFF:
             midiNote = msg[1];
             noteType = msg[0];
             if (self->recording) {
-                recordNotes(self, midiNote);
+                recordNotes(self, midiNote, noteType, self->phaseRecord);
             }
             self->notesPressed--;
             break;
@@ -585,7 +596,7 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
         float offset = applyRandomTiming(self);
         if (self->phase >= self->notePlacement[self->placementIndex] && 
                 self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
-                && !self->trigger && self->playEvents->used > 0) 
+                && !self->trigger && self->playEvents.used > 0) 
         { 
             handleNoteOn(self, outCapacity); 
             self->triggerSet = false;

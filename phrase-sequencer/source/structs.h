@@ -99,8 +99,16 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
+    //recordedEvents[0] = midiNote
+    //recordedEvents[1] = note On/Off 
+    //recordedEvents[2] = recordedPosition
+    //recordedEvents[3] = calculated noteLength
+    //eventList[0] = midiNote
+    //eventList[1] = calculated noteLength
+    //eventList[2] = velocity
     float eventList[4][248][3];
     float recordedEvents[248][4];
+    size_t amountRecordedEvents;
     size_t used;
 } Array;
 
