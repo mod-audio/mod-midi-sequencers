@@ -405,8 +405,8 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 
 
 
-static int
-switchMode(Data* self, const uint32_t outCapacity)
+static void 
+setMode(Data* self, const uint32_t outCapacity)
 {
     ModeEnum modeStatus = (int)*self->mode;
     //TODO set normal value 
@@ -448,7 +448,6 @@ switchMode(Data* self, const uint32_t outCapacity)
         self->recordingTriggered = true;
         self->startPreCount = true;
     }
-    return self->modeHandle;
 }
 
 
@@ -535,44 +534,34 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             
             break;
     }
-    self->metroOut[pos] = 0.1 * self->amplitude * (float)sinOsc(frequency, &self->sinePhase, self->rate);
+    self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
 }
 
-
-
-static void 
-handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
+static size_t*
+countNotesPressed(uint8_t status, size_t *notesPressed)
 {
-    uint8_t midiNote;
-    uint8_t noteType;
-
     switch (status)
     {
         case LV2_MIDI_MSG_NOTE_ON:
-            self->notesPressed++;  
-            midiNote = msg[1];
-            noteType = msg[0];
-            if (self->recording) {
-                recordNotes(self, midiNote, noteType, self->phaseRecord);
-            }
+            notesPressed++;  
             break;
         case LV2_MIDI_MSG_NOTE_OFF:
-            midiNote = msg[1];
-            noteType = msg[0];
-            if (self->recording) {
-                recordNotes(self, midiNote, noteType, self->phaseRecord);
-            }
-            self->notesPressed--;
+            notesPressed--;
             break;
     }
 
-    //MIDI through   
+    return notesPressed;
+}
+
+
+static void 
+midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
+{
     if (self->through) {
         self->midiThroughInput[self->inputIndex++ % 16] = msg[1]; 
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
         self->prevThrough = 1;
-    } 
-    else if (self->prevThrough == 1) {
+    } else if (self->prevThrough == 1) {
         for (size_t i = 0; i < self->inputIndex + 1; i++) {
             //send note off
             //TODO does this need an init value?
@@ -612,26 +601,6 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
 }
 
 
-//sequence the MIDI notes that are written into an array
-static void 
-handleEvents(Data* self, const uint32_t outCapacity)
-{
-    int modeHandle = switchMode(self, outCapacity);
-
-    // Read incoming events
-    LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
-    {
-        if (ev->body.type == self->urid_midiEvent)
-        {
-            const uint8_t* const msg = (const uint8_t*)(ev + 1);
-            const uint8_t status = msg[0] & 0xF0;
-            handleNotes(self, msg, status, modeHandle, outCapacity, ev);
-        }
-    }
-}
-
-
-
 static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
@@ -644,9 +613,10 @@ run(LV2_Handle instance, uint32_t n_samples)
 
     //get the capacity
     const uint32_t outCapacity = handlePorts(self); 
-    //a phase Oscillator that we use for the tempo of the midi-sequencer
+        
     for (uint32_t pos = 0; pos < n_samples; pos++) {
 
+        //update host information
         for (const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&in->body);
                 !lv2_atom_sequence_is_end(&in->body, in->atom.size, ev);
                 ev = lv2_atom_sequence_next(ev)) {
@@ -659,18 +629,32 @@ run(LV2_Handle instance, uint32_t n_samples)
                 }
             }
         }
+        setMode(self, outCapacity);
+        int modeHandle = self->modeHandle;
+        // Read incoming events
+        LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
+        {
+            if (ev->body.type == self->urid_midiEvent)
+            {
+                const uint8_t* const msg = (const uint8_t*)(ev + 1);
+                const uint8_t status = msg[0] & 0xF0;
+                uint8_t midiNote = msg[1];
+                uint8_t noteType = msg[0];
+                midiThrough(self, msg, status, modeHandle, outCapacity, ev);
+                self->notesPressed = *countNotesPressed(status, &self->notesPressed);
+                if (self->recording) {
+                    recordNotes(self, midiNote, noteType, self->phaseRecord);
+                }
+            }
+        }
         self->frequency = calculateFrequency(self->bpm, self->divisionRate);
-        //halftime speed when frequency goes out of range
-        if (self->frequency > self->nyquist)
-            self->frequency = self->frequency / 2;
-
-
+        self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
         handleBarSyncRecording(self, pos);
-        attackRelease(self);
         sequenceProcess(self, outCapacity);
     }
-    handleEvents(self, outCapacity);
+
+
 }
 
 

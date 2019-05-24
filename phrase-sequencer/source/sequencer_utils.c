@@ -30,26 +30,27 @@ float calculateFrequency(uint8_t bpm, float division)
 
 
 //simple linear attack release envelope, this is used for the clicktrack
-void attackRelease(Data *self)
+float* envelope(Data *self, float *amplitude)
 {
   switch(self->ARStatus)
   {
     case IDLE:
       break;
     case ATTACK:
-      self->amplitude += 0.001;
+      *amplitude += 0.001;
       if (self->amplitude >= 1.0) {
         self->ARStatus = RELEASE;
       } 
       break;
     case RELEASE:
       if (self->amplitude >= 0.0) {
-        self->amplitude -= 0.001;
+        *amplitude -= 0.001;
       } else {
         self->ARStatus = IDLE;
       }
       break;
   }
+  return amplitude;
 }
 
 
@@ -100,6 +101,7 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
 void calculateNoteLength(Data* self, int recordingLength)
 {
 
+    debug_print("recordingLength = %i\n", recordingLength);
     bool noteFound = false;
     static float foundNote[1][2];
     float noteLength = 0;
@@ -145,9 +147,11 @@ void calculateNoteLength(Data* self, int recordingLength)
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
                     self->writeEvents.recordedEvents[searchIndex][3] = noteLength; 
+                    debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
                     self->writeEvents.recordedEvents[searchIndex][3] = noteLength;
+                    debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
                 calculateNoteLength = NEXT_INDEX;
@@ -175,7 +179,9 @@ void quantizeNotes(Data* self)
 
         debug_print("note in quantize notes = %f\n", note);
         float startPos = self->writeEvents.recordedEvents[recordedNote][2];
+        debug_print("startPos = %f\n", startPos);
         float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
+        debug_print("noteLength =  %f\n", noteLength);
         float velocity = 120; 
         snappedIndex = (int)roundf(startPos);
         self->writeEvents.eventList[recIndex++ % 4][snappedIndex][0] = note;
