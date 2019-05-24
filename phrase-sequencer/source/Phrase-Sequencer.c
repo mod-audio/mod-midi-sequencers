@@ -185,7 +185,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
             self->mode = (const float*)data;
             break;
         case ACTIVATERECORDING:
-            self->recordTrigger = (float*)data;
+            self->recordTrigger = data;
             break;
         case PRECOUNT:
             self->preCountLength = (const float*)data;
@@ -432,7 +432,6 @@ setMode(Data* self, const uint32_t outCapacity)
         self->prevLatch = (int)*self->latchTranspose;
     }
     if (*self->recordTrigger == 1 && !self->recordingTriggered) {
-        *self->recordTrigger = 0;
         self->recordingTriggered = true;
         self->startPreCount = true;
     }
@@ -592,6 +591,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     self->port_events_out1->atom.type = self->port_events_in->atom.type;
     const MetroURIs* uris = &self->uris;
 
+    debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
     // Work forwards in time frame by frame, handling events as we go
     const LV2_Atom_Sequence* in     = self->control;
 

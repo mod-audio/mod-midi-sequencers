@@ -188,7 +188,7 @@ typedef struct Data {
     Array playEvents;
     AttackReleaseEnum  ARStatus;
 
-    float* recordTrigger;
+    const float* recordTrigger;
     const float* mode;
     const float* preCountLength;
     const float* recordingLength;

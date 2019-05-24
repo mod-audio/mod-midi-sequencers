@@ -7,7 +7,7 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix time: <http://lv2plug.in/ns/ext/time#> .
-@prefix epp:   <http://lv2plug.in/ns/ext/port-props/#>.
+@prefix epp:   <http://lv2plug.in/ns/ext/port-props#> .
 
 <http://moddevices.com/plugins/mod-devel/Phrase-Sequencer>
         a mod:MIDIPlugin ,
@@ -68,8 +68,8 @@ a Phrase sequencer with different record modes, focused on live playing.""" ;
            lv2:scalePoint [ rdfs:label "Record Append"    ; rdf:value 4 ] ;
            lv2:scalePoint [ rdfs:label "Undo Last"        ; rdf:value 5 ] ;
        ] ,
-       [   
-           a lv2:ControlPort, lv2:InputPort;
+       [   a lv2:InputPort,
+           lv2:ControlPort ;
            lv2:index 5;
            lv2:symbol "activateRecording";
            lv2:name "ActivateRecording";
