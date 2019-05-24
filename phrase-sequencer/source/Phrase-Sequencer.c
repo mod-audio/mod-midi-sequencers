@@ -111,7 +111,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         self->midiThroughInput[i] = 0;
     }
 
-    debug_print("test debug\n");
+    debug_print("DEBUG MODE\n");
     //init objects
     self->ARStatus     = IDLE;
 
@@ -403,8 +403,6 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 
 
 
-
-
 static void 
 setMode(Data* self, const uint32_t outCapacity)
 {
@@ -443,12 +441,12 @@ setMode(Data* self, const uint32_t outCapacity)
         self->prevLatch = (int)*self->latchTranspose;
     }
     if (*self->recordTrigger == 1 && !self->recordingTriggered) {
-        debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
         *self->recordTrigger = 0;
         self->recordingTriggered = true;
         self->startPreCount = true;
     }
 }
+
 
 
 /*function that handles the process of starting the pre-count at the beginning of next bar,
@@ -487,7 +485,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     
     switch(recordMode)
     {
-        case IDLE:
+        case R_IDLE:
             frequency = 0;
             break;
         case R_PRE_COUNT:
@@ -506,13 +504,9 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
-            debug_print("DEBUG 1\n");
             calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
-            debug_print("DEBUG 2\n");
             quantizeNotes(self);
-            debug_print("DEBUG 3\n");
             copyEvents(&self->writeEvents, &self->playEvents);
-            debug_print("DEBUG 4\n");
             for (size_t y = 0; y < 4; y++) {
                 for (size_t i = 0; i < self->writeEvents.used; i++) {
                     debug_print("self->writeEvents->eventList[y][i][0] = %f\n", self->writeEvents.eventList[y][i][0]);
@@ -529,13 +523,14 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 }
             }
             self->playing = true;
-            debug_print("DEBUG 5\n");
             self->recordingStatus = 0;
             
             break;
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
 }
+
+
 
 static size_t*
 countNotesPressed(uint8_t status, size_t *notesPressed)
@@ -552,6 +547,7 @@ countNotesPressed(uint8_t status, size_t *notesPressed)
 
     return notesPressed;
 }
+
 
 
 static void 
@@ -576,31 +572,28 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 static void
-sequenceProcess(Data* self, const uint32_t outCapacity)
+sequencerProcess(Data* self, const uint32_t outCapacity)
 {
     self->notePlacement[1] = *self->swing * 0.01;
 
-    if (self->playing) 
+    float offset = applyRandomTiming(self);
+    if (self->phase >= self->notePlacement[self->placementIndex] && 
+            self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger) 
+    { 
+        handleNoteOn(self, outCapacity); 
+        self->triggerSet = false;
+    } else if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
     {
-        float offset = applyRandomTiming(self);
-        if (self->phase >= self->notePlacement[self->placementIndex] && 
-                self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
-                && !self->trigger && self->playEvents.used > 0) 
-        { 
-            handleNoteOn(self, outCapacity); 
-            self->triggerSet = false;
-        } else if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
-        {
-            self->placementIndex ^= 1;
-            self->trigger = false;
-            //TODO does this trigger has to be reset as well?
-            self->triggerSet = true;    
-        }
+        self->placementIndex ^= 1;
+        self->trigger = false;
+        //TODO does this trigger has to be reset as well?
+        self->triggerSet = true;    
     }
     handleNoteOff(self, outCapacity); 
 }
 
 
+    
 static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
@@ -630,31 +623,31 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
         setMode(self, outCapacity);
-        int modeHandle = self->modeHandle;
         // Read incoming events
-        LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
-        {
-            if (ev->body.type == self->urid_midiEvent)
-            {
-                const uint8_t* const msg = (const uint8_t*)(ev + 1);
-                const uint8_t status = msg[0] & 0xF0;
-                uint8_t midiNote = msg[1];
-                uint8_t noteType = msg[0];
-                midiThrough(self, msg, status, modeHandle, outCapacity, ev);
-                self->notesPressed = *countNotesPressed(status, &self->notesPressed);
-                if (self->recording) {
-                    recordNotes(self, midiNote, noteType, self->phaseRecord);
-                }
-            }
-        }
         self->frequency = calculateFrequency(self->bpm, self->divisionRate);
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
         handleBarSyncRecording(self, pos);
-        sequenceProcess(self, outCapacity);
+        if (self->playing) { 
+            sequencerProcess(self, outCapacity);
+        }
     }
-
-
+    LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
+    {
+        if (ev->body.type == self->urid_midiEvent)
+        {
+            const uint8_t* const msg = (const uint8_t*)(ev + 1);
+            const uint8_t status = msg[0] & 0xF0;
+            uint8_t midiNote = msg[1];
+            uint8_t noteType = msg[0];
+            int modeHandle = self->modeHandle;
+            midiThrough(self, msg, status, modeHandle, outCapacity, ev);
+            self->notesPressed = *countNotesPressed(status, &self->notesPressed);
+            if (self->recording) {
+                recordNotes(self, midiNote, noteType, self->phaseRecord);
+            }
+        }
+    }
 }
 
 
