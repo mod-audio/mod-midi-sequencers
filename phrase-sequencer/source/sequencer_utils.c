@@ -187,12 +187,12 @@ void quantizeNotes(Data* self)
             float startPos = self->writeEvents.recordedEvents[recordedNote][2];
             debug_print("startPos = %f\n", startPos);
             float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
-            debug_print("noteLength =  %f\n", noteLength);
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
             self->writeEvents.eventList[recIndex][snappedIndex][0] = note;
-            self->writeEvents.eventList[recIndex][snappedIndex][1]       = noteLength;
-            self->writeEvents.eventList[recIndex][snappedIndex][2]       = velocity;
+            self->writeEvents.eventList[recIndex][snappedIndex][1] = noteLength;
+            debug_print("noteLength =  %f\n", noteLength);
+            self->writeEvents.eventList[recIndex][snappedIndex][2] = velocity;
             recIndex = (recIndex + 1) % 4;
         }
     }
@@ -208,7 +208,7 @@ void copyEvents(Array *eventListA, Array *eventListB)
   eventListB->used = eventListA->used;
   for (size_t voices = 0; voices < 4; voices++) {
     for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
-      for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
+      for (size_t noteMeta = 0; noteMeta < 3; noteMeta++) {
         eventListB->eventList[voices][noteIndex][noteMeta] = eventListA->eventList[voices][noteIndex][noteMeta];
       }
     }

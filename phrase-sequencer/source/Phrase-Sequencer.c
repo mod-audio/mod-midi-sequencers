@@ -118,10 +118,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->recordingLengths[0] = &self->preCountLength;
     self->recordingLengths[1] = &self->recordingLength;
 
-    for (size_t i = 0; i < 4; i++) {
-        self->noteOffArr[i] = 0;
-    }
-
     for (size_t row = 0; row < 4; row++) {
         for (size_t index = 0; index < 2; index++) {
             self->noteOffTimer[row][index] = 0;
@@ -344,7 +340,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 + self->transpose + octave;
 
             //check if note is already playing
-            for (size_t i = 0; i < 4; i++) {
+            for (size_t i = 0; i < 16; i++) {
                 if ((uint8_t)self->noteOffTimer[i][0] == midiNote) { 
                     self->noteOffTimer[i][1] = 0;
                     alreadyPlaying = true;
@@ -361,10 +357,10 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
                 self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
-                self->noteOffTimer[activeNoteIndex][2] = *self->playEvents.eventList[self->notePlayed][1];
-                    activeNoteIndex = (activeNoteIndex + 1) % 4; 
+                self->noteOffTimer[activeNoteIndex][2] = self->playEvents.eventList[voice][self->notePlayed][1];
+                activeNoteIndex = (activeNoteIndex + 1) % 16; 
             } else {
-                activeNoteIndex = (noteFound + 1) % 4; 
+                activeNoteIndex = (noteFound + 1) % 16; 
             }
         } 
     } 
@@ -381,11 +377,11 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
 static void
 handleNoteOff(Data* self, const uint32_t outCapacity)
 {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 16; i++) {
     if (self->noteOffTimer[i][0] > 0) {
       self->noteOffTimer[i][1] += self->frequency / self->rate;
       //self->noteOffTimer[i][2]
-      if (self->noteOffTimer[i][1] > self->noteOffTimer[i][2]) {
+      if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
         LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
         self->noteOffTimer[i][0] = 0;
@@ -502,19 +498,19 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
             quantizeNotes(self);
             copyEvents(&self->writeEvents, &self->playEvents);
-            for (size_t i = 0; i < self->writeEvents.used; i++) {
+            for (size_t i = 0; i < self->playEvents.used; i++) {
                 for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->writeEvents->eventList[%li][%li][0] = %f\n", y, i, self->writeEvents.eventList[y][i][0]);
+                    debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
                 }
             }
-                for (size_t i = 0; i < self->writeEvents.used; i++) {
+                for (size_t i = 0; i < self->playEvents.used; i++) {
                     for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->writeEvents->eventList[%li][%li][1] = %f\n", y, i, self->writeEvents.eventList[y][i][1]);
+                    debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
                 }
             }
-                for (size_t i = 0; i < self->writeEvents.used; i++) {
+                for (size_t i = 0; i < self->playEvents.used; i++) {
                     for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->writeEvents->eventList[%li][%li][2] = %f\n", y, i, self->writeEvents.eventList[y][i][2]);
+                    debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
                 }
             }
             self->playing = true;

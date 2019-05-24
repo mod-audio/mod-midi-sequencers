@@ -142,8 +142,7 @@ typedef struct Data {
     uint8_t noteTie;
     uint8_t velocity;
     int     noteStarted[2];
-    uint8_t noteOffArr[4];
-    float   noteOffTimer[4][3];
+    float   noteOffTimer[16][3];
     float   beatInMeasure;
     float   divisionRate;
 
