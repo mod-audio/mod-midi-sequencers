@@ -360,15 +360,9 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 //send MIDI note on message
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
-
-                if (self->playEvents.eventList[voice][self->notePlayed][1] != 2) { 
-                    self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
-                    //TODO check this error
-                    self->noteOffTimer[activeNoteIndex][2] = *self->playEvents.eventList[self->notePlayed][1];
+                self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
+                self->noteOffTimer[activeNoteIndex][2] = *self->playEvents.eventList[self->notePlayed][1];
                     activeNoteIndex = (activeNoteIndex + 1) % 4; 
-                } else {
-                    self->noteTie = midiNote;
-                }
             } else {
                 activeNoteIndex = (noteFound + 1) % 4; 
             }
@@ -390,6 +384,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
   for (int i = 0; i < 4; i++) {
     if (self->noteOffTimer[i][0] > 0) {
       self->noteOffTimer[i][1] += self->frequency / self->rate;
+      //self->noteOffTimer[i][2]
       if (self->noteOffTimer[i][1] > self->noteOffTimer[i][2]) {
         LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
@@ -507,19 +502,19 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
             quantizeNotes(self);
             copyEvents(&self->writeEvents, &self->playEvents);
-            for (size_t y = 0; y < 4; y++) {
-                for (size_t i = 0; i < self->writeEvents.used; i++) {
-                    debug_print("self->writeEvents->eventList[y][i][0] = %f\n", self->writeEvents.eventList[y][i][0]);
+            for (size_t i = 0; i < self->writeEvents.used; i++) {
+                for (size_t y = 0; y < 4; y++) {
+                    debug_print("self->writeEvents->eventList[%li][%li][0] = %f\n", y, i, self->writeEvents.eventList[y][i][0]);
                 }
             }
-            for (size_t y = 0; y < 4; y++) {
                 for (size_t i = 0; i < self->writeEvents.used; i++) {
-                    debug_print("self->writeEvents->eventList[y][i][1] = %f\n", self->writeEvents.eventList[y][i][1]);
+                    for (size_t y = 0; y < 4; y++) {
+                    debug_print("self->writeEvents->eventList[%li][%li][1] = %f\n", y, i, self->writeEvents.eventList[y][i][1]);
                 }
             }
-            for (size_t y = 0; y < 4; y++) {
                 for (size_t i = 0; i < self->writeEvents.used; i++) {
-                    debug_print("self->writeEvents->eventList[y][i][1] = %f\n", self->writeEvents.eventList[y][i][2]);
+                    for (size_t y = 0; y < 4; y++) {
+                    debug_print("self->writeEvents->eventList[%li][%li][2] = %f\n", y, i, self->writeEvents.eventList[y][i][2]);
                 }
             }
             self->playing = true;

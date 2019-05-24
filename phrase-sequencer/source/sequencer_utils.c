@@ -179,19 +179,22 @@ void quantizeNotes(Data* self)
     self->writeEvents.used = 8;
 
     for (size_t recordedNote = 0; recordedNote < self->writeEvents.amountRecordedEvents; recordedNote++) {
-        //debug_print("recordedNote = %li\n", recordedNote);
-        float note = self->writeEvents.recordedEvents[recordedNote][0];
+        if (self->writeEvents.recordedEvents[recordedNote][1] == 144) {
+            //debug_print("recordedNote = %li\n", recordedNote);
+            float note = self->writeEvents.recordedEvents[recordedNote][0];
 
-        debug_print("note in quantize notes = %f\n", note);
-        float startPos = self->writeEvents.recordedEvents[recordedNote][2];
-        debug_print("startPos = %f\n", startPos);
-        float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
-        debug_print("noteLength =  %f\n", noteLength);
-        float velocity = 120; 
-        snappedIndex = (int)roundf(startPos);
-        self->writeEvents.eventList[recIndex++ % 4][snappedIndex][0] = note;
-        self->writeEvents.eventList[recIndex][snappedIndex][1]       = noteLength;
-        self->writeEvents.eventList[recIndex][snappedIndex][2]       = velocity;
+            debug_print("note in quantize notes = %f\n", note);
+            float startPos = self->writeEvents.recordedEvents[recordedNote][2];
+            debug_print("startPos = %f\n", startPos);
+            float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
+            debug_print("noteLength =  %f\n", noteLength);
+            float velocity = 120; 
+            snappedIndex = (int)roundf(startPos);
+            self->writeEvents.eventList[recIndex][snappedIndex][0] = note;
+            self->writeEvents.eventList[recIndex][snappedIndex][1]       = noteLength;
+            self->writeEvents.eventList[recIndex][snappedIndex][2]       = velocity;
+            recIndex = (recIndex + 1) % 4;
+        }
     }
 }
 
