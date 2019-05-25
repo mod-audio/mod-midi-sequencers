@@ -355,7 +355,6 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
             if (!alreadyPlaying) {
                 //send MIDI note on message
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
-                debug_print("NOTE SEND = %i\n", midiNote);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
                 self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
                 self->noteOffTimer[activeNoteIndex][2] = self->playEvents.eventList[voice][self->notePlayed][1];
@@ -447,9 +446,9 @@ setMode(Data* self, const uint32_t outCapacity)
 static void 
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
-    static bool countBars = false;
-    static int barsCounted = 0;
-
+    static bool countBars   = false;
+    static int barsCounted  = 0;
+    static int fullRecordingLength = 0;
     double frequency;
 
     //TODO change 3.9 to a procentage of the total size of the bar
@@ -499,8 +498,14 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             frequency = 440;
             precount(self);
             self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
+            fullRecordingLength = (int)self->phaseRecord;
+            debug_print("phaseRecord = %i\n", fullRecordingLength);
             break;
         case R_STOP_RECORDING: //stop recording 
+            //TODO check if this is always safe
+            fullRecordingLength += 1;
+            self->writeEvents.used = fullRecordingLength;
+            debug_print("phaseRecord = %i\n", fullRecordingLength);
             countBars = false;
             frequency = 0;
             self->recording = false;
@@ -509,21 +514,21 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
             quantizeNotes(self);
             copyEvents(&self->writeEvents, &self->playEvents);
-            for (size_t i = 0; i < self->playEvents.used; i++) {
-                for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
-                }
-            }
-                for (size_t i = 0; i < self->playEvents.used; i++) {
-                    for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
-                }
-            }
-                for (size_t i = 0; i < self->playEvents.used; i++) {
-                    for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
-                }
-            }
+            //for (size_t i = 0; i < self->playEvents.used; i++) {
+            //    for (size_t y = 0; y < 4; y++) {
+            //        debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
+            //    }
+            //}
+            //    for (size_t i = 0; i < self->playEvents.used; i++) {
+            //        for (size_t y = 0; y < 4; y++) {
+            //        debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
+            //    }
+            //}
+            //    for (size_t i = 0; i < self->playEvents.used; i++) {
+            //        for (size_t y = 0; y < 4; y++) {
+            //        debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
+            //    }
+            //}
             self->playing = true;
             self->recordingStatus = 0;
             

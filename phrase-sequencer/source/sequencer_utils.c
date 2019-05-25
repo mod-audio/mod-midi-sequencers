@@ -171,7 +171,6 @@ void quantizeNotes(Data* self)
     int snappedIndex    = 0;
     static int recIndex = 0;
     
-    self->writeEvents.used = 16;
 
     for (size_t recordedNote = 0; recordedNote < self->writeEvents.amountRecordedEvents; recordedNote++) {
         if (self->writeEvents.recordedEvents[recordedNote][1] == 144) {
