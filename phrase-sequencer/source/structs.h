@@ -67,6 +67,7 @@ typedef enum ModeEnum {
 typedef enum RecordEnum {
     R_IDLE = 0,
     R_PRE_COUNT,
+    R_PRE_RECORDING,
     R_RECORDING,
     R_STOP_RECORDING
 } RecordEnum;

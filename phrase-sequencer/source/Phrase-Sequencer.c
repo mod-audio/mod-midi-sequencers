@@ -377,19 +377,22 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
 static void
 handleNoteOff(Data* self, const uint32_t outCapacity)
 {
-  for (int i = 0; i < 16; i++) {
-    if (self->noteOffTimer[i][0] > 0) {
-      self->noteOffTimer[i][1] += self->frequency / self->rate;
-      //self->noteOffTimer[i][2]
-      if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
-        LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
-        lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
-        self->noteOffTimer[i][0] = 0;
-        self->noteOffTimer[i][1] = 0;
-        self->noteOffTimer[i][2] = 0;
-      }
-    }  
-  }
+    for (int i = 0; i < 16; i++) {
+        if (self->noteOffTimer[i][0] > 0) {
+            self->noteOffTimer[i][1] += (self->frequency / 2) / self->rate;
+            debug_print("self->noteOffTimer[%i][2] = %f\n", i, self->noteOffTimer[i][2]);
+            debug_print("self->noteOffTimer[%i][1] = %f\n", i, self->noteOffTimer[i][1]);
+            //self->noteOffTimer[i][2]
+            if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
+                debug_print("note Off given for = %i\n", (uint8_t)self->noteOffTimer[i][0]);
+                LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
+                lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
+                self->noteOffTimer[i][0] = 0;
+                self->noteOffTimer[i][1] = 0;
+                self->noteOffTimer[i][2] = 0;
+            }
+        }  
+    }
 }
 
 
@@ -458,16 +461,19 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     //count amount of bars to record included pre-count
     if (countBars) {
         barsCounted = barCounter(self, 1);
-        if (barsCounted > **self->recordingLengths[0])
+        if (barsCounted > **self->recordingLengths[0]) {
+            self->recordingStatus = 3;
+        } else if (barsCounted == (**self->recordingLengths[0] - 1)) {
             self->recordingStatus = 2;
-        else
+        } else if (barsCounted > (**self->recordingLengths[0] - 2)) {
             self->recordingStatus = 1;
+        }
     }
 
     //stop recording 
     if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
         countBars = false;
-        self->recordingStatus = 3;
+        self->recordingStatus = 4;
         barsCounted = 0;
     }
 
@@ -482,10 +488,15 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             precount(self);
             frequency = 660;
             break;
+        case R_PRE_RECORDING:
+            precount(self);
+            if (self->beatInMeasure > 3.5) {
+                self->recording = true;
+            }
+            break;
         case R_RECORDING: //record
             frequency = 440;
             precount(self);
-            self->recording = true;
             self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
             break;
         case R_STOP_RECORDING: //stop recording 
@@ -499,17 +510,17 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             copyEvents(&self->writeEvents, &self->playEvents);
             for (size_t i = 0; i < self->playEvents.used; i++) {
                 for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
+                    //debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
                 }
             }
                 for (size_t i = 0; i < self->playEvents.used; i++) {
                     for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
+                    //debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
                 }
             }
                 for (size_t i = 0; i < self->playEvents.used; i++) {
                     for (size_t y = 0; y < 4; y++) {
-                    debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
+                    //debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
                 }
             }
             self->playing = true;
@@ -591,7 +602,6 @@ run(LV2_Handle instance, uint32_t n_samples)
     self->port_events_out1->atom.type = self->port_events_in->atom.type;
     const MetroURIs* uris = &self->uris;
 
-    debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
     // Work forwards in time frame by frame, handling events as we go
     const LV2_Atom_Sequence* in     = self->control;
 
@@ -617,7 +627,7 @@ run(LV2_Handle instance, uint32_t n_samples)
         // Read incoming events
         self->frequency = calculateFrequency(self->bpm, self->divisionRate);
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
-        self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
+        self->phase = *phaseOsc(self->frequency / 2, &self->phase, self->rate, *self->swing);
         handleBarSyncRecording(self, pos);
         if (self->playing) { 
             sequencerProcess(self, outCapacity);

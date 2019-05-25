@@ -23,7 +23,7 @@
 float calculateFrequency(uint8_t bpm, float division)
 {
   float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  float frequency = (bpm / rateValues[(int)division]) * 0.5;
+  float frequency = (bpm / rateValues[(int)division]);
 
   return frequency;
 }
@@ -91,15 +91,15 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
     //recordedEvents[3] = calculated noteLength
 
     size_t rIndex = self->writeEvents.amountRecordedEvents;
-    debug_print("DEBUG 1");
+    //debug_print("DEBUG 1");
     self->writeEvents.recordedEvents[rIndex][0] = (float)midiNote;
-    debug_print("DEBUG 2");
+    //debug_print("DEBUG 2");
     self->writeEvents.recordedEvents[rIndex][1] = (float)noteType;
-    debug_print("DEBUG 3");
+    //debug_print("DEBUG 3");
     self->writeEvents.recordedEvents[rIndex][2] = (float)notePos;
-    debug_print("DEBUG 4");
+    //debug_print("DEBUG 4");
     self->writeEvents.amountRecordedEvents++;
-    debug_print("DEBUG 5");
+    //debug_print("DEBUG 5");
 }
 
 
@@ -151,12 +151,12 @@ void calculateNoteLength(Data* self, int recordingLength)
             case CALCULATE_NOTE_LENGTH:
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength; 
-                    debug_print("noteLength !found in search = %f\n", noteLength);
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * 0.5; 
+                    //debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength;
-                    debug_print("noteLength found in search = %f\n", noteLength);
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * 0.5;
+                    //debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
                 calculateNoteLength = NEXT_INDEX;
@@ -183,15 +183,15 @@ void quantizeNotes(Data* self)
             //debug_print("recordedNote = %li\n", recordedNote);
             float note = self->writeEvents.recordedEvents[recordedNote][0];
 
-            debug_print("note in quantize notes = %f\n", note);
+            //debug_print("note in quantize notes = %f\n", note);
             float startPos = self->writeEvents.recordedEvents[recordedNote][2];
-            debug_print("startPos = %f\n", startPos);
+            //debug_print("startPos = %f\n", startPos);
             float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
             self->writeEvents.eventList[recIndex][snappedIndex][0] = note;
             self->writeEvents.eventList[recIndex][snappedIndex][1] = noteLength;
-            debug_print("noteLength =  %f\n", noteLength);
+            //debug_print("noteLength =  %f\n", noteLength);
             self->writeEvents.eventList[recIndex][snappedIndex][2] = velocity;
             recIndex = (recIndex + 1) % 4;
         }
