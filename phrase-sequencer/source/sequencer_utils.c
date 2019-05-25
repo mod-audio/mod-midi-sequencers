@@ -91,15 +91,10 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
     //recordedEvents[3] = calculated noteLength
 
     size_t rIndex = self->writeEvents.amountRecordedEvents;
-    //debug_print("DEBUG 1");
     self->writeEvents.recordedEvents[rIndex][0] = (float)midiNote;
-    //debug_print("DEBUG 2");
     self->writeEvents.recordedEvents[rIndex][1] = (float)noteType;
-    //debug_print("DEBUG 3");
     self->writeEvents.recordedEvents[rIndex][2] = (float)notePos;
-    //debug_print("DEBUG 4");
     self->writeEvents.amountRecordedEvents++;
-    //debug_print("DEBUG 5");
 }
 
 
@@ -136,8 +131,7 @@ void calculateNoteLength(Data* self, int recordingLength)
                 break;
             case FIND_NOTE_OFF:
                 noteOffIndex = searchIndex;
-                while (noteOffIndex < recordingLength) {
-                    noteOffIndex++;
+                while (noteOffIndex < recordingLength && !noteFound) {
                     if (self->writeEvents.recordedEvents[noteOffIndex][0] == foundNote[0][0] &&
                             self->writeEvents.recordedEvents[noteOffIndex][1] == 128)
                     {
@@ -145,6 +139,7 @@ void calculateNoteLength(Data* self, int recordingLength)
                         noteFound = true;
                         calculateNoteLength = CALCULATE_NOTE_LENGTH;
                     } 
+                    noteOffIndex++;
                 }
                 calculateNoteLength = CALCULATE_NOTE_LENGTH;
                 break;
@@ -176,7 +171,7 @@ void quantizeNotes(Data* self)
     int snappedIndex    = 0;
     static int recIndex = 0;
     
-    self->writeEvents.used = 8;
+    self->writeEvents.used = 16;
 
     for (size_t recordedNote = 0; recordedNote < self->writeEvents.amountRecordedEvents; recordedNote++) {
         if (self->writeEvents.recordedEvents[recordedNote][1] == 144) {
