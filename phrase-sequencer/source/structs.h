@@ -107,13 +107,17 @@ typedef struct Array {
     //eventList[0] = midiNote
     //eventList[1] = calculated noteLength
     //eventList[2] = velocity
-    float eventList[4][248][3];
-    float recordedEvents[248][4];
-    size_t amountRecordedEvents;
-    size_t used;
+    uint32_t eventList[4][248][3];
+    float    recordedEvents[248][4];
+    size_t   amountRecordedEvents;
+    size_t   used;
 } Array;
 
 typedef struct Data {
+
+	uint32_t    	       pos;
+	uint32_t   	        period;
+	uint32_t	  h_wavelength;
 
     double  rate;   // Sample rate
     double  frequency;
@@ -140,12 +144,12 @@ typedef struct Data {
     int     placementIndex;
     float   notePlacement[2];
 
-    uint8_t noteTie;
-    uint8_t velocity;
-    int     noteStarted[2];
-    float   noteOffTimer[16][3];
-    float   beatInMeasure;
-    float   divisionRate;
+    uint8_t  noteTie;
+    uint8_t  velocity;
+    int      noteStarted[2];
+    uint32_t noteOffTimer[16][3];
+    float    beatInMeasure;
+    float    division;
 
     size_t  count;
     size_t  inputIndex;
@@ -193,7 +197,7 @@ typedef struct Data {
     const float* mode;
     const float* preCountLength;
     const float* recordingLength;
-    const float* division;
+    const float* changeDiv;
     const float* noteLengthParam;
     const float* latchTranspose;
     const float* swing;

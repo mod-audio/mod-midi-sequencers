@@ -21,7 +21,7 @@
 #include "structs.h"
 #include "oscillators.h"
 
-
+float  reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divisions);
 float  calculateFrequency(uint8_t bpm, float division);
 float* envelope(Data *self, float *amplitude);
 void   precount(Data *self);

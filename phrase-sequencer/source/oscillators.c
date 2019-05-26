@@ -18,6 +18,14 @@
 
 #include "oscillators.h"
 
+//TODO make division compatible 
+float reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divisions)
+{
+    float newPhase = fmod((60.0f / bpm) * beatInMeasure, (sampleRate * (60.0f / (bpm * (divisions / 2.0f)))));
+
+    return newPhase;
+}
+
 
 //this is a LFO to use for timing of the beatsync
 double sinOsc(float frequency, double* phase, float rate)

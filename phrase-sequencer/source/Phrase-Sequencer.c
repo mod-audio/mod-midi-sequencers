@@ -74,7 +74,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->beat             = 0;
     self->barCount         = 0;
     self->recordingStatus  = 0;
-    self->divisionRate     = 4;
+    self->division         = 0;
     self->phase            = 0;
     self->sinePhase        = 0;
     self->amplitude        = 0;
@@ -156,6 +156,9 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->alreadyPlaying     = false;
     self->recordingTriggered = false;
 
+	self->pos = 0;
+	self->period = 0;
+	self->h_wavelength = 0;
 
     return self;
 }
@@ -194,7 +197,7 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
             self->recordingLength = (const float*)data;
             break;
         case DIVISION:
-            self->division = (const float*)data;
+            self->changeDiv = (const float*)data;
             break;
         case NOTELENGTH:
             self->noteLengthParam = (const float*)data;
@@ -379,7 +382,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 {
     for (int i = 0; i < 16; i++) {
         if (self->noteOffTimer[i][0] > 0) {
-            self->noteOffTimer[i][1] += (self->frequency / 2) / self->rate;
+            self->noteOffTimer[i][1] += self->frequency;
             //self->noteOffTimer[i][2]
             if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
                 //debug_print("self->noteOffTimer[%i][2] = %f\n", i, self->noteOffTimer[i][2]);
@@ -499,7 +502,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             precount(self);
             self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
             fullRecordingLength = (int)self->phaseRecord;
-            debug_print("phaseRecord = %i\n", fullRecordingLength);
+            //debug_print("self->frequency = %f\n", self->frequency);
             break;
         case R_STOP_RECORDING: //stop recording 
             //TODO check if this is always safe
@@ -535,6 +538,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             break;
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
+    //TODO maybe return current switch state, so the call to the self->phaseRecord can be moved to the run function 
 }
 
 
@@ -599,6 +603,21 @@ sequencerProcess(Data* self, const uint32_t outCapacity)
     handleNoteOff(self, outCapacity); 
 }
 
+static float 
+getDivisionHz(int divisionIndex)
+{
+  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
+
+  return rateValues[divisionIndex];
+}
+
+static float
+getDivisionFrames(int divisionIndex)
+{
+  float rateValues[11] = {0.5,0.75,1,1.5,2,3,4,6,8,12,16};
+
+  return rateValues[divisionIndex];
+}
 
     
 static void 
@@ -614,7 +633,25 @@ run(LV2_Handle instance, uint32_t n_samples)
     //get the capacity
     const uint32_t outCapacity = handlePorts(self); 
         
-    for (uint32_t pos = 0; pos < n_samples; pos++) {
+    for (uint32_t i = 0; i < n_samples; i++) {
+        //reset phase when playing starts or stops
+        if (self->speed != self->previousSpeed) {
+            self->pos = reCalcPhase(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            self->previousSpeed = self->speed;
+            debug_print("transport changed\n");
+        }
+
+        debug_print("self->division = %f\n", self->division);
+        debug_print("self->changeDiv = %f\n", *self->changeDiv);
+        //reset phase when there is a new division
+        if (self->division != *self->changeDiv) {
+            self->division = *self->changeDiv;
+            self->pos = reCalcPhase(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            debug_print("Division changed\n");
+        }
+
+        self->period = (uint32_t)(self->rate * (60.0f / (self->bpm * (self->division / 2.0f))));
+        self->h_wavelength = (self->period/2.0f);
 
         //update host information
         for (const LV2_Atom_Event* ev = lv2_atom_sequence_begin(&in->body);
@@ -630,15 +667,27 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
         setMode(self, outCapacity);
-        // Read incoming events
-        self->frequency = calculateFrequency(self->bpm, self->divisionRate);
+        self->frequency = calculateFrequency(self->bpm, getDivisionHz(self->division));
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
-        self->phase = *phaseOsc(self->frequency / 2, &self->phase, self->rate, *self->swing);
-        handleBarSyncRecording(self, pos);
+        //self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
+        handleBarSyncRecording(self, i);
         if (self->playing) { 
-            sequencerProcess(self, outCapacity);
-        }
+
+            if(self->pos >= self->period && i < n_samples) {
+                self->pos = 0;
+            } else if(self->pos < self->h_wavelength && !self->trigger) {
+                debug_print("NOTE ON send!");
+                handleNoteOn(self, outCapacity);
+                self->trigger = true;
+            } else if(self->pos > self->h_wavelength && self->trigger) {
+                self->trigger = false;
+            }
+            self->pos += 1;
+        }           
+        handleNoteOff(self, outCapacity);
+        //sequencerProcess(self, outCapacity);
     }
+    // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
     {
         if (ev->body.type == self->urid_midiEvent)

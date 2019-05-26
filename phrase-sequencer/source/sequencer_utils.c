@@ -22,8 +22,9 @@
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-  float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  float frequency = (bpm / rateValues[(int)division]);
+  //float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
+  debug_print("division in Hz = %f\n", division);
+  float frequency = (bpm / division);
 
   return frequency;
 }
@@ -146,11 +147,11 @@ void calculateNoteLength(Data* self, int recordingLength)
             case CALCULATE_NOTE_LENGTH:
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * 0.5; 
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * self->rate; 
                     //debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * 0.5;
+                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * self->rate;
                     //debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
@@ -183,10 +184,10 @@ void quantizeNotes(Data* self)
             float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
-            self->writeEvents.eventList[recIndex][snappedIndex][0] = note;
-            self->writeEvents.eventList[recIndex][snappedIndex][1] = noteLength;
+            self->writeEvents.eventList[recIndex][snappedIndex][0] = (uint32_t)note;
+            self->writeEvents.eventList[recIndex][snappedIndex][1] = (uint32_t)noteLength;
             //debug_print("noteLength =  %f\n", noteLength);
-            self->writeEvents.eventList[recIndex][snappedIndex][2] = velocity;
+            self->writeEvents.eventList[recIndex][snappedIndex][2] = (uint32_t)velocity;
             recIndex = (recIndex + 1) % 4;
         }
     }
@@ -208,6 +209,7 @@ void copyEvents(Array *eventListA, Array *eventListB)
     }
   }   
 }
+
 
 
 void clearSequence(Array *arr)
