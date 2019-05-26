@@ -160,6 +160,9 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 	self->period = 0;
 	self->h_wavelength = 0;
 
+    self->barCounter = 0;
+    self->barNotCounted = false;
+    
     return self;
 }
 
@@ -327,8 +330,6 @@ applyRandomTiming(Data* self)
 static void 
 handleNoteOn(Data* self, const uint32_t outCapacity)
 {
-    static bool   alreadyPlaying = false;
-    static size_t noteFound      = 0;
     //get octave and velocity
     for (size_t voice = 0; voice < 4; voice++)
     {
@@ -347,23 +348,21 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 if ((uint8_t)self->noteOffTimer[i][0] == midiNote) { 
                     self->noteOffTimer[i][1] = 0;
                     alreadyPlaying = true;
-                    noteFound = i; 
+                    self->noteFound = i; 
                 } else {
-                    alreadyPlaying = false;
+                    self->alreadyPlaying = false;
                 }
             }
 
-            static size_t activeNoteIndex = 0;
-
-            if (!alreadyPlaying) {
+            if (!self->alreadyPlaying) {
                 //send MIDI note on message
                 LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
-                self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
-                self->noteOffTimer[activeNoteIndex][2] = self->playEvents.eventList[voice][self->notePlayed][1];
-                activeNoteIndex = (activeNoteIndex + 1) % 16; 
+                self->noteOffTimer[self->activeNoteIndex][0] = (float)midiNote;
+                self->noteOffTimer[self->activeNoteIndex][2] = self->playEvents.eventList[voice][self->notePlayed][1];
+                self->activeNoteIndex = (self->activeNoteIndex + 1) % 16; 
             } else {
-                activeNoteIndex = (noteFound + 1) % 16; 
+                self->activeNoteIndex = (self->noteFound + 1) % 16; 
             }
         } 
     } 

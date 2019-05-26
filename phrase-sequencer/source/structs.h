@@ -115,6 +115,11 @@ typedef struct Array {
 
 typedef struct Data {
 
+    bool   alreadyPlaying;
+    size_t noteFound;
+    int barCounter;
+    bool barNotCounted;
+
 	uint32_t    	       pos;
 	uint32_t   	        period;
 	uint32_t	  h_wavelength;
