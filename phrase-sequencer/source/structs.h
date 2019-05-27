@@ -115,8 +115,6 @@ typedef struct Array {
 
 typedef struct Data {
 
-    bool   alreadyPlaying;
-    size_t noteFound;
     int barCounter;
     bool barNotCounted;
 

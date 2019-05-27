@@ -347,7 +347,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
             for (size_t i = 0; i < 16; i++) {
                 if ((uint8_t)self->noteOffTimer[i][0] == midiNote) { 
                     self->noteOffTimer[i][1] = 0;
-                    alreadyPlaying = true;
+                    self->alreadyPlaying = true;
                     self->noteFound = i; 
                 } else {
                     self->alreadyPlaying = false;

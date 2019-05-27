@@ -70,7 +70,7 @@ void precount(Data *self)
 //TODO make suitable for all time signatures 
 int barCounter(Data *self, uint8_t recordingLength)
 {
-  if (self->beatInMeasure < 3.9 && self->!barNotCounted) {
+  if (self->beatInMeasure < 3.9 && !self->barNotCounted) {
     self->barNotCounted = true;
     self->barCounter++;
   } else if (self->beatInMeasure > 3.9) {
