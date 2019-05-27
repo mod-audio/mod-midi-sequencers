@@ -97,31 +97,29 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
 
 
 
-void calculateNoteLength(Data* self, int recordingLength)
+EventList calculateNoteLength(EventList events, float sampleRate)
 {
-
     bool noteFound = false;
     static float foundNote[1][2];
     float noteLength = 0;
     float totalAmountOfTime = 0;
-    int searchIndex = 0;
-    int noteOffIndex;
+    size_t searchIndex = 0;
+    size_t noteOffIndex;
 
     FindNoteEnum calculateNoteLength;
     calculateNoteLength = FIND_NOTE_ON;
     float matchingNoteOffPos = 0;
 
-    while (searchIndex < recordingLength) {
-
+    while (searchIndex < events.amountRecordedEvents) {
 
         switch (calculateNoteLength)
         {
             case FIND_NOTE_ON:
-                if (self->writeEvents.recordedEvents[searchIndex][0] < 128 &&
-                        self->writeEvents.recordedEvents[searchIndex][1] == 144)
+                if (events.recordedEvents[searchIndex][0] < 128 &&
+                        events.recordedEvents[searchIndex][1] == 144)
                 {
-                    foundNote[0][0] = self->writeEvents.recordedEvents[searchIndex][0];
-                    foundNote[0][1] = self->writeEvents.recordedEvents[searchIndex][2];
+                    foundNote[0][0] = events.recordedEvents[searchIndex][0];
+                    foundNote[0][1] = events.recordedEvents[searchIndex][2];
                     calculateNoteLength = FIND_NOTE_OFF;
                 } else {
                     calculateNoteLength = NEXT_INDEX;
@@ -129,11 +127,11 @@ void calculateNoteLength(Data* self, int recordingLength)
                 break;
             case FIND_NOTE_OFF:
                 noteOffIndex = searchIndex;
-                while (noteOffIndex < recordingLength && !noteFound) {
-                    if (self->writeEvents.recordedEvents[noteOffIndex][0] == foundNote[0][0] &&
-                            self->writeEvents.recordedEvents[noteOffIndex][1] == 128)
+                while (noteOffIndex < events.amountRecordedEvents && !noteFound) {
+                    if (events.recordedEvents[noteOffIndex][0] == foundNote[0][0] &&
+                            events.recordedEvents[noteOffIndex][1] == 128)
                     {
-                        matchingNoteOffPos = self->writeEvents.recordedEvents[noteOffIndex][2];
+                        matchingNoteOffPos = events.recordedEvents[noteOffIndex][2];
                         noteFound = true;
                         calculateNoteLength = CALCULATE_NOTE_LENGTH;
                     } 
@@ -144,11 +142,11 @@ void calculateNoteLength(Data* self, int recordingLength)
             case CALCULATE_NOTE_LENGTH:
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * self->rate; 
+                    events.recordedEvents[searchIndex][3] = noteLength * sampleRate; 
                     //debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
-                    self->writeEvents.recordedEvents[searchIndex][3] = noteLength * self->rate;
+                    events.recordedEvents[searchIndex][3] = noteLength * sampleRate;
                     //debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
@@ -160,6 +158,7 @@ void calculateNoteLength(Data* self, int recordingLength)
                 break;
         }
     }
+    return events;
 }
 
 
@@ -193,7 +192,7 @@ void quantizeNotes(Data* self)
 
 
 //make copy of events from eventList A to eventList B
-void copyEvents(Array *eventListA, Array *eventListB)
+void copyEvents(EventList *eventListA, EventList *eventListB)
 {
   //eventListB = &eventListA;
   //eventListA->used = 0;
@@ -209,7 +208,7 @@ void copyEvents(Array *eventListA, Array *eventListB)
 
 
 
-void clearSequence(Array *arr)
+void clearSequence(EventList *arr)
 {
   arr->used = 0;
 }

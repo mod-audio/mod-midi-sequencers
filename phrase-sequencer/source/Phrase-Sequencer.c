@@ -442,7 +442,6 @@ setMode(Data* self, const uint32_t outCapacity)
 }
 
 
-
 /*function that handles the process of starting the pre-count at the beginning of next bar,
   pre-count length and recording length.*/
 static void 
@@ -506,6 +505,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         case R_STOP_RECORDING: //stop recording 
             //TODO check if this is always safe
             fullRecordingLength += 1;
+            self->phaseRecord = 0;
             self->writeEvents.used = fullRecordingLength;
             debug_print("phaseRecord = %i\n", fullRecordingLength);
             countBars = false;
@@ -513,8 +513,11 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
-            calculateNoteLength(self, self->writeEvents.amountRecordedEvents);
-            quantizeNotes(self);
+            self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
+            quantizeNotes(self); //TODO has to return a strutct
+            //if (dub) {
+            //    mergeEvents(&self->writeEvents, &self->playEvents);
+            //}
             copyEvents(&self->writeEvents, &self->playEvents);
             //for (size_t i = 0; i < self->playEvents.used; i++) {
             //    for (size_t y = 0; y < 4; y++) {
@@ -533,8 +536,12 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             //}
             self->playing = true;
             self->recordingStatus = 0;
-            
             break;
+       // case R_DUB:
+       //     self->recording = true;
+       //     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
+       //     break;
+
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
     //TODO maybe return current switch state, so the call to the self->phaseRecord can be moved to the run function 

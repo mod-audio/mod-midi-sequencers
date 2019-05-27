@@ -99,7 +99,7 @@ typedef struct MetroURIs {
     LV2_URID time_speed;
 } MetroURIs;
 
-typedef struct Array {
+typedef struct EventList {
     //recordedEvents[0] = midiNote
     //recordedEvents[1] = note On/Off 
     //recordedEvents[2] = recordedPosition
@@ -111,7 +111,7 @@ typedef struct Array {
     float    recordedEvents[248][4];
     size_t   amountRecordedEvents;
     size_t   used;
-} Array;
+} EventList;
 
 typedef struct Data {
 
@@ -192,8 +192,8 @@ typedef struct Data {
     int     countTicks;
 
     const float** pattern[8];
-    Array writeEvents;
-    Array playEvents;
+    EventList writeEvents;
+    EventList playEvents;
     AttackReleaseEnum  ARStatus;
 
     const float* recordTrigger;
