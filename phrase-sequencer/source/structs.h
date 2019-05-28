@@ -41,46 +41,49 @@
 typedef enum PortEnum {
     PORT_ATOM_IN = 0,
     PORT_ATOM_OUT1,
+    PORT_METROME_OUT,
     METRO_CONTROL,
-    CVLFO1,
-    CVLFO2,
-    NOTEMODE,
     MODE,
+    ACTIVATERECORDING,
+    PRECOUNT,
+    RECORDINGLENGTH,
     DIVISION,
     NOTELENGTH,
     OCTAVESPREAD,
     TRANSPOSE,
     SWING,
     RANDOMIZETIMMING,
-    VELOCITYMODE,
-    VELOCITYCURVE,
-    CURVEDEPTH,
-    CURVECLIP,
-    CURVELENGTH,
-    VELOCITYPATTERNLENGTH,
-    PATTERNVEL1,
-    PATTERNVEL2,
-    PATTERNVEL3,
-    PATTERNVEL4,
-    PATTERNVEL5,
-    PATTERNVEL6,
-    PATTERNVEL7,
-    PATTERNVEL8,
-    LFO1CONNECT,
-    LFO1DEPTH,
-    LFO2CONNECT,
-    LFO2DEPTH
 } PortEnum;
 
 typedef enum ModeEnum {
     CLEAR_ALL = 0,
     STOP,
-    RECORD,
     PLAY,
     RECORD_OVERWRITE,
     RECORD_APPEND,
     UNDO_LAST
 } ModeEnum;
+
+typedef enum RecordEnum {
+    R_IDLE = 0,
+    R_PRE_COUNT,
+    R_PRE_RECORDING,
+    R_RECORDING,
+    R_STOP_RECORDING
+} RecordEnum;
+
+typedef enum FindNoteEnum {
+    FIND_NOTE_ON = 0,
+    FIND_NOTE_OFF,
+    CALCULATE_NOTE_LENGTH,
+    NEXT_INDEX
+} FindNoteEnum;
+
+typedef enum AttackReleaseEnum {
+    IDLE = 0,
+    ATTACK,
+    RELEASE
+} AttackReleaseEnum;
 
 typedef struct MetroURIs {
     LV2_URID atom_Blank;
@@ -96,12 +99,28 @@ typedef struct MetroURIs {
     LV2_URID time_speed;
 } MetroURIs;
 
-typedef struct Array {
-    uint8_t eventList[248][2];
-    size_t used;
-} Array;
+typedef struct EventList {
+    //recordedEvents[0] = midiNote
+    //recordedEvents[1] = note On/Off 
+    //recordedEvents[2] = recordedPosition
+    //recordedEvents[3] = calculated noteLength
+    //eventList[0] = midiNote
+    //eventList[1] = calculated noteLength
+    //eventList[2] = velocity
+    uint32_t eventList[4][248][3];
+    float    recordedEvents[248][4];
+    size_t   amountRecordedEvents;
+    size_t   used;
+} EventList;
 
 typedef struct Data {
+
+    int barCounter;
+    bool barNotCounted;
+
+	uint32_t    	       pos;
+	uint32_t   	        period;
+	uint32_t	  h_wavelength;
 
     double  rate;   // Sample rate
     double  frequency;
@@ -109,14 +128,17 @@ typedef struct Data {
     double  velPhase;
     double  x1;
     double  phase;
-    double  velocityLFO;
+    double  sinePhase;
+    double  phaseRecord;
+    float   *metroOut;
+    float   amplitude;
     float   bpm;
     float   barsize;
+    float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
-    float   lfo1;
-    float   lfo2;
     float   noteLengthTime[2];
     int     activeNotes;
+    int     previousSpeed;
 
     int     modeHandle;
     int     prevMod;
@@ -125,25 +147,33 @@ typedef struct Data {
     int     placementIndex;
     float   notePlacement[2];
 
-    uint8_t noteTie;
-    uint8_t velocity;
-    int     noteStarted[2];
-    uint8_t noteOffArr[4];
-    float   noteOffTimer[4][2];
-    float   beatInMeasure;
-    float   divisionRate;
+    uint8_t  noteTie;
+    uint8_t  velocity;
+    int      noteStarted[2];
+    uint32_t noteOffTimer[16][3];
+    float    beatInMeasure;
+    float    division;
 
     size_t  count;
     size_t  inputIndex;
     size_t  notesPressed;
+    size_t  activeNoteIndex; 
     uint8_t prevThrough;
     uint8_t midiThroughInput[16];
-
+    uint8_t recordingStatus;
+    uint8_t barCount;
+    uint8_t ARstate;
     //resetPhase vars:
     float previousDevision;
+    bool  barCounted;
+    bool  recordingTriggered;
+    bool  startPreCount;
+    bool  recording;
     bool  previousPlaying;
     bool  resetPhase;
+    bool  alreadyPlaying;
 
+    size_t  noteFound;
     size_t  patternIndex;
     size_t  notePlayed;
     size_t  octaveIndex;
@@ -156,61 +186,32 @@ typedef struct Data {
     bool    clip;
     bool    trigger;
     bool    triggerSet;
+    bool    preCountTrigger;
     bool    cleared;
     int     transpose;
     int     countTicks;
 
-    const float** parameters[18];
-    uint8_t velocityPattern[8];
-    Array* writeEvents;
-    Array* playEvents;
+    const float** pattern[8];
+    EventList writeEvents;
+    EventList playEvents;
+    AttackReleaseEnum  ARStatus;
 
-    float variables[18];
-    float division;         
-    float noteLength;  
-    float octaveSpread;     
-    float swing;            
-    float randomizeTimming; 
-    float velocityMode;     
-    float velocityCurve;    
-    float curveDepth;       
-    float curveClip;        
-    float patternVel1;      
-    float patternVel2;      
-    float patternVel3;      
-    float patternVel4;      
-    float patternVel5;      
-    float patternVel6;      
-    float patternVel7;      
-    float patternVel8;      
-    const float* lfo1PortParam;
-    const float* lfo2PortParam;
-    const float* noteModeParam;
-    const float* modeParam;
-    const float* divisionParam;
+    const float* recordTrigger;
+    const float* mode;
+    const float* preCountLength;
+    const float* recordingLength;
+    const float* changeDiv;
     const float* noteLengthParam;
-    const float* latchTransposeParam;
-    const float* swingParam;
-    const float* randomizeTimmingParam;
-    const float* velocityModeParam;
-    const float* velocityCurveParam;
-    const float* curveDepthParam;
-    const float* curveLengthParam;
-    const float* curveClipParam;
-    const float* octaveSpreadParam;
-    const float* velocityPatternLengthParam;
-    const float* patternVel1Param;
-    const float* patternVel2Param;
-    const float* patternVel3Param;
-    const float* patternVel4Param;
-    const float* patternVel5Param;
-    const float* patternVel6Param;
-    const float* patternVel7Param;
-    const float* patternVel8Param;
-    const float* lfo1ConnectParam;
-    const float* lfo1DepthParam;
-    const float* lfo2ConnectParam;
-    const float* lfo2DepthParam;
+    const float* latchTranspose;
+    const float* swing;
+    const float* randomizeTimming;
+    const float* curveDepth;
+    const float* curveLength;
+    const float* curveClip;
+    const float* octaveSpread;
+
+    const float** recordingLengths[2];
+
     const LV2_Atom_Sequence* port_events_in;
     LV2_Atom_Sequence*       port_events_out1;
 
