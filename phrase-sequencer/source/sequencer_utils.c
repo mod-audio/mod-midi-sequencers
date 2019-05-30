@@ -22,8 +22,6 @@
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-  //float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  debug_print("division in Hz = %f\n", division);
   float frequency = (bpm / division);
 
   return frequency;
@@ -143,11 +141,9 @@ EventList calculateNoteLength(EventList events, float sampleRate)
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
                     events.recordedEvents[searchIndex][3] = noteLength * sampleRate; 
-                    //debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
                     events.recordedEvents[searchIndex][3] = noteLength * sampleRate;
-                    //debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
                 calculateNoteLength = NEXT_INDEX;
@@ -211,15 +207,19 @@ EventList copyEvents(EventList eventListA, EventList eventListB)
 
 EventList mergeEvents(EventList eventListA, EventList eventListB)
 {
-    if (eventListB.used > eventListA.used) {
-        eventListA.used = eventListB.used;
-    } else {
-        eventListB.used = eventListA.used;
-    }
+    //if (eventListB.used > eventListA.used) {
+    //    eventListA.used = eventListB.used;
+    //} else {
+    //    eventListB.used = eventListA.used;
+    //}
+
+    debug_print("eventListA.used = %li\n", eventListA.used);
+
+    eventListB.used = eventListA.used;
 
     static bool noteFoundMerge = false;
     float temp[3] = {0, 0, 0};
-    for (int note = 0; note < 9; note++) {
+    for (size_t note = 0; note < eventListA.used; note++) {
         for (int voice = 0; voice < 3; voice++) {
             if (eventListA.eventList[voice][note][0] > 0 && eventListA.eventList[voice][note][0] < 128) {
                 for (int noteProps = 0; noteProps < 3; noteProps++) 

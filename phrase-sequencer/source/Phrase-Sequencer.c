@@ -31,6 +31,28 @@ typedef struct {
 
 
 
+static void
+printEventList(EventList events)
+{
+
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][0] = %i\n", y, i, events.eventList[y][i][0]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][1] = %i\n", y, i, events.eventList[y][i][1]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][2] = %i\n", y, i, events.eventList[y][i][2]);
+        }
+    }
+}
+
+
 static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         double                    rate,
         const char*               path,
@@ -497,27 +519,24 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             }
             break;
         case R_RECORDING: //record
+            self->recording = true;
             frequency = 440;
             precount(self);
             self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
             fullRecordingLength = (int)self->phaseRecord;
-            //debug_print("self->frequency = %f\n", self->frequency);
             break;
         case R_STOP_RECORDING: //stop recording 
-            //TODO check if this is always safe
-            fullRecordingLength += 1;
-            self->phaseRecord = 0;
+            fullRecordingLength += 1;//TODO check if this is always safe
             self->writeEvents.used = fullRecordingLength;
-            debug_print("phaseRecord = %i\n", fullRecordingLength);
-            countBars = false;
+            self->phaseRecord = 0;
             frequency = 0;
+            countBars = false;
             self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
             self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
             self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
-            //TODO merge EVENTS!!!
-            self->playEvents = copyEvents(self->writeEvents, self->playEvents);
+            self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
             self->playing = true;
             //if (recordingEnabled) { 
             //    self->recordingStatus = 3;
@@ -631,8 +650,6 @@ run(LV2_Handle instance, uint32_t n_samples)
             debug_print("transport changed\n");
         }
 
-        debug_print("self->division = %f\n", self->division);
-        debug_print("self->changeDiv = %f\n", *self->changeDiv);
         //reset phase when there is a new division
         if (self->division != *self->changeDiv) {
             self->division = *self->changeDiv;
@@ -666,7 +683,6 @@ run(LV2_Handle instance, uint32_t n_samples)
             if(self->pos >= self->period && i < n_samples) {
                 self->pos = 0;
             } else if(self->pos < self->h_wavelength && !self->trigger) {
-                debug_print("NOTE ON send!");
                 handleNoteOn(self, outCapacity);
                 self->trigger = true;
             } else if(self->pos > self->h_wavelength && self->trigger) {
