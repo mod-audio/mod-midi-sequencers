@@ -17,8 +17,6 @@
  * =====================================================================================
  */
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include "sequencer_utils.h"
 #include "oscillators.h"
@@ -29,6 +27,26 @@ typedef struct {
     uint8_t        msg[3];
 } LV2_Atom_MIDI;
 
+static void
+printEventList(EventList events)
+{
+
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][0] = %i\n", y, i, events.eventList[y][i][0]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][1] = %i\n", y, i, events.eventList[y][i][1]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][2] = %i\n", y, i, events.eventList[y][i][2]);
+        }
+    }
+}
 
 
 static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
@@ -155,6 +173,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->clip               = false;
     self->alreadyPlaying     = false;
     self->recordingTriggered = false;
+    self->recordingEnabled   = false;
 
 	self->pos = 0;
 	self->period = 0;
@@ -436,9 +455,42 @@ setMode(Data* self, const uint32_t outCapacity)
         self->prevLatch = (int)*self->latchTranspose;
     }
     if (*self->recordTrigger == 1 && !self->recordingTriggered) {
+        self->recordingEnabled = !self->recordingEnabled; 
         self->recordingTriggered = true;
         self->startPreCount = true;
+    } else if (*self->recordTrigger == 0 && self->recordingTriggered) {
+        self->recordingTriggered = false;
     }
+}
+
+static EventList 
+renderWriteEvents(Data *self, size_t fullRecordingLength, EventList writeEvents, EventList playEvents)
+{
+    
+    debug_print("HALLO IN RENDERRECORDING\n");
+    for (size_t index = 0; index < fullRecordingLength; index++)
+        debug_print("self->writeEvents.recordedEvents[index][0] = %f\n", self->writeEvents.recordedEvents[index][0]);
+
+    return writeEvents;
+}
+
+static EventList 
+renderPlayEvents(EventList writeEvents, EventList playEvents)
+{
+
+    return playEvents;
+}
+
+static void
+resetRecordingValues(Data *self)
+{
+    self->startPreCount = false;
+    //self->recordingTriggered = false;   
+    self->recordingStatus = 0;
+    self->phaseRecord = 0;
+    self->recordingStatus = 0;
+
+    self->playing = true;
 }
 
 
@@ -447,6 +499,9 @@ setMode(Data* self, const uint32_t outCapacity)
 static void 
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
+    //TODO remove all statics later
+    static float loopLength = 0;
+    static bool recordingLengthSet = false;
     static bool countBars   = false;
     static int barsCounted  = 0;
     static int fullRecordingLength = 0;
@@ -460,7 +515,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 
     //count amount of bars to record included pre-count
     if (countBars) {
-        barsCounted = barCounter(self, 1);
+        barsCounted = barCounter(self);
         if (barsCounted > **self->recordingLengths[0]) {
             self->recordingStatus = 3;
         } else if (barsCounted == (**self->recordingLengths[0] - 1)) {
@@ -472,9 +527,11 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 
     //stop recording 
     if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
+        self->recordingEnabled = false;
         countBars = false;
-        self->recordingStatus = 4;
+        recordingLengthSet = true;
         barsCounted = 0;
+        frequency = 0; //TODO change this to self->amplitude = 0;
     }
 
     RecordEnum recordMode = self->recordingStatus;
@@ -499,49 +556,21 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             frequency = 440;
             precount(self);
             self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-            fullRecordingLength = (int)self->phaseRecord;
-            //debug_print("self->frequency = %f\n", self->frequency);
+            if (recordingLengthSet && self->phaseRecord >= loopLength && self->recordingEnabled) {
+                //self->playEvents = renderRecording(self,self->writeEvents.used,self->writeEvents,self->playEvents);
+                resetRecordingValues(self);
+            } else if (!self->recordingEnabled) {//TODO change this
+                loopLength = (int)self->phaseRecord;
+                self->writeEvents.used = loopLength + 1;
+                self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
+                self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
+                //self->writeEvents = mergeEvents(self->writeEvents, self->playEvents);
+                printEventList(self->writeEvents);
+                self->playEvents  = copyEvents(self->writeEvents, self->playEvents);
+                resetRecordingValues(self);
+                self->recordingStatus = 0; //IDLE
+            }
             break;
-        case R_STOP_RECORDING: //stop recording 
-            //TODO check if this is always safe
-            fullRecordingLength += 1;
-            self->phaseRecord = 0;
-            self->writeEvents.used = fullRecordingLength;
-            debug_print("phaseRecord = %i\n", fullRecordingLength);
-            countBars = false;
-            frequency = 0;
-            self->recording = false;
-            self->recordingTriggered = false;
-            self->startPreCount = false;
-            self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
-            quantizeNotes(self); //TODO has to return a strutct
-            //if (dub) {
-            //    mergeEvents(&self->writeEvents, &self->playEvents);
-            //}
-            copyEvents(&self->writeEvents, &self->playEvents);
-            //for (size_t i = 0; i < self->playEvents.used; i++) {
-            //    for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
-            //    }
-            //}
-            //    for (size_t i = 0; i < self->playEvents.used; i++) {
-            //        for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
-            //    }
-            //}
-            //    for (size_t i = 0; i < self->playEvents.used; i++) {
-            //        for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
-            //    }
-            //}
-            self->playing = true;
-            self->recordingStatus = 0;
-            break;
-       // case R_DUB:
-       //     self->recording = true;
-       //     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-       //     break;
-
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
     //TODO maybe return current switch state, so the call to the self->phaseRecord can be moved to the run function 
@@ -588,27 +617,6 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
-static void
-sequencerProcess(Data* self, const uint32_t outCapacity)
-{
-    self->notePlacement[1] = *self->swing * 0.01;
-
-    float offset = applyRandomTiming(self);
-    if (self->phase >= self->notePlacement[self->placementIndex] && 
-            self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger) 
-    { 
-        handleNoteOn(self, outCapacity); 
-        self->triggerSet = false;
-    } else if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
-    {
-        self->placementIndex ^= 1;
-        self->trigger = false;
-        //TODO does this trigger has to be reset as well?
-        self->triggerSet = true;    
-    }
-    handleNoteOff(self, outCapacity); 
-}
-
 static float 
 getDivisionHz(int divisionIndex)
 {
@@ -617,6 +625,8 @@ getDivisionHz(int divisionIndex)
   return rateValues[divisionIndex];
 }
 
+
+
 static float
 getDivisionFrames(int divisionIndex)
 {
@@ -624,6 +634,7 @@ getDivisionFrames(int divisionIndex)
 
   return rateValues[divisionIndex];
 }
+
 
     
 static void 
@@ -647,8 +658,8 @@ run(LV2_Handle instance, uint32_t n_samples)
             debug_print("transport changed\n");
         }
 
-        debug_print("self->division = %f\n", self->division);
-        debug_print("self->changeDiv = %f\n", *self->changeDiv);
+        //debug_print("self->division = %f\n", self->division);
+        //debug_print("self->changeDiv = %f\n", *self->changeDiv);
         //reset phase when there is a new division
         if (self->division != *self->changeDiv) {
             self->division = *self->changeDiv;
@@ -678,11 +689,10 @@ run(LV2_Handle instance, uint32_t n_samples)
         //self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, *self->swing);
         handleBarSyncRecording(self, i);
         if (self->playing) { 
-
             if(self->pos >= self->period && i < n_samples) {
                 self->pos = 0;
             } else if(self->pos < self->h_wavelength && !self->trigger) {
-                debug_print("NOTE ON send!");
+                //debug_print("NOTE ON send!");
                 handleNoteOn(self, outCapacity);
                 self->trigger = true;
             } else if(self->pos > self->h_wavelength && self->trigger) {
@@ -691,7 +701,6 @@ run(LV2_Handle instance, uint32_t n_samples)
             self->pos += 1;
         }           
         handleNoteOff(self, outCapacity);
-        //sequencerProcess(self, outCapacity);
     }
     // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
@@ -742,3 +751,38 @@ const LV2_Descriptor* lv2_descriptor(uint32_t index)
 }
 
 
+//for (size_t i = 0; i < self->playEvents.used; i++) {
+//    for (size_t y = 0; y < 4; y++) {
+//        debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
+//    }
+//}
+//    for (size_t i = 0; i < self->playEvents.used; i++) {
+//        for (size_t y = 0; y < 4; y++) {
+//        debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
+//    }
+//}
+//    for (size_t i = 0; i < self->playEvents.used; i++) {
+//        for (size_t y = 0; y < 4; y++) {
+//        debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
+//    }
+//}
+
+
+//        case R_STOP_RECORDING: //stop recording 
+//            //TODO check if this is always safe
+//            fullRecordingLength += 1;
+//            self->phaseRecord = 0;
+//            self->writeEvents.used = fullRecordingLength;
+//            debug_print("phaseRecord = %i\n", fullRecordingLength);
+//            countBars = false;
+//            frequency = 0;
+//            self->recording = false;
+//            self->recordingTriggered = false;
+//            self->startPreCount = false;
+//            self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
+//            self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
+//            self->writeEvents = mergeEvents(self->writeEvents, self->playEvents);
+//            self->playEvents = copyEvents(self->writeEvents, self->playEvents);
+//            self->playing = true;
+//            self->recordingStatus = 0;
+//            break;

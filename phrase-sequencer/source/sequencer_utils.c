@@ -23,11 +23,12 @@
 float calculateFrequency(uint8_t bpm, float division)
 {
   //float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  debug_print("division in Hz = %f\n", division);
+  //debug_print("division in Hz = %f\n", division);
   float frequency = (bpm / division);
 
   return frequency;
 }
+
 
 
 //simple linear attack release envelope, this is used for the clicktrack
@@ -67,8 +68,9 @@ void precount(Data *self)
 }
 
 
+
 //TODO make suitable for all time signatures 
-int barCounter(Data *self, uint8_t recordingLength)
+int barCounter(Data *self)
 {
   if (self->beatInMeasure < 3.9 && !self->barNotCounted) {
     self->barNotCounted = true;
@@ -163,47 +165,88 @@ EventList calculateNoteLength(EventList events, float sampleRate)
 
 
 
-void quantizeNotes(Data* self)
+EventList quantizeNotes(EventList events)
 {
     int snappedIndex    = 0;
     static int recIndex = 0;
+    int prevSnappedIndex = -1;
     
 
-    for (size_t recordedNote = 0; recordedNote < self->writeEvents.amountRecordedEvents; recordedNote++) {
-        if (self->writeEvents.recordedEvents[recordedNote][1] == 144) {
+    for (size_t recordedNote = 0; recordedNote < events.amountRecordedEvents; recordedNote++) {
+        if (events.recordedEvents[recordedNote][1] == 144) {
             //debug_print("recordedNote = %li\n", recordedNote);
-            float note = self->writeEvents.recordedEvents[recordedNote][0];
+            float note = events.recordedEvents[recordedNote][0];
 
             //debug_print("note in quantize notes = %f\n", note);
-            float startPos = self->writeEvents.recordedEvents[recordedNote][2];
+            float startPos = events.recordedEvents[recordedNote][2];
             //debug_print("startPos = %f\n", startPos);
-            float noteLength = self->writeEvents.recordedEvents[recordedNote][3];
+            float noteLength = events.recordedEvents[recordedNote][3];
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
-            self->writeEvents.eventList[recIndex][snappedIndex][0] = (uint32_t)note;
-            self->writeEvents.eventList[recIndex][snappedIndex][1] = (uint32_t)noteLength;
+            if (snappedIndex == prevSnappedIndex) {
+                recIndex = (recIndex + 1) % 4;
+            } else {
+                recIndex = 0;
+            }
+            events.eventList[recIndex][snappedIndex][0] = (uint32_t)note;
+            events.eventList[recIndex][snappedIndex][1] = (uint32_t)noteLength;
             //debug_print("noteLength =  %f\n", noteLength);
-            self->writeEvents.eventList[recIndex][snappedIndex][2] = (uint32_t)velocity;
-            recIndex = (recIndex + 1) % 4;
+            events.eventList[recIndex][snappedIndex][2] = (uint32_t)velocity;
+            prevSnappedIndex = snappedIndex;
+
         }
     }
+    return events;
 }
 
 
 
 //make copy of events from eventList A to eventList B
-void copyEvents(EventList *eventListA, EventList *eventListB)
+EventList copyEvents(EventList eventListA, EventList eventListB)
 {
-  //eventListB = &eventListA;
-  //eventListA->used = 0;
-  eventListB->used = eventListA->used;
+  eventListB.used = eventListA.used;
   for (size_t voices = 0; voices < 4; voices++) {
-    for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
+    for (size_t noteIndex = 0; noteIndex < eventListA.used; noteIndex++) {
       for (size_t noteMeta = 0; noteMeta < 3; noteMeta++) {
-        eventListB->eventList[voices][noteIndex][noteMeta] = eventListA->eventList[voices][noteIndex][noteMeta];
+        eventListB.eventList[voices][noteIndex][noteMeta] = eventListA.eventList[voices][noteIndex][noteMeta];
       }
     }
   }   
+  return eventListB;
+}
+
+
+
+EventList mergeEvents(EventList eventListA, EventList eventListB)
+{
+    if (eventListB.used > eventListA.used) {
+        eventListA.used = eventListB.used;
+    } else {
+        eventListB.used = eventListA.used;
+    }
+
+    static bool noteFoundMerge = false;
+    float temp[3] = {0, 0, 0};
+    for (int note = 0; note < 9; note++) {
+        for (int voice = 0; voice < 3; voice++) {
+            if (eventListA.eventList[voice][note][0] > 0 && eventListA.eventList[voice][note][0] < 128) {
+                for (int noteProps = 0; noteProps < 3; noteProps++) 
+                    temp[noteProps] = eventListA.eventList[voice][note][noteProps];
+                noteFoundMerge = true;
+            }
+        }
+        int voice = 0;
+        while (voice < 3 && noteFoundMerge) {
+            if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
+                for (int noteProps = 0; noteProps < 3; noteProps++) {
+                    eventListB.eventList[voice][note][noteProps] = temp[noteProps];
+                }
+                noteFoundMerge = false;
+            }
+            voice++;
+        }
+    }
+    return eventListB;
 }
 
 
