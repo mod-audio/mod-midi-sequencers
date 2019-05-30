@@ -480,6 +480,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         countBars = true;
     }
 
+
     //count amount of bars to record included pre-count
     if (countBars) {
         barsCounted = barCounter(self, 1);
@@ -492,12 +493,13 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
     }
 
-    //if (firstLoop) {
-    //stop recording 
     if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-        countBars = false;
+        //countBars = false;
+        barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+        self->barCounter = **self->recordingLengths[0];
+        self->barNotCounted = false;
+        debug_print("barsCounted = %i\n", barsCounted);
         self->recordingStatus = 4;
-        barsCounted = 0;
     }
 
     RecordEnum recordMode = self->recordingStatus;
@@ -527,23 +529,18 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             break;
         case R_STOP_RECORDING: //stop recording 
             fullRecordingLength += 1;//TODO check if this is always safe
+            debug_print("fullRecordingLenght = %i\n", fullRecordingLength);
             self->writeEvents.used = fullRecordingLength;
             self->phaseRecord = 0;
             frequency = 0;
-            countBars = false;
             self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
             self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
             self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
             self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
+            self->writeEvents = clearSequence(self->writeEvents);
             self->playing = true;
-            //if (recordingEnabled) { 
-            //    self->recordingStatus = 3;
-            //} else {
-            //    self->recordingStatus = 0;
-            //}
-            self->recordingStatus = 0;
             break;
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
