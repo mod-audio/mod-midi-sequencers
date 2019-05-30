@@ -470,6 +470,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
     }
 
+    //if (firstLoop) {
     //stop recording 
     if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
         countBars = false;
@@ -514,34 +515,17 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->recordingTriggered = false;
             self->startPreCount = false;
             self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
-            quantizeNotes(self); //TODO has to return a strutct
-            //if (dub) {
-            //    mergeEvents(&self->writeEvents, &self->playEvents);
-            //}
-            copyEvents(&self->writeEvents, &self->playEvents);
-            //for (size_t i = 0; i < self->playEvents.used; i++) {
-            //    for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][0] = %f\n", y, i, self->playEvents.eventList[y][i][0]);
-            //    }
-            //}
-            //    for (size_t i = 0; i < self->playEvents.used; i++) {
-            //        for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][1] = %f\n", y, i, self->playEvents.eventList[y][i][1]);
-            //    }
-            //}
-            //    for (size_t i = 0; i < self->playEvents.used; i++) {
-            //        for (size_t y = 0; y < 4; y++) {
-            //        debug_print("self->playEvents->eventList[%li][%li][2] = %f\n", y, i, self->playEvents.eventList[y][i][2]);
-            //    }
-            //}
+            self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
+            //TODO merge EVENTS!!!
+            self->playEvents = copyEvents(self->writeEvents, self->playEvents);
             self->playing = true;
+            //if (recordingEnabled) { 
+            //    self->recordingStatus = 3;
+            //} else {
+            //    self->recordingStatus = 0;
+            //}
             self->recordingStatus = 0;
             break;
-       // case R_DUB:
-       //     self->recording = true;
-       //     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-       //     break;
-
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
     //TODO maybe return current switch state, so the call to the self->phaseRecord can be moved to the run function 

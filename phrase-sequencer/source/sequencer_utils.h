@@ -25,12 +25,13 @@ float     reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divi
 float     calculateFrequency(uint8_t bpm, float division);
 float*    envelope(Data *self, float *amplitude);
 void      precount(Data *self);
-void      quantizeNotes(Data *self);
 int       barCounter(Data *self, uint8_t recordingLength);
 void      clearSequence(EventList *arr);
 void      recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos);
-void      copyEvents(EventList *eventListA, EventList *eventListB);
-void      resetPhase(Data* self);
+EventList quantizeNotes(EventList events);
+EventList mergeEvents(EventList eventListA, EventList eventListB);
+EventList copyEvents(EventList eventListA, EventList eventListB);
 EventList calculateNoteLength(EventList events, float sampleRate);
+void      resetPhase(Data* self);
 
 #endif //_H_SEQ_UTILS_
