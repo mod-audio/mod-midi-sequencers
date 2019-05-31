@@ -464,6 +464,30 @@ setMode(Data* self, const uint32_t outCapacity)
 }
 
 
+static size_t
+findClosestBarLength(int result, int div)
+{
+    int iteration = 1;
+    while (true)
+    {
+        int numberToMatch1 = div * iteration;
+        int difference1 = numberToMatch1 - result;
+        iteration++;
+        int numberToMatch2 = div * iteration;
+        int difference2 = numberToMatch2 - result;
+
+        if (difference2 > 0 || difference1 > 0) {
+            if (abs(difference1) < abs(difference2)) {
+                return (size_t)numberToMatch1;
+            } else {
+                return (size_t)numberToMatch2;
+            }
+        }
+    }
+}
+
+
+
 /*function that handles the process of starting the pre-count at the beginning of next bar,
   pre-count length and recording length.*/
 static void 
@@ -529,6 +553,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             break;
         case R_STOP_RECORDING: //stop recording 
             fullRecordingLength += 1;//TODO check if this is always safe
+            fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
             debug_print("fullRecordingLenght = %i\n", fullRecordingLength);
             self->writeEvents.used = fullRecordingLength;
             self->phaseRecord = 0;
@@ -537,7 +562,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->recordingTriggered = false;
             self->startPreCount = false;
             self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
-            self->writeEvents = quantizeNotes(self->writeEvents); //TODO has to return a strutct
+            self->writeEvents = quantizeNotes(self->writeEvents); 
             self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
             self->writeEvents = clearSequence(self->writeEvents);
             self->playing = true;
@@ -588,27 +613,6 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
-static void
-sequencerProcess(Data* self, const uint32_t outCapacity)
-{
-    self->notePlacement[1] = *self->swing * 0.01;
-
-    float offset = applyRandomTiming(self);
-    if (self->phase >= self->notePlacement[self->placementIndex] && 
-            self->phase < (self->notePlacement[self->placementIndex] + 0.2) && !self->trigger) 
-    { 
-        handleNoteOn(self, outCapacity); 
-        self->triggerSet = false;
-    } else if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
-    {
-        self->placementIndex ^= 1;
-        self->trigger = false;
-        //TODO does this trigger has to be reset as well?
-        self->triggerSet = true;    
-    }
-    handleNoteOff(self, outCapacity); 
-}
-
 static float 
 getDivisionHz(int divisionIndex)
 {
@@ -616,6 +620,8 @@ getDivisionHz(int divisionIndex)
 
   return rateValues[divisionIndex];
 }
+
+
 
 static float
 getDivisionFrames(int divisionIndex)
@@ -626,6 +632,7 @@ getDivisionFrames(int divisionIndex)
 }
 
     
+
 static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
