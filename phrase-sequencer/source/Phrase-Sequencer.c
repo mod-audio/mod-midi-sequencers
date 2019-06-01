@@ -163,6 +163,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->noteFound   = 0;
 
 
+    self->prevRecordTrigger  = 0;
     self->firstRecordedNote  = false; 
     self->barCounted         = false;
     self->startPreCount      = false;
@@ -177,6 +178,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->clip               = false;
     self->alreadyPlaying     = false;
     self->recordingTriggered = false;
+    self->recordingEnabled   = false;
 
 	self->pos = 0;
 	self->period = 0;
@@ -458,9 +460,18 @@ setMode(Data* self, const uint32_t outCapacity)
         self->prevLatch = (int)*self->latchTranspose;
     }
     if (*self->recordTrigger == 1 && !self->recordingTriggered) {
+        debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
+        self->recordingEnabled = !self->recordingEnabled;
+        debug_print("self->recordingEnabled = %i\n", self->recordingEnabled);
+        if (self->recordingEnabled) {
+            self->startPreCount = true;
+        }
         self->recordingTriggered = true;
-        self->startPreCount = true;
     }
+    if (*self->recordTrigger == 0) {
+        self->recordingTriggered = false;
+    }
+    self->prevRecordTrigger = *self->recordTrigger;
 }
 
 
@@ -517,17 +528,27 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
     }
 
-    if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-        //countBars = false;
-        barsCounted = **self->recordingLengths[0]; //TODO lock this variable
-        self->barCounter = **self->recordingLengths[0];
-        self->barNotCounted = false;
-        debug_print("barsCounted = %i\n", barsCounted);
-        self->recordingStatus = 4;
-    }
+    if (**self->recordingLengths[1] > 0) {
+        if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
+            barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+            self->barCounter = **self->recordingLengths[0];
+            self->barNotCounted = false;
+            debug_print("barsCounted = %i\n", barsCounted);
+            self->recordingStatus = 4;
+        }
+    } 
+   // else {
+   //     if (barsCounted > (**self->recordingLengths[1] + firstLoopLength && firstLoopLength > 0)) {
+   //         barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+   //         self->barCounter = **self->recordingLengths[0];
+   //         self->barNotCounted = false;
+   //         debug_print("barsCounted = %i\n", barsCounted);
+   //         self->recordingStatus = 4;
+   //     }
+   // }
 
     RecordEnum recordMode = self->recordingStatus;
-    
+
     switch(recordMode)
     {
         case R_IDLE:
@@ -558,6 +579,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->writeEvents.used = fullRecordingLength;
             self->phaseRecord = 0;
             frequency = 0;
+
             self->recording = false;
             self->recordingTriggered = false;
             self->startPreCount = false;
@@ -565,6 +587,11 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->writeEvents = quantizeNotes(self->writeEvents); 
             self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
             self->writeEvents = clearSequence(self->writeEvents);
+
+            if (!self->recordingEnabled) {
+                self->recordingStatus = 0;
+                countBars = false;
+            }
             self->playing = true;
             break;
     }

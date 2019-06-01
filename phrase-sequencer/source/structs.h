@@ -163,8 +163,10 @@ typedef struct Data {
     uint8_t recordingStatus;
     uint8_t barCount;
     uint8_t ARstate;
+    uint8_t prevRecordTrigger; 
     //resetPhase vars:
     float previousDevision;
+    bool  recordingEnabled;
     bool  barCounted;
     bool  recordingTriggered;
     bool  startPreCount;
