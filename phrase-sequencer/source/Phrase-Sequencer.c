@@ -499,12 +499,30 @@ findClosestBarLength(int result, int div)
 
 
 
+static void
+renderRecording(Data* self, int fullRecordingLength)
+{
+    fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
+    //debug_print("fullRecordingLenght = %i\n", fullRecordingLength);
+    self->writeEvents.used = fullRecordingLength;
+    self->phaseRecord = 0;
+    self->recording = false;
+    self->recordingTriggered = false;
+    self->startPreCount = false;
+    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
+    self->writeEvents = quantizeNotes(self->writeEvents); 
+    self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
+    self->writeEvents = clearSequence(self->writeEvents);
+}
+
+
 /*function that handles the process of starting the pre-count at the beginning of next bar,
   pre-count length and recording length.*/
 static void 
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
     static bool countBars   = false;
+    int firstLoopLength;
     static int barsCounted  = 0;
     static int fullRecordingLength = 0;
     double frequency;
@@ -527,25 +545,31 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             self->recordingStatus = 1;
         }
     }
+    
+    firstLoopLength = self->writeEvents.used / 16; //TODO remove hardcoded var
 
     if (**self->recordingLengths[1] > 0) {
         if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-            barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+            barsCounted = **self->recordingLengths[0];
             self->barCounter = **self->recordingLengths[0];
+            self->recording = false;
             self->barNotCounted = false;
-            debug_print("barsCounted = %i\n", barsCounted);
+            self->recordingEnabled = false;
             self->recordingStatus = 4;
         }
     } 
-   // else {
-   //     if (barsCounted > (**self->recordingLengths[1] + firstLoopLength && firstLoopLength > 0)) {
-   //         barsCounted = **self->recordingLengths[0]; //TODO lock this variable
-   //         self->barCounter = **self->recordingLengths[0];
-   //         self->barNotCounted = false;
-   //         debug_print("barsCounted = %i\n", barsCounted);
-   //         self->recordingStatus = 4;
-   //     }
-   // }
+    else {
+        if (barsCounted > (**self->recordingLengths[1] + firstLoopLength ) && firstLoopLength > 0) {
+            debug_print("IF 1\n");
+            barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+            self->barCounter = **self->recordingLengths[0];
+            self->barNotCounted = false;
+            //debug_print("barsCounted = %i\n", barsCounted);
+            self->recordingStatus = 4;
+        } else if (!self->recordingEnabled && self->recording && self->beatInMeasure > 3.9) {
+            self->recordingStatus = 4;
+        }
+    }
 
     RecordEnum recordMode = self->recordingStatus;
 
@@ -573,26 +597,16 @@ handleBarSyncRecording(Data *self, uint32_t pos)
             fullRecordingLength = (int)self->phaseRecord;
             break;
         case R_STOP_RECORDING: //stop recording 
-            fullRecordingLength += 1;//TODO check if this is always safe
-            fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
-            debug_print("fullRecordingLenght = %i\n", fullRecordingLength);
-            self->writeEvents.used = fullRecordingLength;
-            self->phaseRecord = 0;
+            //debug_print("RENDERING\n");
+            fullRecordingLength += 1;
+            renderRecording(self, fullRecordingLength);
             frequency = 0;
-
-            self->recording = false;
-            self->recordingTriggered = false;
-            self->startPreCount = false;
-            self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
-            self->writeEvents = quantizeNotes(self->writeEvents); 
-            self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
-            self->writeEvents = clearSequence(self->writeEvents);
-
+            self->playing = true;
             if (!self->recordingEnabled) {
+                //debug_print("SETTING TO IDLE");
                 self->recordingStatus = 0;
                 countBars = false;
-            }
-            self->playing = true;
+            } 
             break;
     }
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
