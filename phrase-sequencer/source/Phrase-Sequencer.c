@@ -163,6 +163,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->noteFound   = 0;
 
 
+    self->adjustSpeed        = 1;
+    self->applyMomentaryFx   = 0;
     self->prevRecordTrigger  = 0;
     self->firstRecordedNote  = false; 
     self->barCounted         = false;
@@ -240,6 +242,12 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
             break;
         case RANDOMIZETIMMING:
             self->randomizeTimming = (const float*)data;
+            break;
+        case FX_MODE:
+            self->fxMode = (const float*)data;
+            break;
+        case MOMENTARY_FX:
+            self->momentaryFx = (const float*)data;
             break;
     }
 }
@@ -405,7 +413,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 {
     for (int i = 0; i < 16; i++) {
         if (self->noteOffTimer[i][0] > 0) {
-            self->noteOffTimer[i][1] += self->frequency;
+            self->noteOffTimer[i][1] += self->frequency * self->adjustSpeed;
             //self->noteOffTimer[i][2]
             if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
                 //debug_print("self->noteOffTimer[%i][2] = %f\n", i, self->noteOffTimer[i][2]);
@@ -460,9 +468,7 @@ setMode(Data* self, const uint32_t outCapacity)
         self->prevLatch = (int)*self->latchTranspose;
     }
     if (*self->recordTrigger == 1 && !self->recordingTriggered) {
-        debug_print("self->recordTrigger = %f\n", *self->recordTrigger);
         self->recordingEnabled = !self->recordingEnabled;
-        debug_print("self->recordingEnabled = %i\n", self->recordingEnabled);
         if (self->recordingEnabled) {
             self->startPreCount = true;
         }
@@ -499,6 +505,90 @@ findClosestBarLength(int result, int div)
 
 
 
+static float
+calculateCurrentRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter)
+{
+    float phase = beatInMeasure * division + ((recordingLength * barCounter) % recordingLength); 
+
+    return phase;
+}
+
+
+
+static float
+calculateCurrentPlayBackFrame(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter, uint32_t waveLength)
+{
+    uint32_t frame = (uint32_t)fmod((beatInMeasure * division + (fmod(recordingLength * barCounter,recordingLength))) * waveLength, waveLength); 
+
+    return frame;
+}
+
+static size_t
+calculateCurrentPlayHeadPos(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter)
+{
+    debug_print("DEBUG in FUNC 1\n");
+    
+    debug_print("beatInMeasure = %f\n", beatInMeasure);
+    debug_print("division = %i\n", division);
+    debug_print("recordingLength = %li\n", recordingLength);
+    debug_print("barCounter = %li\n", barCounter);
+    size_t notePlayed = (size_t)(beatInMeasure * division + ((recordingLength * barCounter) % recordingLength)); 
+    debug_print("DEBUG in FUNC 2\n");
+    return notePlayed;
+}
+
+
+static float
+applyFX(Data* self)
+{
+    static bool switched = false; //TODO remove static later
+    float adjustSpeed = 1;
+
+    switch ((int)*self->fxMode)
+    {
+        case 0:
+            break;
+        case 1:
+            adjustSpeed = 0.25;
+        break;
+        case 2:
+            adjustSpeed = 0.50;
+        break;
+        case 3:
+            adjustSpeed = 2.00;
+        break;
+        case 4:
+            adjustSpeed = 4.00;
+        break;
+        case 5:
+            adjustSpeed = 8.00;
+        break;
+        case 6:
+            adjustSpeed = 16.00;
+        break;
+        case 7:
+            adjustSpeed = 32.00;
+        break;
+    }
+    if (*self->momentaryFx == 0) {
+        if(switched) {
+            debug_print("SWITCHED!!\n");
+            //TODO remove 4 and 32 later
+            self->notePlayed = calculateCurrentPlayHeadPos(self->beatInMeasure, 4, 32, self->barCounter); 
+            debug_print("DEBUG 1\n");
+            self->h_wavelength = calculateCurrentPlayBackFrame(self->beatInMeasure, 4, 32, self->barCounter, self->h_wavelength); 
+            debug_print("DEBUG 2\n");
+            switched = false;
+        }
+        return 1;
+    } else {
+        switched = true;
+        return adjustSpeed;
+    }
+}
+
+
+
 static void
 renderRecording(Data* self, int fullRecordingLength)
 {
@@ -509,19 +599,23 @@ renderRecording(Data* self, int fullRecordingLength)
     self->recording = false;
     self->recordingTriggered = false;
     self->startPreCount = false;
-    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate);
+    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate, (float)self->writeEvents.used);
     self->writeEvents = quantizeNotes(self->writeEvents); 
     self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
     self->writeEvents = clearSequence(self->writeEvents);
 }
 
+
+    
 static float 
-calculateRecordingPhase(float beatInMeasure, uint8_t division)
+calculateRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter)
 {
-    float phase = beatInMeasure * division; //TODO remove hardcoded value for 16th note
+    float phase = beatInMeasure * division + (recordingLength * barCounter); 
 
     return phase;
 }
+
+
 
 /*function that handles the process of starting the pre-count at the beginning of next bar,
   pre-count length and recording length.*/
@@ -566,10 +660,10 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
     } 
 
-    //if (!self->recordingEnabled && self->playing) {
-    //    self->recordingStatus = 0;
-    //    self->recording = false;
-    //}
+    if (!self->recordingEnabled && self->playing) {
+        self->recordingStatus = 0;
+        self->recording = false;
+    }
 
 
     //else {
@@ -629,7 +723,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
         previousRecordingStatus = self->recordingStatus;
     }
-    precount(self);
+    metronome(self);
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
 }
 
@@ -722,6 +816,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             debug_print("Division changed\n");
         }
 
+        self->bpm = self->bpm * self->adjustSpeed; 
         self->period = (uint32_t)(self->rate * (60.0f / (self->bpm * (self->division / 2.0f))));
         self->h_wavelength = (self->period/2.0f);
 
@@ -748,6 +843,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             if(self->pos >= self->period && i < n_samples) {
                 self->pos = 0;
             } else if(self->pos < self->h_wavelength && !self->trigger) {
+                self->adjustSpeed = applyFX(self);
                 handleNoteOn(self, outCapacity);
                 self->trigger = true;
             } else if(self->pos > self->h_wavelength && self->trigger) {

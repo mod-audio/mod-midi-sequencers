@@ -53,6 +53,8 @@ typedef enum PortEnum {
     TRANSPOSE,
     SWING,
     RANDOMIZETIMMING,
+    FX_MODE,
+    MOMENTARY_FX
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -137,6 +139,7 @@ typedef struct Data {
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
     float   noteLengthTime[2];
+    float   adjustSpeed;
     int     activeNotes;
     int     previousSpeed;
 
@@ -164,6 +167,7 @@ typedef struct Data {
     uint8_t barCount;
     uint8_t ARstate;
     uint8_t prevRecordTrigger; 
+    uint8_t applyMomentaryFx;
     //resetPhase vars:
     float previousDevision;
     bool  recordingEnabled;
@@ -211,6 +215,8 @@ typedef struct Data {
     const float* curveLength;
     const float* curveClip;
     const float* octaveSpread;
+    const float* fxMode;
+    const float* momentaryFx;
 
     const float** recordingLengths[2];
 

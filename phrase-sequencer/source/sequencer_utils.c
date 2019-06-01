@@ -54,7 +54,7 @@ float* envelope(Data *self, float *amplitude)
 
 
 
-void precount(Data *self)
+void metronome(Data *self)
 {
   if (self->beat < 0.5 && !self->preCountTrigger) {
     self->ARStatus = ATTACK;
@@ -95,12 +95,11 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
 
 
 
-EventList calculateNoteLength(EventList events, float sampleRate)
+EventList calculateNoteLength(EventList events, float sampleRate, float totalAmountOfTime)
 {
     bool noteFound = false;
     static float foundNote[1][2];
     float noteLength = 0;
-    float totalAmountOfTime = 0;
     size_t searchIndex = 0;
     size_t noteOffIndex;
 
