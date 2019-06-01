@@ -219,16 +219,16 @@ EventList mergeEvents(EventList eventListA, EventList eventListB)
                     temp[noteProps] = eventListA.eventList[voice][note][noteProps];
                 noteFoundMerge = true;
             }
-        }
-        int voice = 0;
-        while (voice < 4 && noteFoundMerge) {
-            if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
-                for (int noteProps = 0; noteProps < 3; noteProps++) {
-                    eventListB.eventList[voice][note][noteProps] = temp[noteProps];
+            int voice = 0;
+            while (voice < 4 && noteFoundMerge) {
+                if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
+                    for (int noteProps = 0; noteProps < 3; noteProps++) {
+                        eventListB.eventList[voice][note][noteProps] = temp[noteProps];
+                    }
+                    noteFoundMerge = false;
                 }
-                noteFoundMerge = false;
+                voice++;
             }
-            voice++;
         }
     }
     return eventListB;
