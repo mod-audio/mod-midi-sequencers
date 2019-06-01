@@ -26,6 +26,6 @@
 
 double sinOsc(float frequency, double* phase, float rate);
 double* phaseOsc(float frequency, double* phase, float rate, float swing);
-double* phaseRecord(float frequency, double* phase, float rate);
+double* phaseRecord(float frequency, double* phase, float rate, size_t length);
 
 #endif // _H_OSCILLATORS_

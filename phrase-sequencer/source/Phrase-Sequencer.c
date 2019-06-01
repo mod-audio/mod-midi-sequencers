@@ -515,6 +515,13 @@ renderRecording(Data* self, int fullRecordingLength)
     self->writeEvents = clearSequence(self->writeEvents);
 }
 
+static float 
+calculateRecordingPhase(float beatInMeasure, uint8_t division)
+{
+    float phase = beatInMeasure * division; //TODO remove hardcoded value for 16th note
+
+    return phase;
+}
 
 /*function that handles the process of starting the pre-count at the beginning of next bar,
   pre-count length and recording length.*/
@@ -525,7 +532,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     int firstLoopLength;
     static int barsCounted  = 0;
     static int fullRecordingLength = 0;
-    double frequency;
+    static double frequency = 0;
 
     //TODO change 3.9 to a procentage of the total size of the bar
     //enable counting of bars right before the of the current bar
@@ -537,12 +544,15 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     //count amount of bars to record included pre-count
     if (countBars) {
         barsCounted = barCounter(self, 1);
-        if (barsCounted > **self->recordingLengths[0]) {
-            self->recordingStatus = 3;
-        } else if (barsCounted == (**self->recordingLengths[0] - 1)) {
-            self->recordingStatus = 2;
-        } else if (barsCounted > (**self->recordingLengths[0] - 2)) {
-            self->recordingStatus = 1;
+        if (self->recordingEnabled) {
+            if (barsCounted > **self->recordingLengths[0]) {
+                self->recordingStatus = 3;
+            } else if (barsCounted == (**self->recordingLengths[0] - 1)) {
+                self->recordingStatus = 2;
+            } else if (barsCounted > (**self->recordingLengths[0] - 2)) {
+                //debug_print("PRE COUNT\n");
+                //self->recordingStatus = 1;
+            }
         }
     }
     
@@ -550,67 +560,77 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 
     if (**self->recordingLengths[1] > 0) {
         if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-            barsCounted = **self->recordingLengths[0];
-            self->barCounter = **self->recordingLengths[0];
-            self->recording = false;
-            self->barNotCounted = false;
-            self->recordingEnabled = false;
+            barsCounted = **self->recordingLengths[0] + 1;
+            self->barCounter = **self->recordingLengths[0] + 1;
             self->recordingStatus = 4;
         }
     } 
-    else {
-        if (barsCounted > (**self->recordingLengths[1] + firstLoopLength ) && firstLoopLength > 0) {
-            debug_print("IF 1\n");
-            barsCounted = **self->recordingLengths[0]; //TODO lock this variable
-            self->barCounter = **self->recordingLengths[0];
-            self->barNotCounted = false;
-            //debug_print("barsCounted = %i\n", barsCounted);
-            self->recordingStatus = 4;
-        } else if (!self->recordingEnabled && self->recording && self->beatInMeasure > 3.9) {
-            self->recordingStatus = 4;
-        }
-    }
+
+    //if (!self->recordingEnabled && self->playing) {
+    //    self->recordingStatus = 0;
+    //    self->recording = false;
+    //}
+
+
+    //else {
+    //    if (barsCounted > (**self->recordingLengths[1] + firstLoopLength ) && firstLoopLength > 0) {
+    //        debug_print("IF 1\n");
+    //        barsCounted = **self->recordingLengths[0]; //TODO lock this variable
+    //        self->barCounter = **self->recordingLengths[0];
+    //        //self->barNotCounted = false;
+    //        //debug_print("barsCounted = %i\n", barsCounted);
+    //        self->recordingStatus = 4;
+    //    } else if (!self->recordingEnabled && self->recording && self->beatInMeasure > 3.9) {
+    //        self->recording = false;
+    //        self->recordingStatus = 4;
+    //    }
+    //}
+
+    self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate, self->writeEvents.used);
 
     RecordEnum recordMode = self->recordingStatus;
 
-    switch(recordMode)
-    {
-        case R_IDLE:
-            frequency = 0;
-            break;
-        case R_PRE_COUNT:
-            precount(self);
-            frequency = 660;
-            break;
-        case R_PRE_RECORDING:
-            frequency = 660;
-            precount(self);
-            if (self->beatInMeasure > 3.5) {
+    static int previousRecordingStatus = -1;
+
+    if (self->recordingStatus != previousRecordingStatus || self->recordingStatus == 2) {
+        debug_print("SWITCHING MODES\n");
+        switch(recordMode)
+        {
+            case R_IDLE:
+                debug_print("R_IDLE\n");
+                frequency = 0;
+                break;
+            case R_PRE_COUNT:
+                debug_print("R_PRE_COUNT\n");
+                frequency = 660;
+                break;
+            case R_PRE_RECORDING:
+                debug_print("R_PRE_RECORDING\n");
+                frequency = 660;
+                self->phaseRecord = 0;
+                if (self->beatInMeasure > 3.5) {
+                    self->recording = true;
+                }
+                break;
+            case R_RECORDING:
+                debug_print("R_RECORDING\n");
+                frequency = 440;
+                self->phaseRecord = 0;
                 self->recording = true;
-            }
-            break;
-        case R_RECORDING: //record
-            self->recording = true;
-            frequency = 440;
-            precount(self);
-            self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate);
-            fullRecordingLength = (int)self->phaseRecord;
-            break;
-        case R_STOP_RECORDING: //stop recording 
-            //debug_print("RENDERING\n");
-            fullRecordingLength += 1;
-            renderRecording(self, fullRecordingLength);
-            frequency = 0;
-            self->playing = true;
-            if (!self->recordingEnabled) {
-                //debug_print("SETTING TO IDLE");
-                self->recordingStatus = 0;
-                countBars = false;
-            } 
-            break;
+                break;
+            case R_STOP_RECORDING:
+                debug_print("R_STOP_RECORDING\n");
+                frequency = 0;
+                fullRecordingLength = (int)self->phaseRecord;
+                //fullRecordingLength += 1;
+                renderRecording(self, fullRecordingLength);
+                self->playing = true;
+                break;
+        }
+        previousRecordingStatus = self->recordingStatus;
     }
+    precount(self);
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
-    //TODO maybe return current switch state, so the call to the self->phaseRecord can be moved to the run function 
 }
 
 

@@ -56,9 +56,13 @@ double* phaseOsc(float frequency, double* phase, float rate, float swing)
 
 
 //this is a LFO to use for timing of the beatsync
-double* phaseRecord(float frequency, double* phase, float rate)
+double* phaseRecord(float frequency, double* phase, float rate, size_t length)
 {
   *phase += frequency / rate;
+
+  if(length > 0 && *phase >= length){ 
+    *phase = *phase - 1;
+  }
 
   return phase;
 }
