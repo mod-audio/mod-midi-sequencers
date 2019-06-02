@@ -401,6 +401,7 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
         if ( self->playEvents.eventList[voice][self->notePlayed][0] > 0 
                 && self->playEvents.eventList[voice][self->notePlayed][0] < 128)
         {
+            debug_print("IN NOTE ON SEND\n");
             uint8_t octave = 0;
             uint8_t velocity = 100;
 
@@ -446,7 +447,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 {
     for (int i = 0; i < 16; i++) {
         if (self->noteOffTimer[i][0] > 0) {
-            self->noteOffTimer[i][1] += self->frequency * self->adjustSpeed;
+            self->noteOffTimer[i][1] += self->frequency;
             //self->noteOffTimer[i][2]
             if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
                 //debug_print("self->noteOffTimer[%i][2] = %f\n", i, self->noteOffTimer[i][2]);
@@ -479,11 +480,14 @@ setMode(Data* self, const uint32_t outCapacity)
                 self->notePlayed = 0;
                 self->playing    = false;
                 self->through    = true; 
+                self->playing         = false;
+                self->playingEnabled  = false;
                 break;
             case STOP:
                 self->recordingStatus = 0;
                 self->notePlayed      = 0;
                 self->through         = true; 
+                self->playing         = false;
                 self->playingEnabled  = false;
                 break;
             case PLAY:
@@ -562,14 +566,12 @@ calculateCurrentPlayBackFrame(Data *self, float beatInMeasure, uint8_t division,
 static size_t
 calculateCurrentPlayHeadPos(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter)
 {
-    debug_print("DEBUG in FUNC 1\n");
     
-    debug_print("beatInMeasure = %f\n", beatInMeasure);
-    debug_print("division = %i\n", division);
-    debug_print("recordingLength = %li\n", recordingLength);
-    debug_print("barCounter = %li\n", barCounter);
+    //debug_print("beatInMeasure = %f\n", beatInMeasure);
+    //debug_print("division = %i\n", division);
+    //debug_print("recordingLength = %li\n", recordingLength);
+    //debug_print("barCounter = %li\n", barCounter);
     size_t notePlayed = (size_t)(beatInMeasure * division + ((recordingLength * barCounter) % recordingLength)); 
-    debug_print("DEBUG in FUNC 2\n");
     return notePlayed;
 }
 
@@ -611,7 +613,7 @@ applyFX(Data* self)
             debug_print("SWITCHED!!\n");
             //TODO remove 4 and 32 and 120 later
             //self->bpm = 120;
-            self->notePlayed = calculateCurrentPlayHeadPos(self->beatInMeasure, 4, 32, self->barCounter); 
+            self->notePlayed = calculateCurrentPlayHeadPos(self->beatInMeasure, 8, 32, self->barCounter); 
             self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             //self->pos = calculateCurrentPlayBackFrame(self, self->beatInMeasure, 4, 32); 
             switched = false;
@@ -726,15 +728,15 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         switch(recordMode)
         {
             case R_IDLE:
-                debug_print("R_IDLE\n");
+            //    debug_print("R_IDLE\n");
                 frequency = 0;
                 break;
             case R_PRE_COUNT:
-                debug_print("R_PRE_COUNT\n");
+            //    debug_print("R_PRE_COUNT\n");
                 frequency = 660;
                 break;
             case R_PRE_RECORDING:
-                debug_print("R_PRE_RECORDING\n");
+            //    debug_print("R_PRE_RECORDING\n");
                 frequency = 660;
                 self->phaseRecord = 0;
                 if (self->beatInMeasure > 3.5) {
@@ -742,16 +744,16 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 }
                 break;
             case R_RECORDING:
-                debug_print("R_RECORDING\n");
+            //    debug_print("R_RECORDING\n");
                 frequency = 440;
                 self->phaseRecord = 0;
                 self->recording = true;
                 break;
             case R_STOP_RECORDING:
-                debug_print("R_STOP_RECORDING\n");
+            //    debug_print("R_STOP_RECORDING\n");
                 frequency = 0;
-                fullRecordingLength = (int)self->phaseRecord;
-                //fullRecordingLength += 1;
+                //fullRecordingLength = (int)self->phaseRecord;
+                fullRecordingLength = 32; //TODO make variable later
                 renderRecording(self, fullRecordingLength);
                 break;
         }
@@ -830,9 +832,13 @@ run(LV2_Handle instance, uint32_t n_samples)
         }
 
         //reset phase when there is a new division
-        if (self->division != *self->changeDiv) {
+        if (*self->momentaryFx > 0 && *self->fxMode > 0) {
+            self->division = *self->fxMode;
+            self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+        } else if (self->division != *self->changeDiv) {
             self->division = *self->changeDiv;
-            self->pos = reCalcPhase(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            self->notePlayed = calculateCurrentPlayHeadPos(self->beatInMeasure, 4, 31, self->barCounter); //TODO remove hard coded
+            self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             debug_print("Division changed\n");
         }
 
@@ -863,14 +869,13 @@ run(LV2_Handle instance, uint32_t n_samples)
             if(self->pos >= self->period && i < n_samples) {
                 self->pos = 0;
             } else if(self->pos < self->h_wavelength && !self->trigger) {
-                self->adjustSpeed = applyFX(self);
                 handleNoteOn(self, outCapacity);
                 self->trigger = true;
             } else if(self->pos > self->h_wavelength && self->trigger) {
                 self->trigger = false;
             }
-            self->pos += 1;
         }           
+        self->pos += 1;
         handleNoteOff(self, outCapacity);
         //sequencerProcess(self, outCapacity);
     }
