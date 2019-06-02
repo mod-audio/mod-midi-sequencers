@@ -23,6 +23,26 @@
 #include "sequencer_utils.h"
 #include "oscillators.h"
 
+//TODO make division compatible 
+static void 
+reCalcPosDummy()
+{
+    float sampleRate = 44100;
+    float bpm = 120;
+    float division = 8;
+    float beatInMeasure = 2.1875;
+    float period = sampleRate * (60.0f / (bpm * (division / 2.0f)));
+    debug_print("period %f\n", period);
+    float beatDiv = beatInMeasure * division;
+    debug_print("beatDiv = %f\n", beatDiv);
+    float fmodBeat = fmod(beatDiv, 1);
+    debug_print("fmodBeat = %f\n", fmodBeat);
+    uint32_t frame = (uint32_t)(fmod(beatDiv, 1.0) * period); 
+
+    debug_print("frame = %i\n", frame);
+}
+
+
 // Struct for a 3 byte MIDI event
 typedef struct {
     LV2_Atom_Event event;
@@ -30,6 +50,23 @@ typedef struct {
 } LV2_Atom_MIDI;
 
 
+static float 
+getDivisionHz(int divisionIndex)
+{
+  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
+
+  return rateValues[divisionIndex];
+}
+
+
+
+static float
+getDivisionFrames(int divisionIndex)
+{
+  float rateValues[11] = {0.5,0.75,1,1.5,2,3,4,6,8,12,16};
+
+  return rateValues[divisionIndex];
+}
 
 static void
 printEventList(EventList events)
@@ -133,6 +170,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         self->midiThroughInput[i] = 0;
     }
 
+    reCalcPosDummy();
     debug_print("DEBUG MODE\n");
     //init objects
     self->ARStatus     = IDLE;
@@ -177,6 +215,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->through            = true;
     self->firstBar           = false;
     self->playing            = false;
+    self->playingEnabled     = false;
     self->clip               = false;
     self->alreadyPlaying     = false;
     self->recordingTriggered = false;
@@ -331,12 +370,6 @@ clearNotes(Data *self, const uint32_t outCapacity)
 }
 
 
-static void
-stopSequence(Data* self)
-{
-}
-
-
 
 static uint32_t 
 handlePorts(Data* self)
@@ -441,7 +474,9 @@ setMode(Data* self, const uint32_t outCapacity)
         {
             case CLEAR_ALL:
                 clearNotes(self, outCapacity);
-                stopSequence(self);
+                clearSequence(self->writeEvents);
+                clearSequence(self->playEvents);
+                self->notePlayed = 0;
                 self->playing    = false;
                 self->through    = true; 
                 break;
@@ -449,12 +484,10 @@ setMode(Data* self, const uint32_t outCapacity)
                 self->recordingStatus = 0;
                 self->notePlayed      = 0;
                 self->through         = true; 
-                self->playing         = false;
+                self->playingEnabled  = false;
                 break;
             case PLAY:
-                if (self->writeEvents.used > 0 && !self->recording)
-                    self->playing = true;
-                break;
+                self->playingEnabled = true;
             case RECORD_OVERWRITE:
                 break;
             case RECORD_APPEND: 
@@ -515,11 +548,14 @@ calculateCurrentRecordingPhase(float beatInMeasure, uint8_t division, size_t rec
 
 
 
-static float
-calculateCurrentPlayBackFrame(float beatInMeasure, uint8_t division, size_t recordingLength, size_t barCounter, uint32_t waveLength)
-{
-    uint32_t frame = (uint32_t)fmod((beatInMeasure * division + (fmod(recordingLength * barCounter,recordingLength))) * waveLength, waveLength); 
 
+static float
+calculateCurrentPlayBackFrame(Data *self, float beatInMeasure, uint8_t division, size_t recordingLength)
+{
+//    float period = self->rate * (60.0f / (self->bpm * (getDivisionFrames(self->division) / 2.0f)));
+    //uint32_t frame = (uint32_t)fmod((beatInMeasure * division), 1.0) * period; 
+
+    float frame = 0;
     return frame;
 }
 
@@ -573,11 +609,11 @@ applyFX(Data* self)
     if (*self->momentaryFx == 0) {
         if(switched) {
             debug_print("SWITCHED!!\n");
-            //TODO remove 4 and 32 later
+            //TODO remove 4 and 32 and 120 later
+            //self->bpm = 120;
             self->notePlayed = calculateCurrentPlayHeadPos(self->beatInMeasure, 4, 32, self->barCounter); 
-            debug_print("DEBUG 1\n");
-            self->h_wavelength = calculateCurrentPlayBackFrame(self->beatInMeasure, 4, 32, self->barCounter, self->h_wavelength); 
-            debug_print("DEBUG 2\n");
+            self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            //self->pos = calculateCurrentPlayBackFrame(self, self->beatInMeasure, 4, 32); 
             switched = false;
         }
         return 1;
@@ -631,9 +667,8 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     //TODO change 3.9 to a procentage of the total size of the bar
     //enable counting of bars right before the of the current bar
     if (self->beatInMeasure > 3.9 && self->startPreCount) {
-        countBars = true;
+          countBars = true;
     }
-
 
     //count amount of bars to record included pre-count
     if (countBars) {
@@ -718,10 +753,12 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 fullRecordingLength = (int)self->phaseRecord;
                 //fullRecordingLength += 1;
                 renderRecording(self, fullRecordingLength);
-                self->playing = true;
                 break;
         }
         previousRecordingStatus = self->recordingStatus;
+    }
+    if (self->playingEnabled && self->playEvents.used > 0) { //
+        self->playing = true;
     }
     metronome(self);
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
@@ -768,23 +805,6 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
-static float 
-getDivisionHz(int divisionIndex)
-{
-  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
-
-  return rateValues[divisionIndex];
-}
-
-
-
-static float
-getDivisionFrames(int divisionIndex)
-{
-  float rateValues[11] = {0.5,0.75,1,1.5,2,3,4,6,8,12,16};
-
-  return rateValues[divisionIndex];
-}
 
     
 
@@ -817,7 +837,7 @@ run(LV2_Handle instance, uint32_t n_samples)
         }
 
         self->bpm = self->bpm * self->adjustSpeed; 
-        self->period = (uint32_t)(self->rate * (60.0f / (self->bpm * (self->division / 2.0f))));
+        self->period = (uint32_t)(self->rate * (60.0f / (self->bpm * (getDivisionFrames(self->division) / 2.0f))));
         self->h_wavelength = (self->period/2.0f);
 
         //update host information

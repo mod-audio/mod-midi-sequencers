@@ -19,9 +19,23 @@
 #include "oscillators.h"
 
 //TODO make division compatible 
-float reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divisions)
+uint32_t reCalcPos(int bpm, float beatInMeasure, float sampleRate, float division)
 {
-    float newPhase = fmod((60.0f / bpm) * beatInMeasure, (sampleRate * (60.0f / (bpm * (divisions / 2.0f)))));
+    debug_print("bpm = %i\n", bpm);
+    debug_print("beatInMeasure = %f\n", beatInMeasure);
+    debug_print("sampleRate = %f\n", sampleRate);
+    debug_print("division = %f\n", division);
+    float period = sampleRate * (60.0f / (bpm * (division / 2.0f)));
+    uint32_t frame = (uint32_t)(fmod((beatInMeasure * division), 1.0) * period); 
+    debug_print("frame = %i\n", frame);
+
+    return frame;
+}
+
+    
+float reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float division)
+{
+    float newPhase = fmod((60.0f / bpm) * beatInMeasure, (sampleRate * (60.0f / (bpm * (division / 2.0f)))));
 
     return newPhase;
 }

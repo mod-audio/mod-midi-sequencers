@@ -188,6 +188,7 @@ typedef struct Data {
     bool    firstRecordedNote;
     bool    through;
     bool    firstBar;
+    bool    playingEnabled;
     bool    playing;
     bool    clip;
     bool    trigger;
