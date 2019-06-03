@@ -780,6 +780,15 @@ run(LV2_Handle instance, uint32_t n_samples)
             self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             debug_print("Division changed\n");
         }
+        
+        static bool posReset = false;
+
+        if (self->pos < 10 && self->beatInMeasure < 0.01 && !posReset) {
+            self->pos = 0;
+            posReset = true;
+        } else if (self->beatInMeasure > 3.9) {
+            posReset = false;
+        }
 
         self->period = (uint32_t)(self->rate * (60.0f / (self->bpm * (getDivisionFrames(self->division) / 2.0f))));
         self->h_wavelength = (self->period/2.0f);
