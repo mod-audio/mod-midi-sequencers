@@ -66,26 +66,6 @@ getDivisionFrames(int divisionIndex)
   return rateValues[divisionIndex];
 }
 
-static void
-printEventList(EventList events)
-{
-
-    for (size_t i = 0; i < events.used; i++) {
-        for (size_t y = 0; y < 4; y++) {
-            debug_print("self->events->eventList[%li][%li][0] = %i\n", y, i, events.eventList[y][i][0]);
-        }
-    }
-    for (size_t i = 0; i < events.used; i++) {
-        for (size_t y = 0; y < 4; y++) {
-            debug_print("self->events->eventList[%li][%li][1] = %i\n", y, i, events.eventList[y][i][1]);
-        }
-    }
-    for (size_t i = 0; i < events.used; i++) {
-        for (size_t y = 0; y < 4; y++) {
-            debug_print("self->events->eventList[%li][%li][2] = %i\n", y, i, events.eventList[y][i][2]);
-        }
-    }
-}
 
 
 static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
@@ -379,7 +359,6 @@ handlePorts(Data* self)
 }
 
 
-Changed case recordingStatus
 static float
 applyRandomTiming(Data* self)
 {
@@ -633,7 +612,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 
     //count amount of bars to record included pre-count
     if (countBars) {
-        barsCounted = barCounter(self, 1);
+        barsCounted = barCounter(self);
         if (self->recordingEnabled) {
             if (barsCounted > **self->recordingLengths[0]) {
                 self->recordingStatus = 3;
@@ -757,23 +736,16 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
-static float 
-getDivisionHz(int divisionIndex)
-{
-  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
+//static float 
+//getDivisionHz(int divisionIndex)
+//{
+//  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
+//
+//  return rateValues[divisionIndex];
+//}
 
-  return rateValues[divisionIndex];
-}
 
 
-
-static float
-getDivisionFrames(int divisionIndex)
-{
-  float rateValues[11] = {0.5,0.75,1,1.5,2,3,4,6,8,12,16};
-
-  return rateValues[divisionIndex];
-}
 
 
     

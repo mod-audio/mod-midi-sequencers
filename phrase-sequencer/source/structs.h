@@ -71,6 +71,7 @@ typedef enum RecordEnum {
     R_PRE_COUNT,
     R_PRE_RECORDING,
     R_RECORDING,
+    R_STOP_RECORDING
 } RecordEnum;
 
 typedef enum FindNoteEnum {
@@ -168,7 +169,6 @@ typedef struct Data {
     uint8_t applyMomentaryFx;
     //resetPhase vars:
     float previousDevision;
-    bool  recordingEnabled;
     bool  barCounted;
     bool  recordingTriggered;
     bool  recordingEnabled;

@@ -163,7 +163,6 @@ EventList calculateNoteLength(EventList events, float sampleRate, float totalAmo
 EventList quantizeNotes(EventList events)
 {
     int snappedIndex    = 0;
-<
     int recIndex = 0;
     int prevSnappedIndex = -1;
 

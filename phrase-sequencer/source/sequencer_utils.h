@@ -25,7 +25,7 @@ float     reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divi
 float     calculateFrequency(uint8_t bpm, float division);
 float*    envelope(Data *self, float *amplitude);
 void      metronome(Data *self);
-int       barCounter(Data *self, uint8_t recordingLength);
+int       barCounter(Data *self);
 void      recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos);
 void      resetPhase(Data* self);
 EventList quantizeNotes(EventList events);
