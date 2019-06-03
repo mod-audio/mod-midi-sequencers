@@ -123,12 +123,11 @@ typedef struct Data {
 	uint32_t    	       pos;
 	uint32_t   	        period;
 	uint32_t	  h_wavelength;
+    uint32_t noteOffTimer[16][3];
 
     double  rate;   // Sample rate
     double  frequency;
     double  nyquist;
-    double  velPhase;
-    double  x1;
     double  phase;
     double  sinePhase;
     double  phaseRecord;
@@ -141,22 +140,14 @@ typedef struct Data {
     float   noteLengthTime[2];
     int     activeNotes;
     int     previousSpeed;
-
     int     modeHandle;
     int     prevMod;
     int     prevLatch;
 
-    int     placementIndex;
-    float   notePlacement[2];
-
-    uint8_t  noteTie;
     uint8_t  velocity;
-    int      noteStarted[2];
-    uint32_t noteOffTimer[16][3];
     float    beatInMeasure;
     float    division;
 
-    size_t  count;
     size_t  inputIndex;
     size_t  notesPressed;
     size_t  activeNoteIndex; 
@@ -179,7 +170,6 @@ typedef struct Data {
     bool  alreadyPlaying;
 
     size_t  noteFound;
-    size_t  patternIndex;
     size_t  notePlayed;
     size_t  octaveIndex;
     size_t  noteOffIndex;
@@ -189,15 +179,12 @@ typedef struct Data {
     bool    firstBar;
     bool    playingEnabled;
     bool    playing;
-    bool    clip;
     bool    trigger;
     bool    triggerSet;
     bool    preCountTrigger;
     bool    cleared;
     int     transpose;
-    int     countTicks;
 
-    const float** pattern[8];
     EventList writeEvents;
     EventList playEvents;
     AttackReleaseEnum  ARStatus;
@@ -211,9 +198,6 @@ typedef struct Data {
     const float* latchTranspose;
     const float* swing;
     const float* randomizeTimming;
-    const float* curveDepth;
-    const float* curveLength;
-    const float* curveClip;
     const float* octaveSpread;
     const float* fxMode;
     const float* momentaryFx;

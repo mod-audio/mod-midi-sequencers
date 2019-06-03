@@ -116,27 +116,18 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->sinePhase        = 0;
     self->amplitude        = 0;
     self->phaseRecord      = 0;
-    self->velPhase         = 0.000000009;
-    self->x1               = 0.00000001; 
     self->velocity         = 0;
     self->octaveIndex      = 0;
     self->noteOffIndex     = 0; 
     self->noteOffSendIndex = 0; 
-    self->countTicks       = 0;
-    self->patternIndex     = 0;
     self->modeHandle       = 0;
     self->prevMod          = 100;
     self->prevLatch        = 100;
-    self->count            = 0;
     self->activeNoteIndex  = 0;
     self->inputIndex       = 0;
     self->notesPressed     = 0;
     //check this value
     self->prevThrough      = 0;
-
-    self->placementIndex   = 0;
-    self->notePlacement[0] = 0;
-    self->notePlacement[1] = 0.5;
     self->previousSpeed    = 0;
 
     //resetPhase vars:
@@ -192,7 +183,6 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->firstBar           = false;
     self->playing            = false;
     self->playingEnabled     = false;
-    self->clip               = false;
     self->alreadyPlaying     = false;
     self->recordingTriggered = false;
     self->recordingEnabled   = false;
