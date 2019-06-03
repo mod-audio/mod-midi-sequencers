@@ -28,6 +28,7 @@ float calculateFrequency(uint8_t bpm, float division)
 }
 
 
+
 //simple linear attack release envelope, this is used for the clicktrack
 float* envelope(Data *self, float *amplitude)
 {
@@ -65,8 +66,9 @@ void metronome(Data *self)
 }
 
 
+
 //TODO make suitable for all time signatures 
-int barCounter(Data *self, uint8_t recordingLength)
+int barCounter(Data *self)
 {
   if (self->beatInMeasure < 3.9 && !self->barNotCounted) {
     self->barNotCounted = true;
@@ -161,6 +163,7 @@ EventList calculateNoteLength(EventList events, float sampleRate, float totalAmo
 EventList quantizeNotes(EventList events)
 {
     int snappedIndex    = 0;
+<
     int recIndex = 0;
     int prevSnappedIndex = -1;
 
@@ -168,6 +171,7 @@ EventList quantizeNotes(EventList events)
         if (events.recordedEvents[recordedNote][1] == 144) {
             float note = events.recordedEvents[recordedNote][0];
             float startPos = events.recordedEvents[recordedNote][2];
+
             float noteLength = events.recordedEvents[recordedNote][3];
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
@@ -228,6 +232,7 @@ EventList mergeEvents(EventList eventListA, EventList eventListB)
                 }
                 voice++;
             }
+
         }
     }
     return eventListB;

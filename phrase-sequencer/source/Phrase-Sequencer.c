@@ -17,8 +17,6 @@
  * =====================================================================================
  */
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include "sequencer_utils.h"
 #include "oscillators.h"
@@ -29,6 +27,26 @@ typedef struct {
     uint8_t        msg[3];
 } LV2_Atom_MIDI;
 
+static void
+printEventList(EventList events)
+{
+
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][0] = %i\n", y, i, events.eventList[y][i][0]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][1] = %i\n", y, i, events.eventList[y][i][1]);
+        }
+    }
+    for (size_t i = 0; i < events.used; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][2] = %i\n", y, i, events.eventList[y][i][2]);
+        }
+    }
+}
 
 static float 
 getDivisionHz(int divisionIndex)
@@ -361,7 +379,7 @@ handlePorts(Data* self)
 }
 
 
-
+Changed case recordingStatus
 static float
 applyRandomTiming(Data* self)
 {
@@ -561,6 +579,36 @@ calculateRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingL
     return phase;
 }
 
+static EventList 
+renderWriteEvents(Data *self, size_t fullRecordingLength, EventList writeEvents, EventList playEvents)
+{
+    
+    debug_print("HALLO IN RENDERRECORDING\n");
+    for (size_t index = 0; index < fullRecordingLength; index++)
+        debug_print("self->writeEvents.recordedEvents[index][0] = %f\n", self->writeEvents.recordedEvents[index][0]);
+
+    return writeEvents;
+}
+
+static EventList 
+renderPlayEvents(EventList writeEvents, EventList playEvents)
+{
+
+    return playEvents;
+}
+
+static void
+resetRecordingValues(Data *self)
+{
+    self->startPreCount = false;
+    //self->recordingTriggered = false;   
+    self->recordingStatus = 0;
+    self->phaseRecord = 0;
+    self->recordingStatus = 0;
+
+    self->playing = true;
+}
+
 
 
 /*function that handles the process of starting the pre-count at the beginning of next bar,
@@ -568,6 +616,9 @@ calculateRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingL
 static void 
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
+    //TODO remove all statics later
+    static float loopLength = 0;
+    static bool recordingLengthSet = false;
     static bool countBars   = false;
     int firstLoopLength;
     static int barsCounted  = 0;
@@ -706,6 +757,25 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
+static float 
+getDivisionHz(int divisionIndex)
+{
+  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
+
+  return rateValues[divisionIndex];
+}
+
+
+
+static float
+getDivisionFrames(int divisionIndex)
+{
+  float rateValues[11] = {0.5,0.75,1,1.5,2,3,4,6,8,12,16};
+
+  return rateValues[divisionIndex];
+}
+
+
     
 
 static void 
@@ -760,10 +830,10 @@ run(LV2_Handle instance, uint32_t n_samples)
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         handleBarSyncRecording(self, i);
         if (self->playing) { 
-
             if(self->pos >= self->period && i < n_samples) {
                 self->pos = 0;
             } else if(self->pos < self->h_wavelength && !self->trigger) {
+
                 handleNoteOn(self, outCapacity);
                 self->trigger = true;
             } else if(self->pos > self->h_wavelength && self->trigger) {
@@ -820,5 +890,4 @@ const LV2_Descriptor* lv2_descriptor(uint32_t index)
 {
     return (index == 0) ? &descriptor : NULL;
 }
-
 

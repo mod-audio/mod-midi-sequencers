@@ -71,7 +71,6 @@ typedef enum RecordEnum {
     R_PRE_COUNT,
     R_PRE_RECORDING,
     R_RECORDING,
-    R_STOP_RECORDING
 } RecordEnum;
 
 typedef enum FindNoteEnum {
@@ -172,6 +171,7 @@ typedef struct Data {
     bool  recordingEnabled;
     bool  barCounted;
     bool  recordingTriggered;
+    bool  recordingEnabled;
     bool  startPreCount;
     bool  recording;
     bool  previousPlaying;

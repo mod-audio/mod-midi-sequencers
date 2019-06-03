@@ -34,4 +34,5 @@ EventList copyEvents(EventList eventListA, EventList eventListB);
 EventList calculateNoteLength(EventList events, float sampleRate, float totalAmountOftime);
 EventList clearSequence(EventList events);
 
+
 #endif //_H_SEQ_UTILS_
