@@ -19,9 +19,17 @@
 #include "oscillators.h"
 
 //TODO make division compatible 
-float reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float divisions)
+uint32_t reCalcPos(int bpm, float beatInMeasure, float sampleRate, float division)
 {
-    float newPhase = fmod((60.0f / bpm) * beatInMeasure, (sampleRate * (60.0f / (bpm * (divisions / 2.0f)))));
+    float period = sampleRate * (60.0f / (bpm * (division / 2.0f)));
+    uint32_t frame = (uint32_t)fmod(((60 / bpm ) * sampleRate * beatInMeasure), period);
+    return frame;
+}
+
+    
+float reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float division)
+{
+    float newPhase = fmod((60.0f / bpm) * beatInMeasure, (sampleRate * (60.0f / (bpm * (division / 2.0f)))));
 
     return newPhase;
 }
@@ -56,9 +64,13 @@ double* phaseOsc(float frequency, double* phase, float rate, float swing)
 
 
 //this is a LFO to use for timing of the beatsync
-double* phaseRecord(float frequency, double* phase, float rate)
+double* phaseRecord(float frequency, double* phase, float rate, size_t length)
 {
   *phase += frequency / rate;
+
+  if(length > 0 && *phase >= length){ 
+    *phase = *phase - 1;
+  }
 
   return phase;
 }

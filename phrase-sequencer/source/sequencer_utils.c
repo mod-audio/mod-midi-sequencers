@@ -22,8 +22,6 @@
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-  //float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-  //debug_print("division in Hz = %f\n", division);
   float frequency = (bpm / division);
 
   return frequency;
@@ -57,7 +55,7 @@ float* envelope(Data *self, float *amplitude)
 
 
 
-void precount(Data *self)
+void metronome(Data *self)
 {
   if (self->beat < 0.5 && !self->preCountTrigger) {
     self->ARStatus = ATTACK;
@@ -99,12 +97,11 @@ void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
 
 
 
-EventList calculateNoteLength(EventList events, float sampleRate)
+EventList calculateNoteLength(EventList events, float sampleRate, float totalAmountOfTime)
 {
     bool noteFound = false;
     static float foundNote[1][2];
     float noteLength = 0;
-    float totalAmountOfTime = 0;
     size_t searchIndex = 0;
     size_t noteOffIndex;
 
@@ -145,11 +142,9 @@ EventList calculateNoteLength(EventList events, float sampleRate)
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
                     events.recordedEvents[searchIndex][3] = noteLength * sampleRate; 
-                    //debug_print("noteLength !found in search = %f\n", noteLength);
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
                     events.recordedEvents[searchIndex][3] = noteLength * sampleRate;
-                    //debug_print("noteLength found in search = %f\n", noteLength);
                     noteFound = false;
                 }
                 calculateNoteLength = NEXT_INDEX;
@@ -168,18 +163,15 @@ EventList calculateNoteLength(EventList events, float sampleRate)
 EventList quantizeNotes(EventList events)
 {
     int snappedIndex    = 0;
-    static int recIndex = 0;
+<
+    int recIndex = 0;
     int prevSnappedIndex = -1;
-    
 
     for (size_t recordedNote = 0; recordedNote < events.amountRecordedEvents; recordedNote++) {
         if (events.recordedEvents[recordedNote][1] == 144) {
-            //debug_print("recordedNote = %li\n", recordedNote);
             float note = events.recordedEvents[recordedNote][0];
-
-            //debug_print("note in quantize notes = %f\n", note);
             float startPos = events.recordedEvents[recordedNote][2];
-            //debug_print("startPos = %f\n", startPos);
+
             float noteLength = events.recordedEvents[recordedNote][3];
             float velocity = 120; 
             snappedIndex = (int)roundf(startPos);
@@ -190,7 +182,6 @@ EventList quantizeNotes(EventList events)
             }
             events.eventList[recIndex][snappedIndex][0] = (uint32_t)note;
             events.eventList[recIndex][snappedIndex][1] = (uint32_t)noteLength;
-            //debug_print("noteLength =  %f\n", noteLength);
             events.eventList[recIndex][snappedIndex][2] = (uint32_t)velocity;
             prevSnappedIndex = snappedIndex;
 
@@ -219,31 +210,29 @@ EventList copyEvents(EventList eventListA, EventList eventListB)
 
 EventList mergeEvents(EventList eventListA, EventList eventListB)
 {
-    if (eventListB.used > eventListA.used) {
-        eventListA.used = eventListB.used;
-    } else {
-        eventListB.used = eventListA.used;
-    }
 
-    static bool noteFoundMerge = false;
+    eventListB.used = eventListA.used;
+
+    bool noteFoundMerge = false;
     float temp[3] = {0, 0, 0};
-    for (int note = 0; note < 9; note++) {
-        for (int voice = 0; voice < 3; voice++) {
+    for (size_t note = 0; note < eventListA.used; note++) {
+        for (int voice = 0; voice < 4; voice++) {
             if (eventListA.eventList[voice][note][0] > 0 && eventListA.eventList[voice][note][0] < 128) {
                 for (int noteProps = 0; noteProps < 3; noteProps++) 
                     temp[noteProps] = eventListA.eventList[voice][note][noteProps];
                 noteFoundMerge = true;
             }
-        }
-        int voice = 0;
-        while (voice < 3 && noteFoundMerge) {
-            if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
-                for (int noteProps = 0; noteProps < 3; noteProps++) {
-                    eventListB.eventList[voice][note][noteProps] = temp[noteProps];
+            int voice = 0;
+            while (voice < 4 && noteFoundMerge) {
+                if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
+                    for (int noteProps = 0; noteProps < 3; noteProps++) {
+                        eventListB.eventList[voice][note][noteProps] = temp[noteProps];
+                    }
+                    noteFoundMerge = false;
                 }
-                noteFoundMerge = false;
+                voice++;
             }
-            voice++;
+
         }
     }
     return eventListB;
@@ -251,7 +240,22 @@ EventList mergeEvents(EventList eventListA, EventList eventListB)
 
 
 
-void clearSequence(EventList *arr)
+EventList clearSequence(EventList events)
 {
-  arr->used = 0;
+    events.amountRecordedEvents = 0;
+    events.used = 0;
+
+    for (size_t voice = 0; voice < 4; voice++) {
+        for (uint8_t note = 0; note < 248; note++) {
+            for (size_t noteProp = 0; noteProp < 3; noteProp++) {
+                events.eventList[voice][note][noteProp] = 0;
+            }
+        }
+    }
+    for (uint8_t note = 0; note < 248; note++) {
+        for (size_t noteProp = 0; noteProp < 4; noteProp++) {
+            events.recordedEvents[note][noteProp] = 0;
+        }
+    }
+    return events;
 }

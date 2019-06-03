@@ -24,8 +24,10 @@
 
 #define PI_2 6.28318530717959
 
-double sinOsc(float frequency, double* phase, float rate);
-double* phaseOsc(float frequency, double* phase, float rate, float swing);
-double* phaseRecord(float frequency, double* phase, float rate);
+uint32_t reCalcPos(int bpm, float beatInMeasure, float sampleRate, float division);
+float    reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float division);
+double   sinOsc(float frequency, double* phase, float rate);
+double*  phaseOsc(float frequency, double* phase, float rate, float swing);
+double*  phaseRecord(float frequency, double* phase, float rate, size_t length);
 
 #endif // _H_OSCILLATORS_
