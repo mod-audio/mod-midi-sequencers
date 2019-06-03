@@ -139,7 +139,6 @@ typedef struct Data {
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
     float   noteLengthTime[2];
-    float   adjustSpeed;
     int     activeNotes;
     int     previousSpeed;
 
