@@ -136,6 +136,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->previousSpeed    = 0;
     self->fullRecordingLength = 0;
     self->recordedFrames   = 0;
+    self->recordingBpm     = 120;
     //resetPhase vars:
     self->previousDevision = 12;
     self->previousPlaying = false;
@@ -310,6 +311,11 @@ update_position(Data* self, const LV2_Atom_Object* obj)
     if (bpm && bpm->type == uris->atom_Float) {
         // Tempo changed, update BPM
         self->bpm = ((LV2_Atom_Float*)bpm)->body;
+        static bool initBpm = false;
+        if (!initBpm) {
+            self->previousBpm = self->bpm;
+            initBpm = true;
+        }
     }
     if (speed && speed->type == uris->atom_Float) {
         // Speed changed, e.g. 0 (stop) to 1 (play)
@@ -397,6 +403,10 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
                 self->noteOffTimer[self->activeNoteIndex][0] = (float)midiNote;
                 self->noteOffTimer[self->activeNoteIndex][2] = self->playEvents.eventList[voice][self->notePlayed][1];
+                self->playEvents.eventList[voice][self->notePlayed][0] = 0;
+                self->playEvents.eventList[voice][self->notePlayed][0] = 0;
+                self->playEvents.eventList[voice][self->notePlayed][0] = 0;
+                self->playEvents.eventList[voice][self->notePlayed][0] = 0;
                 self->activeNoteIndex = (self->activeNoteIndex + 1) % 16; 
             } else {
                 self->activeNoteIndex = (self->noteFound + 1) % 16; 
@@ -414,12 +424,12 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
 
 
 static void
-handleNoteOff(Data* self, const uint32_t outCapacity)
+handleNoteOff(Data* self, const uint32_t outCapacity, float factor)
 {
     for (int i = 0; i < 16; i++) {
         if (self->noteOffTimer[i][0] > 0) {
             self->noteOffTimer[i][1] += 1;
-            if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
+            if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2] * factor)) {
                 LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
                 self->noteOffTimer[i][0] = 0;
@@ -542,22 +552,17 @@ renderRecording(Data* self, long int fullRecordingLength)
     self->recording = false;
     self->recordingTriggered = false;
     self->startPreCount = false;
-    debug_print("DEBUG 1\n");
     self->writeEvents = calculateNoteLength(self->writeEvents, self->rate, fullRecordingLength);
-    debug_print("DEBUG 2\n");
     static bool first = true;
     if (first) { 
         self->writeEvents = quantizeNotes(self->writeEvents); 
         first = false;
     }
-    debug_print("DEBUG 3\n");
     //self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
-    debug_print("DEBUG 4\n");
     self->playEvents = copyEvents(self->writeEvents, self->playEvents);
-    debug_print("DEBUG 5\n");
     //self->writeEvents = clearSequence(self->writeEvents);
-    debug_print("DEBUG 6\n");
-    printEventList(self->playEvents);
+    //printEventList(self->playEvents);
+    self->notePlayed = 0;
 }
 
 
@@ -690,6 +695,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                     debug_print("recording Length in frames = %li\n", self->recordedFrames);
                     debug_print("self->period * 32 = %i\n", self->period * 32);
                     self->fullRecordingLength = self->recordedFrames;
+                    self->recordingBpm = self->bpm;
                     self->recordingLengthSet = true;
                 }
                 renderRecording(self, self->fullRecordingLength);
@@ -765,7 +771,7 @@ run(LV2_Handle instance, uint32_t n_samples)
     for (uint32_t i = 0; i < n_samples; i++) {
         //reset phase when playing starts or stops
         if (self->speed != self->previousSpeed) {
-            self->pos = reCalcPhase(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            //self->pos = reCalcPhase(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             self->previousSpeed = self->speed;
             debug_print("transport changed\n");
         }
@@ -776,7 +782,7 @@ run(LV2_Handle instance, uint32_t n_samples)
         } else if (self->division != *self->changeDiv) {
             self->division = *self->changeDiv;
             self->notePlayed = calculateCurrentPlayHeadPos(self->bpm, self->beatInMeasure, 8, 32, 1); //TODO remove hard coded
-            self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
+            //self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             debug_print("Division changed\n");
         }
         
@@ -810,24 +816,37 @@ run(LV2_Handle instance, uint32_t n_samples)
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         handleBarSyncRecording(self, i);
         static size_t note;
+        float factor = self->recordingBpm / self->bpm;
+
+        if (self->bpm != self->previousBpm) {
+            uint32_t newRecordingLength = (uint32_t)(self->fullRecordingLength * factor);
+            //self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, newRecordingLength); 
+            self->pos = (uint32_t)(self->pos * factor);
+            debug_print("recalPos = %li\n", self->pos);
+            self->previousBpm = self->bpm;
+
+        }
+
+
+        static bool waitForNextBar = false;
+
         if (self->playing) { 
-            if(self->pos >= self->fullRecordingLength) {
-                self->pos = 0;
+            //self->pos = self->pos % (uint32_t)(self->fullRecordingLength * factor); 
+            if(self->pos >= self->fullRecordingLength * factor) { //TODO create function for this
+               self->pos = 0; 
             } else {
                 for (size_t voice = 0; voice < 1; voice++) {
-                    if (self->pos > self->writeEvents.eventList[voice][note][3] && 
-                            self->pos < self->writeEvents.eventList[voice][note][3] + 200 &&
-                            self->playEvents.eventList[voice][note][0] > 0) {
-                        self->notePlayed = note;
-                        note = (note + 1) % self->playEvents.amountRecordedEvents;//TODO this will only work with one voice
-                        //debug_print("self->playEvents.amountRecordedEvents = %li\n",self->playEvents.amountRecordedEvents);  
+                    uint32_t nextNoteTriggerValue = (uint32_t)(self->playEvents.eventList[voice][self->notePlayed][3] * factor);
+                    if (self->pos > nextNoteTriggerValue && self->playEvents.eventList[voice][self->notePlayed][0] > 0) {
+                        debug_print("NOTE PLAYED\n");
                         handleNoteOn(self, outCapacity);
+                        self->notePlayed = (self->notePlayed + 1) % self->playEvents.amountRecordedEvents;//TODO this will only work with one voice
                     }
                 }
             }
-        }           
+        }
         self->pos += 1;
-        handleNoteOff(self, outCapacity);
+        handleNoteOff(self, outCapacity, factor);
     }
     // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)

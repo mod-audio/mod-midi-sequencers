@@ -136,6 +136,8 @@ typedef struct Data {
     float   *metroOut;
     float   amplitude;
     float   bpm;
+    float   previousBpm;
+    float   recordingBpm;
     float   barsize;
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
