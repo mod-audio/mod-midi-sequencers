@@ -109,8 +109,9 @@ typedef struct EventList {
     //eventList[0] = midiNote
     //eventList[1] = calculated noteLength
     //eventList[2] = velocity
-    uint32_t eventList[4][248][3];
-    float    recordedEvents[248][4];
+    //eventList[4] = position
+    uint32_t eventList[4][248][4];
+    long int recordedEvents[248][4];
     size_t   amountRecordedEvents;
     size_t   used;
 } EventList;
@@ -120,10 +121,11 @@ typedef struct Data {
     int barCounter;
     bool barNotCounted;
 
-	uint32_t    	       pos;
+	long int    	       pos;
 	uint32_t   	        period;
 	uint32_t	  h_wavelength;
     uint32_t noteOffTimer[16][3];
+    long int recordedFrames;
 
     double  rate;   // Sample rate
     double  frequency;
@@ -144,10 +146,10 @@ typedef struct Data {
     int     prevMod;
     int     prevLatch;
 
-    uint8_t  velocity;
-    float    beatInMeasure;
-    float    division;
-
+    uint8_t velocity;
+    float   beatInMeasure;
+    float   division;
+    long int fullRecordingLength;
     size_t  inputIndex;
     size_t  notesPressed;
     size_t  activeNoteIndex; 
@@ -160,6 +162,7 @@ typedef struct Data {
     uint8_t applyMomentaryFx;
     //resetPhase vars:
     float previousDevision;
+    bool  recordingLengthSet;
     bool  barCounted;
     bool  recordingTriggered;
     bool  recordingEnabled;

@@ -31,19 +31,24 @@ static void
 printEventList(EventList events)
 {
 
-    for (size_t i = 0; i < events.used; i++) {
+    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
         for (size_t y = 0; y < 4; y++) {
             debug_print("self->events->eventList[%li][%li][0] = %i\n", y, i, events.eventList[y][i][0]);
         }
     }
-    for (size_t i = 0; i < events.used; i++) {
+    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
         for (size_t y = 0; y < 4; y++) {
             debug_print("self->events->eventList[%li][%li][1] = %i\n", y, i, events.eventList[y][i][1]);
         }
     }
-    for (size_t i = 0; i < events.used; i++) {
+    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
         for (size_t y = 0; y < 4; y++) {
             debug_print("self->events->eventList[%li][%li][2] = %i\n", y, i, events.eventList[y][i][2]);
+        }
+    }
+    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
+        for (size_t y = 0; y < 4; y++) {
+            debug_print("self->events->eventList[%li][%li][3] = %i\n", y, i, events.eventList[y][i][3]);
         }
     }
 }
@@ -129,7 +134,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     //check this value
     self->prevThrough      = 0;
     self->previousSpeed    = 0;
-
+    self->fullRecordingLength = 0;
+    self->recordedFrames   = 0;
     //resetPhase vars:
     self->previousDevision = 12;
     self->previousPlaying = false;
@@ -154,7 +160,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     for (size_t voice = 0; voice < 4; voice++) {
         for (uint8_t note = 0; note < 248; note++) {
-            for (size_t noteProp = 0; noteProp < 2; noteProp++) {
+            for (size_t noteProp = 0; noteProp < 4; noteProp++) {
                 self->writeEvents.eventList[voice][note][noteProp] = 0;
                 self->playEvents.eventList[voice][note][noteProp] = 0;
             }
@@ -171,6 +177,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     self->applyMomentaryFx   = 0;
     self->prevRecordTrigger  = 0;
+    self->recordingLengthSet = false;
     self->firstRecordedNote  = false; 
     self->barCounted         = false;
     self->startPreCount      = false;
@@ -361,7 +368,7 @@ static void
 handleNoteOn(Data* self, const uint32_t outCapacity)
 {
     //get octave and velocity
-    for (size_t voice = 0; voice < 4; voice++)
+    for (size_t voice = 0; voice < 1; voice++)
     {
         if ( self->playEvents.eventList[voice][self->notePlayed][0] > 0 
                 && self->playEvents.eventList[voice][self->notePlayed][0] < 128)
@@ -400,8 +407,8 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     self->cleared = false;
     self->trigger = true;
     //increment sequence index 
-    self->notePlayed++;
-    self->notePlayed = (self->notePlayed > (self->playEvents.used - 1)) ? 0 : self->notePlayed;
+    //self->notePlayed++;
+    //self->notePlayed = (self->notePlayed > (self->playEvents.used - 1)) ? 0 : self->notePlayed;
 }
 
 
@@ -411,7 +418,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 {
     for (int i = 0; i < 16; i++) {
         if (self->noteOffTimer[i][0] > 0) {
-            self->noteOffTimer[i][1] += self->frequency;
+            self->noteOffTimer[i][1] += 1;
             if (self->noteOffTimer[i][1] > (self->noteOffTimer[i][2])) {
                 LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, (uint8_t)self->noteOffTimer[i][0], 0);
                 lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
@@ -436,19 +443,22 @@ setMode(Data* self, const uint32_t outCapacity)
         {
             case CLEAR_ALL:
                 clearNotes(self, outCapacity);
-                clearSequence(self->writeEvents);
-                clearSequence(self->playEvents);
+                self->writeEvents = clearSequence(self->writeEvents);
+                self->playEvents  = clearSequence(self->playEvents);
                 self->notePlayed = 0;
                 self->playing    = false;
                 self->through    = true; 
                 self->playing         = false;
                 self->playingEnabled  = false;
+                //self->startPreCount        = false;
+                self->recordingLengthSet = false;
                 break;
             case STOP:
                 self->recordingStatus = 0;
                 self->notePlayed      = 0;
                 self->through         = true; 
                 self->playing         = false;
+                //self->startPreCount   = false;
                 self->playingEnabled  = false;
                 break;
             case PLAY:
@@ -524,18 +534,30 @@ calculateCurrentPlayHeadPos(float bpm, float beatInMeasure, uint8_t division, si
 
 
 static void
-renderRecording(Data* self, int fullRecordingLength)
+renderRecording(Data* self, long int fullRecordingLength)
 {
-    fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
-    self->writeEvents.used = fullRecordingLength;
+    //fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
+    //self->writeEvents.used = fullRecordingLength;
     self->phaseRecord = 0;
     self->recording = false;
     self->recordingTriggered = false;
     self->startPreCount = false;
-    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate, (float)self->writeEvents.used);
-    self->writeEvents = quantizeNotes(self->writeEvents); 
-    self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
-    self->writeEvents = clearSequence(self->writeEvents);
+    debug_print("DEBUG 1\n");
+    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate, fullRecordingLength);
+    debug_print("DEBUG 2\n");
+    static bool first = true;
+    if (first) { 
+        self->writeEvents = quantizeNotes(self->writeEvents); 
+        first = false;
+    }
+    debug_print("DEBUG 3\n");
+    //self->playEvents = mergeEvents(self->writeEvents, self->playEvents);
+    debug_print("DEBUG 4\n");
+    self->playEvents = copyEvents(self->writeEvents, self->playEvents);
+    debug_print("DEBUG 5\n");
+    //self->writeEvents = clearSequence(self->writeEvents);
+    debug_print("DEBUG 6\n");
+    printEventList(self->playEvents);
 }
 
 
@@ -551,10 +573,6 @@ calculateRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingL
 static EventList 
 renderWriteEvents(Data *self, size_t fullRecordingLength, EventList writeEvents, EventList playEvents)
 {
-    
-    debug_print("HALLO IN RENDERRECORDING\n");
-    for (size_t index = 0; index < fullRecordingLength; index++)
-        debug_print("self->writeEvents.recordedEvents[index][0] = %f\n", self->writeEvents.recordedEvents[index][0]);
 
     return writeEvents;
 }
@@ -586,11 +604,8 @@ static void
 handleBarSyncRecording(Data *self, uint32_t pos)
 {
     //TODO remove all statics later
-    static float loopLength = 0;
-    static bool recordingLengthSet = false;
-    static bool countBars   = false;
     int firstLoopLength;
-    static int barsCounted  = 0;
+    static bool countBars   = false;
     static int fullRecordingLength = 0;
     static double frequency = 0;
 
@@ -602,14 +617,14 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 
     //count amount of bars to record included pre-count
     if (countBars) {
-        barsCounted = barCounter(self);
+        self->barCounter = barCounter(self, self->beatInMeasure, self->barCounter);
         if (self->recordingEnabled) {
-            if (barsCounted > **self->recordingLengths[0]) {
+            if (self->barCounter > **self->recordingLengths[0]) {
                 self->recordingStatus = 3;
-            } else if (barsCounted == (**self->recordingLengths[0] - 1)) {
+            } else if (self->barCounter == (**self->recordingLengths[0] - 1)) {
                 self->recordingStatus = 2;
-            } else if (barsCounted > (**self->recordingLengths[0] - 2)) {
-                //self->recordingStatus = 1;
+            } else if (self->barCounter > (**self->recordingLengths[0] - 2)) {
+                self->recordingStatus = 1;
             }
         }
     }
@@ -617,8 +632,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     firstLoopLength = self->writeEvents.used / 16; //TODO remove hardcoded var
 
     if (**self->recordingLengths[1] > 0) {
-        if (barsCounted > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-            barsCounted = **self->recordingLengths[0] + 1;
+        if (self->barCounter > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
             self->barCounter = **self->recordingLengths[0] + 1;
             self->recordingStatus = 4;
         }
@@ -643,7 +657,6 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     //}
 
     self->phaseRecord = *phaseRecord(self->frequency, &self->phaseRecord, self->rate, self->writeEvents.used);
-
     RecordEnum recordMode = self->recordingStatus;
 
     static int previousRecordingStatus = -1;
@@ -663,22 +676,33 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 if (self->beatInMeasure > 3.5) {
                     self->recording = true;
                 }
+                self->recordedFrames = 0;
                 break;
             case R_RECORDING:
                 frequency = 440;
                 self->phaseRecord = 0;
+                self->recordedFrames = 0;
                 self->recording = true;
                 break;
             case R_STOP_RECORDING:
                 frequency = 0;
-                fullRecordingLength = (int)self->phaseRecord;
-                renderRecording(self, fullRecordingLength);
+                if (!self->recordingLengthSet) {
+                    debug_print("recording Length in frames = %li\n", self->recordedFrames);
+                    debug_print("self->period * 32 = %i\n", self->period * 32);
+                    self->fullRecordingLength = self->recordedFrames;
+                    self->recordingLengthSet = true;
+                }
+                renderRecording(self, self->fullRecordingLength);
+                self->pos = 0;
                 break;
         }
         previousRecordingStatus = self->recordingStatus;
     }
-    if (self->playingEnabled && self->playEvents.used > 0) { //
+    if (self->playingEnabled && self->playEvents.amountRecordedEvents > 0) { //
         self->playing = true;
+    }
+    if (!self->recordingLengthSet) {
+        self->recordedFrames += 1;
     }
     metronome(self);
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);
@@ -722,21 +746,6 @@ midiThrough(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
         self->prevThrough = 0;
     }
 }
-
-
-
-
-//static float 
-//getDivisionHz(int divisionIndex)
-//{
-//  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
-//
-//  return rateValues[divisionIndex];
-//}
-
-
-
-
 
     
 
@@ -800,15 +809,21 @@ run(LV2_Handle instance, uint32_t n_samples)
         self->frequency = calculateFrequency(self->bpm, getDivisionHz(self->division));
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         handleBarSyncRecording(self, i);
+        static size_t note;
         if (self->playing) { 
-            if(self->pos >= self->period && i < n_samples) {
+            if(self->pos >= self->fullRecordingLength) {
                 self->pos = 0;
-            } else if(self->pos < self->h_wavelength && !self->trigger) {
-
-                handleNoteOn(self, outCapacity);
-                self->trigger = true;
-            } else if(self->pos > self->h_wavelength && self->trigger) {
-                self->trigger = false;
+            } else {
+                for (size_t voice = 0; voice < 1; voice++) {
+                    if (self->pos > self->writeEvents.eventList[voice][note][3] && 
+                            self->pos < self->writeEvents.eventList[voice][note][3] + 200 &&
+                            self->playEvents.eventList[voice][note][0] > 0) {
+                        self->notePlayed = note;
+                        note = (note + 1) % self->playEvents.amountRecordedEvents;//TODO this will only work with one voice
+                        //debug_print("self->playEvents.amountRecordedEvents = %li\n",self->playEvents.amountRecordedEvents);  
+                        handleNoteOn(self, outCapacity);
+                    }
+                }
             }
         }           
         self->pos += 1;
@@ -827,7 +842,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             midiThrough(self, msg, status, modeHandle, outCapacity, ev);
             self->notesPressed = *countNotesPressed(status, &self->notesPressed);
             if (self->recording) {
-                recordNotes(self, midiNote, noteType, self->phaseRecord);
+                recordNotes(self, midiNote, noteType, self->recordedFrames);
             }
         }
     }
@@ -862,3 +877,14 @@ const LV2_Descriptor* lv2_descriptor(uint32_t index)
     return (index == 0) ? &descriptor : NULL;
 }
 
+//if (self->playing) { 
+//    if(self->pos >= self-> && i < n_samples) {
+//        self->pos = 0;
+//    } else if(self->pos < self->h_wavelength && !self->trigger) {
+//
+//        handleNoteOn(self, outCapacity);
+//        self->trigger = true;
+//    } else if(self->pos > self->h_wavelength && self->trigger) {
+//        self->trigger = false;
+//    }
+//}           
