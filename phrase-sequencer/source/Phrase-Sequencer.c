@@ -695,6 +695,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                     debug_print("recording Length in frames = %li\n", self->recordedFrames);
                     debug_print("self->period * 32 = %i\n", self->period * 32);
                     self->fullRecordingLength = self->recordedFrames;
+                    self->previousFactorBpm = self->bpm;
                     self->recordingBpm = self->bpm;
                     self->recordingLengthSet = true;
                 }
@@ -815,32 +816,40 @@ run(LV2_Handle instance, uint32_t n_samples)
         self->frequency = calculateFrequency(self->bpm, getDivisionHz(self->division));
         self->frequency = (self->frequency > self->nyquist) ? self->frequency / 2 : self->frequency; 
         handleBarSyncRecording(self, i);
-        static size_t note;
-        float factor = self->recordingBpm / self->bpm;
-
-        if (self->bpm != self->previousBpm) {
-            uint32_t newRecordingLength = (uint32_t)(self->fullRecordingLength * factor);
-            //self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, newRecordingLength); 
-            self->pos = (uint32_t)(self->pos * factor);
-            debug_print("recalPos = %li\n", self->pos);
-            self->previousBpm = self->bpm;
-
-        }
-
-
-        static bool waitForNextBar = false;
-
+        static float factor = 1;
+        static uint32_t factorINT = 100;
         if (self->playing) { 
+            static size_t note;
+
+            uint32_t nextNoteTriggerValue = (uint32_t)(self->playEvents.eventList[0][self->notePlayed][3]);
+            if (self->bpm != self->previousBpm) {
+                factor = self->recordingBpm / self->bpm;
+                float posFactor = self->previousFactorBpm / self->bpm;
+                factorINT = (uint32_t)(factor * 100);
+                uint32_t posFactorINT = (uint32_t)(posFactor * 100);
+                uint32_t newRecordingLength = (uint32_t)(self->fullRecordingLength * factorINT / 100);
+                self->pos = (uint32_t)(self->pos * posFactorINT / 100);
+                self->previousFactorBpm = self->bpm;
+                self->previousBpm = self->bpm;
+
+            }
+
+            nextNoteTriggerValue = (uint32_t)(self->playEvents.eventList[0][self->notePlayed][3] * factorINT / 100);
+
+            static bool waitForNextBar = false;
+
             //self->pos = self->pos % (uint32_t)(self->fullRecordingLength * factor); 
-            if(self->pos >= self->fullRecordingLength * factor) { //TODO create function for this
-               self->pos = 0; 
+            if(self->pos >= (uint32_t)(self->fullRecordingLength * factorINT / 100)) { //TODO create function for this
+                self->pos = 0; 
             } else {
                 for (size_t voice = 0; voice < 1; voice++) {
-                    uint32_t nextNoteTriggerValue = (uint32_t)(self->playEvents.eventList[voice][self->notePlayed][3] * factor);
-                    if (self->pos > nextNoteTriggerValue && self->playEvents.eventList[voice][self->notePlayed][0] > 0) {
-                        debug_print("NOTE PLAYED\n");
+                    if (self->pos > nextNoteTriggerValue && self->playEvents.eventList[voice][self->notePlayed][0] > 0 ) {
+                        if (self-> pos < nextNoteTriggerValue + 300) {
                         handleNoteOn(self, outCapacity);
                         self->notePlayed = (self->notePlayed + 1) % self->playEvents.amountRecordedEvents;//TODO this will only work with one voice
+                        } else {
+                            self->notePlayed = (self->notePlayed + 1) % self->playEvents.amountRecordedEvents;//TODO this will only work with one voice
+                        }
                     }
                 }
             }

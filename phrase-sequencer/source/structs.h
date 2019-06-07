@@ -138,6 +138,7 @@ typedef struct Data {
     float   bpm;
     float   previousBpm;
     float   recordingBpm;
+    float   previousFactorBpm;
     float   barsize;
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
