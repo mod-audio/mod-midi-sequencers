@@ -29,7 +29,7 @@ int       barCounter(Data* self, float beatInMeasure, int barCounter);
 void      recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, long int notePos);
 void      resetPhase(Data* self);
 EventList quantizeNotes(EventList events);
-EventList mergeEvents(EventList eventListA, EventList eventListB);
+EventList mergeEvents(EventList playEvents, EventList writeEvents, EventList mergedEvents);
 EventList copyEvents(EventList eventListA, EventList eventListB);
 EventList calculateNoteLength(EventList events, float sampleRate, long int totalAmountOftime);
 EventList clearSequence(EventList events);

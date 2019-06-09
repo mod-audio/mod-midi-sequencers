@@ -110,7 +110,7 @@ typedef struct EventList {
     //eventList[1] = calculated noteLength
     //eventList[2] = velocity
     //eventList[4] = position
-    uint32_t eventList[4][248][4];
+    uint32_t eventList[248][4];
     long int recordedEvents[248][4];
     size_t   amountRecordedEvents;
     size_t   used;
@@ -191,6 +191,7 @@ typedef struct Data {
     bool    cleared;
     int     transpose;
 
+    EventList mergedEvents;
     EventList writeEvents;
     EventList playEvents;
     AttackReleaseEnum  ARStatus;

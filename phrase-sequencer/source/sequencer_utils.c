@@ -165,7 +165,6 @@ EventList quantizeNotes(EventList events)
     int recIndex = 0;
 
     for (size_t recordedNote = 0; recordedNote < events.amountRecordedEvents; recordedNote++) {
-        debug_print("events.amountRecordedEvents = %li\n", events.amountRecordedEvents);
         if (events.recordedEvents[recordedNote][1] == 144) {
             long int note = events.recordedEvents[recordedNote][0];
             long int startPos = events.recordedEvents[recordedNote][2];
@@ -173,12 +172,11 @@ EventList quantizeNotes(EventList events)
             long int noteLength = events.recordedEvents[recordedNote][3];
             long int velocity = 120; 
 
-            events.eventList[0][recIndex][0] = (uint32_t)note;
-            events.eventList[0][recIndex][1] = (uint32_t)noteLength;
-            events.eventList[0][recIndex][2] = (uint32_t)velocity;
-            events.eventList[0][recIndex][3] = (uint32_t)startPos;
+            events.eventList[recIndex][0] = (uint32_t)note;
+            events.eventList[recIndex][1] = (uint32_t)noteLength;
+            events.eventList[recIndex][2] = (uint32_t)velocity;
+            events.eventList[recIndex][3] = (uint32_t)startPos;
             recIndex++;
-            debug_print("recIndex = %i\n", recIndex);
         }
     }
     events.amountRecordedEvents = recIndex;
@@ -190,48 +188,54 @@ EventList quantizeNotes(EventList events)
 //make copy of events from eventList A to eventList B
 EventList copyEvents(EventList eventListA, EventList eventListB)
 {
-  eventListB.amountRecordedEvents = eventListA.amountRecordedEvents;
-  for (size_t voices = 0; voices < 4; voices++) {
+    eventListB.amountRecordedEvents = eventListA.amountRecordedEvents;
     for (size_t noteIndex = 0; noteIndex < eventListA.amountRecordedEvents; noteIndex++) {
-      for (size_t noteMeta = 0; noteMeta < 4; noteMeta++) {
-        eventListB.eventList[voices][noteIndex][noteMeta] = eventListA.eventList[voices][noteIndex][noteMeta];
-      }
-    }
-  }   
-  return eventListB;
-}
-
-
-
-EventList mergeEvents(EventList eventListA, EventList eventListB)
-{
-
-    eventListB.used = eventListA.used;
-
-    bool noteFoundMerge = false;
-    float temp[3] = {0, 0, 0};
-    for (size_t note = 0; note < eventListA.used; note++) {
-        for (int voice = 0; voice < 4; voice++) {
-            if (eventListA.eventList[voice][note][0] > 0 && eventListA.eventList[voice][note][0] < 128) {
-                for (int noteProps = 0; noteProps < 3; noteProps++) 
-                    temp[noteProps] = eventListA.eventList[voice][note][noteProps];
-                noteFoundMerge = true;
-            }
-            int voice = 0;
-            while (voice < 4 && noteFoundMerge) {
-                if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
-                    for (int noteProps = 0; noteProps < 3; noteProps++) {
-                        eventListB.eventList[voice][note][noteProps] = temp[noteProps];
-                    }
-                    noteFoundMerge = false;
-                }
-                voice++;
-            }
-
+        for (size_t noteMeta = 0; noteMeta < 4; noteMeta++) {
+            eventListB.eventList[noteIndex][noteMeta] = eventListA.eventList[noteIndex][noteMeta];
         }
     }
     return eventListB;
 }
+
+
+
+
+EventList mergeEvents(EventList playEvents, EventList writeEvents, EventList mergedEvents) 
+{ 
+	size_t i = 0, j = 0, k = 0; 
+
+	while (i < playEvents.used && j < writeEvents.used) 
+	{ 
+		if (playEvents.eventList[i][3] < writeEvents.eventList[j][3]) { 
+            for (size_t noteProps = 0; noteProps < 4; noteProps++)
+                mergedEvents.eventList[k][noteProps] = playEvents.eventList[i][noteProps]; 
+            k++;
+            i++;
+        } 
+        else {
+            for (size_t noteProps = 0; noteProps < 4; noteProps++)
+                mergedEvents.eventList[k][noteProps] = writeEvents.eventList[i][noteProps]; 
+            k++;
+            j++;
+        }
+	} 
+
+    while (i < playEvents.used) {
+        for (size_t noteProps = 0; noteProps < 4; noteProps++)
+            mergedEvents.eventList[k][noteProps] = playEvents.eventList[i][noteProps]; 
+        k++;
+        i++;
+    }
+
+    while (j < writeEvents.used) {
+        for (size_t noteProps = 0; noteProps < 4; noteProps++)
+            mergedEvents.eventList[k][noteProps] = writeEvents.eventList[i][noteProps]; 
+        k++;
+        j++;
+    }
+
+    return mergedEvents;
+} 
 
 
 
@@ -240,11 +244,9 @@ EventList clearSequence(EventList events)
     events.amountRecordedEvents = 0;
     events.used = 0;
 
-    for (size_t voice = 0; voice < 4; voice++) {
-        for (uint8_t note = 0; note < 248; note++) {
-            for (size_t noteProp = 0; noteProp < 4; noteProp++) {
-                events.eventList[voice][note][noteProp] = 0;
-            }
+    for (uint8_t note = 0; note < 248; note++) {
+        for (size_t noteProp = 0; noteProp < 4; noteProp++) {
+            events.eventList[note][noteProp] = 0;
         }
     }
     for (uint8_t note = 0; note < 248; note++) {
