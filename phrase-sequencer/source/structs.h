@@ -102,17 +102,14 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct EventList {
-    //recordedEvents[0] = midiNote
-    //recordedEvents[1] = note On/Off 
-    //recordedEvents[2] = recordedPosition
-    //recordedEvents[3] = calculated noteLength
     //eventList[0] = midiNote
-    //eventList[1] = calculated noteLength
-    //eventList[2] = velocity
-    //eventList[4] = position
-    uint32_t eventList[248][4];
-    long int recordedEvents[248][4];
-    size_t   amountRecordedEvents;
+    //eventList[1] = velocity
+    //eventList[2] = note On/Off 
+    //eventList[3] = recordedPosition
+    //eventList[4] = calculated noteLength
+   
+    uint32_t eventList[248][5];
+    size_t   amountOfProps;
     size_t   used;
 } EventList;
 
@@ -191,8 +188,9 @@ typedef struct Data {
     bool    cleared;
     int     transpose;
 
+    EventList recordedEvents;
     EventList mergedEvents;
-    EventList writeEvents;
+    EventList storedEvents;
     EventList playEvents;
     AttackReleaseEnum  ARStatus;
 

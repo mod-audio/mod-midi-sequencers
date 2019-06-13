@@ -32,28 +32,18 @@ typedef struct {
 static void
 printEventList(EventList events)
 {
-    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
+    for (size_t i = 0; i < events.used; i++) {
         debug_print("self->events->eventList[%li][0] = %i\n", i, events.eventList[i][0]);
     }
-    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
+    for (size_t i = 0; i < events.used; i++) {
         debug_print("self->events->eventList[%li][1] = %i\n", i, events.eventList[i][1]);
     }
-    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
+    for (size_t i = 0; i < events.used; i++) {
         debug_print("self->events->eventList[%li][2] = %i\n", i, events.eventList[i][2]);
     }
-    for (size_t i = 0; i < events.amountRecordedEvents; i++) {
+    for (size_t i = 0; i < events.used; i++) {
         debug_print("self->events->eventList[%li][3] = %i\n", i, events.eventList[i][3]);
     }
-}
-
-
-
-static float 
-getDivisionHz(int divisionIndex)
-{
-  float rateValues[11] = {240,160.0000000001,120,80,60,40,30,20,15,10,7.5};
-
-  return rateValues[divisionIndex];
 }
 
 
@@ -105,37 +95,37 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
     uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-    self->rate             = rate;
-    self->nyquist          = rate / 2; 
-    self->bpm              = 120.0f;
-    self->beat             = 0;
-    self->barCount         = 0;
-    self->recordingStatus  = 0;
-    self->division         = 0;
-    self->phase            = 0;
-    self->sinePhase        = 0;
-    self->amplitude        = 0;
-    self->phaseRecord      = 0;
-    self->velocity         = 0;
-    self->octaveIndex      = 0;
-    self->noteOffIndex     = 0; 
-    self->noteOffSendIndex = 0; 
-    self->modeHandle       = 0;
-    self->prevMod          = 100;
-    self->prevLatch        = 100;
-    self->activeNoteIndex  = 0;
-    self->inputIndex       = 0;
-    self->notesPressed     = 0;
+    self->rate                = rate;
+    self->nyquist             = rate / 2; 
+    self->bpm                 = 120.0f;
+    self->beat                = 0;
+    self->barCount            = 0;
+    self->recordingStatus     = 0;
+    self->division            = 0;
+    self->phase               = 0;
+    self->sinePhase           = 0;
+    self->amplitude           = 0;
+    self->phaseRecord         = 0;
+    self->velocity            = 0;
+    self->octaveIndex         = 0;
+    self->noteOffIndex        = 0; 
+    self->noteOffSendIndex    = 0; 
+    self->modeHandle          = 0;
+    self->prevMod             = 100;
+    self->prevLatch           = 100;
+    self->activeNoteIndex     = 0;
+    self->inputIndex          = 0;
+    self->notesPressed        = 0;
     //check this value
-    self->prevThrough      = 0;
-    self->previousSpeed    = 0;
+    self->prevThrough         = 0;
+    self->previousSpeed       = 0;
     self->fullRecordingLength = 0;
-    self->recordedFrames   = 0;
-    self->recordingBpm     = 120;
+    self->recordedFrames      = 0;
+    self->recordingBpm        = 120;
     //resetPhase vars:
-    self->previousDevision = 12;
-    self->previousPlaying = false;
-    self->resetPhase      = true;
+    self->previousDevision    = 12;
+    self->previousPlaying     = false;
+    self->resetPhase          = true;
 
     for (size_t i = 0; i < 16; i++) {
         self->midiThroughInput[i] = 0;
@@ -156,16 +146,19 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     for (size_t voice = 0; voice < 4; voice++) {
         for (uint8_t note = 0; note < 248; note++) {
-            for (size_t noteProp = 0; noteProp < 4; noteProp++) {
+            for (size_t noteProp = 0; noteProp < self->storedEvents.amountOfProps; noteProp++) {
+                self->recordedEvents.eventList[note][noteProp] = 0;
                 self->mergedEvents.eventList[note][noteProp] = 0;
-                self->writeEvents.eventList[note][noteProp] = 0;
+                self->storedEvents.eventList[note][noteProp] = 0;
                 self->playEvents.eventList[note][noteProp] = 0;
             }
         }
     }
     //init vars
-    self->writeEvents.used  = 0;
-    self->playEvents.used   = 0;
+    self->playEvents.used     = 0;
+    self->storedEvents.used   = 0;
+    self->mergedEvents.used   = 0;
+    self->recordedEvents.used = 0;
 
     self->notePlayed  = 0;
     self->transpose   = 0;
@@ -191,12 +184,17 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->recordingTriggered = false;
     self->recordingEnabled   = false;
 
-	self->pos = 0;
-	self->period = 0;
+	self->pos          = 0;
+	self->period       = 0;
 	self->h_wavelength = 0;
 
-    self->barCounter = 0;
+    self->barCounter    = 0;
     self->barNotCounted = false;
+
+    self->playEvents.amountOfProps     = 5;
+    self->storedEvents.amountOfProps   = 5;
+    self->mergedEvents.amountOfProps   = 5;
+    self->recordedEvents.amountOfProps = 5;
     
     return self;
 }
@@ -396,11 +394,12 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
             LV2_Atom_MIDI onMsg = createMidiEvent(self, 144, midiNote, velocity);
             lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&onMsg);
             self->noteOffTimer[self->activeNoteIndex][0] = (float)midiNote;
-            self->noteOffTimer[self->activeNoteIndex][2] = self->playEvents.eventList[self->notePlayed][1];
+            self->noteOffTimer[self->activeNoteIndex][2] = self->playEvents.eventList[self->notePlayed][4];
             self->playEvents.eventList[self->notePlayed][0] = 0;
-            self->playEvents.eventList[self->notePlayed][0] = 0;
-            self->playEvents.eventList[self->notePlayed][0] = 0;
-            self->playEvents.eventList[self->notePlayed][0] = 0;
+            self->playEvents.eventList[self->notePlayed][1] = 0;
+            self->playEvents.eventList[self->notePlayed][2] = 0;
+            self->playEvents.eventList[self->notePlayed][3] = 0;
+            self->playEvents.eventList[self->notePlayed][4] = 0;
             self->activeNoteIndex = (self->activeNoteIndex + 1) % 16; 
         } else {
             self->activeNoteIndex = (self->noteFound + 1) % 16; 
@@ -446,15 +445,17 @@ setMode(Data* self, const uint32_t outCapacity)
         {
             case CLEAR_ALL:
                 clearNotes(self, outCapacity);
-                self->writeEvents = clearSequence(self->writeEvents);
-                self->playEvents  = clearSequence(self->playEvents);
-                self->notePlayed = 0;
+                self->recordingLengthSet = false;
+                self->recordedEvents = clearSequence(self->recordedEvents);
+                self->mergedEvents   = clearSequence(self->mergedEvents);
+                self->storedEvents   = clearSequence(self->storedEvents);
+                self->playEvents     = clearSequence(self->playEvents);
+                self->notePlayed     = 0;
+                self->playing        = false;
+                self->playingEnabled = false;
                 self->playing    = false;
                 self->through    = true; 
-                self->playing         = false;
-                self->playingEnabled  = false;
                 //self->startPreCount        = false;
-                self->recordingLengthSet = false;
                 break;
             case STOP:
                 self->recordingStatus = 0;
@@ -472,7 +473,7 @@ setMode(Data* self, const uint32_t outCapacity)
                 break;
             case UNDO_LAST:
                 //TODO works but it should be aware of sequence
-                self->writeEvents.used--;
+                self->storedEvents.used--;
                 break;
         }
         self->prevMod = (int)*self->mode;
@@ -536,26 +537,26 @@ calculateCurrentPlayHeadPos(float bpm, float beatInMeasure, uint8_t division, si
 
 
 
-static void
+static EventList 
 renderRecording(Data* self, long int fullRecordingLength)
 {
     //fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
     //self->writeEvents.used = fullRecordingLength;
-    self->phaseRecord = 0;
-    self->recording = false;
+    self->phaseRecord        = 0;
+    self->recording          = false;
     self->recordingTriggered = false;
-    self->startPreCount = false;
-    self->writeEvents = calculateNoteLength(self->writeEvents, self->rate, fullRecordingLength);
-    static bool first = true;
-    if (first) { 
-        self->writeEvents = quantizeNotes(self->writeEvents); 
-        first = false;
-    }
-    //self->playEvents = mergeEvents(self->writeEvents, self->playEvents, self->mergedEvents);
-    self->playEvents = copyEvents(self->writeEvents, self->playEvents);
-    //self->writeEvents = clearSequence(self->writeEvents);
-    //printEventList(self->playEvents);
-    self->notePlayed = 0;
+    self->startPreCount      = false;
+    self->recordedEvents     = calculateNoteLength(self->recordedEvents, self->rate, fullRecordingLength);
+    self->recordedEvents     = quantizeNotes(self->recordedEvents); 
+    printEventList(self->storedEvents);
+    self->storedEvents       = mergeEvents(self->recordedEvents, self->storedEvents, self->mergedEvents);
+    self->playEvents         = copyEvents(self->storedEvents, self->playEvents);
+    printEventList(self->playEvents);
+    self->mergedEvents       = clearSequence(self->mergedEvents);
+    self->recordedEvents     = clearSequence(self->recordedEvents);
+    self->notePlayed         = 0;
+
+    return self->playEvents;
 }
 
 
@@ -573,13 +574,13 @@ calculateRecordingPhase(float beatInMeasure, uint8_t division, size_t recordingL
 static void
 resetRecordingValues(Data *self)
 {
-    self->startPreCount = false;
+    self->startPreCount   = false;
     //self->recordingTriggered = false;   
     self->recordingStatus = 0;
-    self->phaseRecord = 0;
+    self->phaseRecord     = 0;
     self->recordingStatus = 0;
 
-    self->playing = true;
+    self->playing         = true;
 }
 
 
@@ -591,9 +592,9 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 {
     //TODO remove all statics later
     int firstLoopLength;
-    static bool countBars   = false;
+    static bool countBars          = false;
     static int fullRecordingLength = 0;
-    static double frequency = 0;
+    static double frequency        = 0;
 
     //TODO change 3.9 to a procentage of the total size of the bar
     //enable counting of bars right before the of the current bar
@@ -615,18 +616,18 @@ handleBarSyncRecording(Data *self, uint32_t pos)
         }
     }
     
-    firstLoopLength = self->writeEvents.used / 16; //TODO remove hardcoded var
+    //firstLoopLength = self->recordedEvents.used / 16; //TODO Doesn't work with frames
 
     if (**self->recordingLengths[1] > 0) {
         if (self->barCounter > (**self->recordingLengths[1] + **self->recordingLengths[0])) {
-            self->barCounter = **self->recordingLengths[0] + 1;
+            self->barCounter      = **self->recordingLengths[0] + 1;
             self->recordingStatus = 4;
         }
     } 
 
     if (!self->recordingEnabled && self->playing) {
         self->recordingStatus = 0;
-        self->recording = false;
+        self->recording       = false;
     }
 
 
@@ -656,18 +657,18 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 frequency = 660;
                 break;
             case R_PRE_RECORDING:
-                frequency = 660;
-                self->phaseRecord = 0;
+                frequency            = 660;
+                self->phaseRecord    = 0;
                 if (self->beatInMeasure > 3.5) {
-                    self->recording = true;
+                    self->recording  = true;
                 }
                 self->recordedFrames = 0;
                 break;
             case R_RECORDING:
-                frequency = 440;
-                self->phaseRecord = 0;
+                frequency            = 440;
+                self->phaseRecord    = 0;
                 self->recordedFrames = 0;
-                self->recording = true;
+                self->recording      = true;
                 break;
             case R_STOP_RECORDING:
                 frequency = 0;
@@ -675,17 +676,17 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                     debug_print("recording Length in frames = %li\n", self->recordedFrames);
                     debug_print("self->period * 32 = %i\n", self->period * 32);
                     self->fullRecordingLength = self->recordedFrames;
-                    self->previousFactorBpm = self->bpm;
-                    self->recordingBpm = self->bpm;
-                    self->recordingLengthSet = true;
+                    self->previousFactorBpm   = self->bpm;
+                    self->recordingBpm        = self->bpm;
+                    self->recordingLengthSet  = true;
                 }
-                renderRecording(self, self->fullRecordingLength);
-                self->pos = 0;
+                self->playEvents = renderRecording(self, self->fullRecordingLength);
+                self->pos        = 0;
                 break;
         }
         previousRecordingStatus = self->recordingStatus;
     }
-    if (self->playingEnabled && self->playEvents.amountRecordedEvents > 0) { //
+    if (self->playingEnabled && self->playEvents.used > 0) { //
         self->playing = true;
     }
     if (!self->recordingLengthSet) {
@@ -761,8 +762,8 @@ run(LV2_Handle instance, uint32_t n_samples)
         if (*self->momentaryFx > 0 && *self->fxMode > 0) {
             self->division = *self->fxMode;
         } else if (self->division != *self->changeDiv) {
-            self->division = *self->changeDiv;
             self->notePlayed = calculateCurrentPlayHeadPos(self->bpm, self->beatInMeasure, 8, 32, 1); //TODO remove hard coded
+            self->division   = *self->changeDiv;
             //self->pos = reCalcPos(self->bpm, self->beatInMeasure, self->rate, getDivisionFrames(self->division)); 
             debug_print("Division changed\n");
         }
@@ -771,7 +772,7 @@ run(LV2_Handle instance, uint32_t n_samples)
 
         if (self->pos < 10 && self->beatInMeasure < 0.01 && !posReset) {
             self->pos = 0;
-            posReset = true;
+            posReset  = true;
         } else if (self->beatInMeasure > 3.9) {
             posReset = false;
         }
@@ -797,11 +798,11 @@ run(LV2_Handle instance, uint32_t n_samples)
         static float factor = 1;
         static float posFactor = 1;
         if (self->playing) { 
-            factor = self->recordingBpm / self->bpm;
-            posFactor = self->previousFactorBpm / self->bpm;
-            self->pos = (uint32_t)(self->pos * posFactor);
+            factor                  = self->recordingBpm / self->bpm;
+            posFactor               = self->previousFactorBpm / self->bpm;
+            self->pos               = (uint32_t)(self->pos * posFactor);
             self->previousFactorBpm = self->bpm;
-            self->previousBpm = self->bpm;
+            self->previousBpm       = self->bpm;
 
             uint32_t nextNoteTriggerValue = (uint32_t)(self->playEvents.eventList[self->notePlayed][3] * factor);
 
@@ -811,9 +812,9 @@ run(LV2_Handle instance, uint32_t n_samples)
                 if (self->pos > nextNoteTriggerValue && self->playEvents.eventList[self->notePlayed][0] > 0 ) {
                     if (self-> pos < nextNoteTriggerValue + 300) {
                         handleNoteOn(self, outCapacity);
-                        self->notePlayed = (self->notePlayed + 1) % self->playEvents.amountRecordedEvents;
+                        self->notePlayed = (self->notePlayed + 1) % self->playEvents.used;
                     } else {
-                        self->notePlayed = (self->notePlayed + 1) % self->playEvents.amountRecordedEvents;
+                        self->notePlayed = (self->notePlayed + 1) % self->playEvents.used;
                     }
                 }
             }
@@ -828,13 +829,14 @@ run(LV2_Handle instance, uint32_t n_samples)
         {
             const uint8_t* const msg = (const uint8_t*)(ev + 1);
             const uint8_t status = msg[0] & 0xF0;
-            uint8_t midiNote = msg[1];
-            uint8_t noteType = msg[0];
-            int modeHandle = self->modeHandle;
+            uint8_t midiNote   = msg[1];
+            uint8_t velocity   = msg[2];
+            uint8_t noteType   = msg[0];
+            int modeHandle     = self->modeHandle;
             midiThrough(self, msg, status, modeHandle, outCapacity, ev);
             self->notesPressed = *countNotesPressed(status, &self->notesPressed);
             if (self->recording) {
-                recordNotes(self, midiNote, noteType, self->recordedFrames);
+                self->recordedEvents = recordNotes(self->recordedEvents, midiNote, velocity, noteType, self->recordedFrames);
             }
         }
     }
