@@ -216,9 +216,9 @@ EventList mergeEvents(EventList recordedEvents, EventList storedEvents, EventLis
 
 	while (i < recordedEvents.used && j < storedEvents.used) 
 	{ 
-        if (recordedEvents.eventList[i][0] == 0) {
-            j++;
-        } else {
+        //if (recordedEvents.eventList[i][0] == 0) {
+        //    i++;
+        //} else {
             if (recordedEvents.eventList[i][3] < storedEvents.eventList[j][3]) { 
                 for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
                     mergedEvents.eventList[k][noteProps] = recordedEvents.eventList[i][noteProps]; 
@@ -232,7 +232,7 @@ EventList mergeEvents(EventList recordedEvents, EventList storedEvents, EventLis
                 j++;
             }
         }
-	} 
+	//} 
     while (i < recordedEvents.used) {
         for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
             mergedEvents.eventList[k][noteProps] = recordedEvents.eventList[i][noteProps]; 
@@ -241,7 +241,7 @@ EventList mergeEvents(EventList recordedEvents, EventList storedEvents, EventLis
     }
     while (j < storedEvents.used) {
         for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
-            mergedEvents.eventList[k][noteProps] = storedEvents.eventList[i][noteProps]; 
+            mergedEvents.eventList[k][noteProps] = storedEvents.eventList[j][noteProps]; 
         k++;
         j++;
     }
