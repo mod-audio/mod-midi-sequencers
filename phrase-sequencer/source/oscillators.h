@@ -24,7 +24,7 @@
 
 #define PI_2 6.28318530717959
 
-uint32_t reCalcPos(int bpm, float beatInMeasure, float sampleRate, float division);
+uint32_t reCalcPos(float bpm, float beatInMeasure, float sampleRate, uint32_t recordingLength);
 float    reCalcPhase(int bpm, float beatInMeasure, float sampleRate, float division);
 double   sinOsc(float frequency, double* phase, float rate);
 double*  phaseOsc(float frequency, double* phase, float rate, float swing);

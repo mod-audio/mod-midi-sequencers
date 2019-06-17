@@ -67,58 +67,72 @@ void metronome(Data *self)
 
 
 
-//TODO make suitable for all time signatures 
-int barCounter(Data *self)
+int periodCounter(uint32_t periodLength, uint32_t periodPos, int periodCounter)
 {
-  if (self->beatInMeasure < 3.9 && !self->barNotCounted) {
-    self->barNotCounted = true;
-    self->barCounter++;
-  } else if (self->beatInMeasure > 3.9) {
-    self->barNotCounted = false;
-  }
-  return self->barCounter;
+    if(periodPos < periodLength) {
+        periodPos = 0;
+        periodCounter++;
+    }
+    periodPos++;
+    return periodCounter;
+}
+
+
+//TODO make suitable for all time signatures 
+int barCounter(Data *self, float beatInMeasure, int barCounter)
+{
+    if (beatInMeasure < 3.9 && !self->barNotCounted) {
+        self->barNotCounted = true;
+        barCounter++;
+    } else if (beatInMeasure > 3.9) {
+        self->barNotCounted = false;
+    }
+    return barCounter;
 }
 
 
 
-void recordNotes(Data *self, uint8_t midiNote, uint8_t noteType, float notePos)
+EventList recordNotes(EventList recordedEvents, uint8_t midiNote, uint8_t velocity, uint8_t noteType, long int notePos)
 {
     //recordedEvents[0] = midiNote
     //recordedEvents[1] = note On/Off
     //recordedEvents[2] = recordedPosition
     //recordedEvents[3] = calculated noteLength
+    //TODO add velocity
+    size_t rIndex = recordedEvents.used;
+    recordedEvents.eventList[rIndex][0] = (long int)midiNote;
+    recordedEvents.eventList[rIndex][1] = (long int)velocity;
+    recordedEvents.eventList[rIndex][2] = (long int)noteType;
+    recordedEvents.eventList[rIndex][3] = notePos;
+    recordedEvents.used++;
 
-    size_t rIndex = self->writeEvents.amountRecordedEvents;
-    self->writeEvents.recordedEvents[rIndex][0] = (float)midiNote;
-    self->writeEvents.recordedEvents[rIndex][1] = (float)noteType;
-    self->writeEvents.recordedEvents[rIndex][2] = (float)notePos;
-    self->writeEvents.amountRecordedEvents++;
+    return recordedEvents;
 }
 
 
 
-EventList calculateNoteLength(EventList events, float sampleRate, float totalAmountOfTime)
+EventList calculateNoteLength(EventList recordedEvents, float sampleRate, long int totalAmountOfTime)
 {
-    bool noteFound = false;
-    static float foundNote[1][2];
+    size_t noteOffIndex;
     float noteLength = 0;
     size_t searchIndex = 0;
-    size_t noteOffIndex;
+    bool noteFound = false;
+    long int foundNote[1][2];
 
     FindNoteEnum calculateNoteLength;
     calculateNoteLength = FIND_NOTE_ON;
     float matchingNoteOffPos = 0;
 
-    while (searchIndex < events.amountRecordedEvents) {
+    while (searchIndex < recordedEvents.used) {
 
         switch (calculateNoteLength)
         {
             case FIND_NOTE_ON:
-                if (events.recordedEvents[searchIndex][0] < 128 &&
-                        events.recordedEvents[searchIndex][1] == 144)
+                if (recordedEvents.eventList[searchIndex][0] < 128 &&
+                        recordedEvents.eventList[searchIndex][2] == 144)
                 {
-                    foundNote[0][0] = events.recordedEvents[searchIndex][0];
-                    foundNote[0][1] = events.recordedEvents[searchIndex][2];
+                    foundNote[0][0] = recordedEvents.eventList[searchIndex][0];
+                    foundNote[0][1] = recordedEvents.eventList[searchIndex][3];
                     calculateNoteLength = FIND_NOTE_OFF;
                 } else {
                     calculateNoteLength = NEXT_INDEX;
@@ -126,11 +140,11 @@ EventList calculateNoteLength(EventList events, float sampleRate, float totalAmo
                 break;
             case FIND_NOTE_OFF:
                 noteOffIndex = searchIndex;
-                while (noteOffIndex < events.amountRecordedEvents && !noteFound) {
-                    if (events.recordedEvents[noteOffIndex][0] == foundNote[0][0] &&
-                            events.recordedEvents[noteOffIndex][1] == 128)
+                while (noteOffIndex < recordedEvents.used && !noteFound) {
+                    if (recordedEvents.eventList[noteOffIndex][0] == foundNote[0][0] &&
+                            recordedEvents.eventList[noteOffIndex][2] == 128)
                     {
-                        matchingNoteOffPos = events.recordedEvents[noteOffIndex][2];
+                        matchingNoteOffPos = recordedEvents.eventList[noteOffIndex][3];
                         noteFound = true;
                         calculateNoteLength = CALCULATE_NOTE_LENGTH;
                     } 
@@ -141,10 +155,10 @@ EventList calculateNoteLength(EventList events, float sampleRate, float totalAmo
             case CALCULATE_NOTE_LENGTH:
                 if (!noteFound) {
                     noteLength = totalAmountOfTime - foundNote[0][1]; 
-                    events.recordedEvents[searchIndex][3] = noteLength * sampleRate; 
+                    recordedEvents.eventList[searchIndex][4] = noteLength; 
                 } else {
                     noteLength = matchingNoteOffPos - foundNote[0][1];
-                    events.recordedEvents[searchIndex][3] = noteLength * sampleRate;
+                    recordedEvents.eventList[searchIndex][4] = noteLength;
                     noteFound = false;
                 }
                 calculateNoteLength = NEXT_INDEX;
@@ -155,38 +169,37 @@ EventList calculateNoteLength(EventList events, float sampleRate, float totalAmo
                 break;
         }
     }
-    return events;
+    return recordedEvents;
 }
 
 
-
-EventList quantizeNotes(EventList events)
+//recordedEvents[0] = midiNote
+//recordedEvents[1] = velocity
+//recordedEvents[2] = note On/Off 
+//recordedEvents[3] = recordedPosition
+//recordedEvents[4] = calculated noteLength
+EventList quantizeNotes(EventList recordedEvents)
 {
-    int snappedIndex    = 0;
     int recIndex = 0;
-    int prevSnappedIndex = -1;
 
-    for (size_t recordedNote = 0; recordedNote < events.amountRecordedEvents; recordedNote++) {
-        if (events.recordedEvents[recordedNote][1] == 144) {
-            float note = events.recordedEvents[recordedNote][0];
-            float startPos = events.recordedEvents[recordedNote][2];
+    //for (size_t recordedNote = 0; recordedNote < recordedEvents.used; recordedNote++) {
+    //    if (recordedEvents.eventList[recordedNote][1] == 144) {
+    //        long int note = recordedEvents.eventList[recordedNote][0];
+    //        long int velocity = recordedEvents.eventList[recordedNote][1];
+    //        long int startPos = recordedEvents.eventList[recordedNote][2];
+    //        long int noteLength = recordedEvents.eventList[recordedNote][3];
+    //        long int noteStatus; //TODO check order of elements
 
-            float noteLength = events.recordedEvents[recordedNote][3];
-            float velocity = 120; 
-            snappedIndex = (int)roundf(startPos);
-            if (snappedIndex == prevSnappedIndex) {
-                recIndex = (recIndex + 1) % 4;
-            } else {
-                recIndex = 0;
-            }
-            events.eventList[recIndex][snappedIndex][0] = (uint32_t)note;
-            events.eventList[recIndex][snappedIndex][1] = (uint32_t)noteLength;
-            events.eventList[recIndex][snappedIndex][2] = (uint32_t)velocity;
-            prevSnappedIndex = snappedIndex;
-
-        }
-    }
-    return events;
+    //        recordedEvents.eventList[recIndex][0] = (uint32_t)note;
+    //        recordedEvents.eventList[recIndex][1] = (uint32_t)velocity;
+    //        recordedEvents.eventList[recIndex][2] = (uint32_t)noteStatus;
+    //        recordedEvents.eventList[recIndex][3] = (uint32_t)startPos;
+    //        recordedEvents.eventList[recIndex][4] = (uint32_t)noteLength;
+    //        recIndex++;
+    //    }
+    //}
+    //recordedEvents.used = recIndex;
+    return recordedEvents;
 }
 
 
@@ -194,44 +207,10 @@ EventList quantizeNotes(EventList events)
 //make copy of events from eventList A to eventList B
 EventList copyEvents(EventList eventListA, EventList eventListB)
 {
-  eventListB.used = eventListA.used;
-  for (size_t voices = 0; voices < 4; voices++) {
-    for (size_t noteIndex = 0; noteIndex < eventListA.used; noteIndex++) {
-      for (size_t noteMeta = 0; noteMeta < 3; noteMeta++) {
-        eventListB.eventList[voices][noteIndex][noteMeta] = eventListA.eventList[voices][noteIndex][noteMeta];
-      }
-    }
-  }   
-  return eventListB;
-}
-
-
-
-EventList mergeEvents(EventList eventListA, EventList eventListB)
-{
-
     eventListB.used = eventListA.used;
-
-    bool noteFoundMerge = false;
-    float temp[3] = {0, 0, 0};
-    for (size_t note = 0; note < eventListA.used; note++) {
-        for (int voice = 0; voice < 4; voice++) {
-            if (eventListA.eventList[voice][note][0] > 0 && eventListA.eventList[voice][note][0] < 128) {
-                for (int noteProps = 0; noteProps < 3; noteProps++) 
-                    temp[noteProps] = eventListA.eventList[voice][note][noteProps];
-                noteFoundMerge = true;
-            }
-            int voice = 0;
-            while (voice < 4 && noteFoundMerge) {
-                if ((eventListB.eventList[voice][note][0]) == 0 || (eventListB.eventList[voice][note][0] > 128)) {
-                    for (int noteProps = 0; noteProps < 3; noteProps++) {
-                        eventListB.eventList[voice][note][noteProps] = temp[noteProps];
-                    }
-                    noteFoundMerge = false;
-                }
-                voice++;
-            }
-
+    for (size_t noteIndex = 0; noteIndex < eventListA.used; noteIndex++) {
+        for (size_t noteMeta = 0; noteMeta < eventListA.amountOfProps; noteMeta++) {
+            eventListB.eventList[noteIndex][noteMeta] = eventListA.eventList[noteIndex][noteMeta];
         }
     }
     return eventListB;
@@ -239,21 +218,56 @@ EventList mergeEvents(EventList eventListA, EventList eventListB)
 
 
 
-EventList clearSequence(EventList events)
-{
-    events.amountRecordedEvents = 0;
-    events.used = 0;
 
-    for (size_t voice = 0; voice < 4; voice++) {
-        for (uint8_t note = 0; note < 248; note++) {
-            for (size_t noteProp = 0; noteProp < 3; noteProp++) {
-                events.eventList[voice][note][noteProp] = 0;
+EventList mergeEvents(EventList recordedEvents, EventList storedEvents, EventList mergedEvents) 
+{ 
+    size_t amountOfProps = recordedEvents.amountOfProps;
+	size_t i = 0, j = 0, k = 0; 
+    mergedEvents.used = storedEvents.used + recordedEvents.used;
+
+	while (i < recordedEvents.used && j < storedEvents.used) 
+	{ 
+        //if (recordedEvents.eventList[i][0] == 0) {
+        //    i++;
+        //} else {
+            if (recordedEvents.eventList[i][3] < storedEvents.eventList[j][3]) { 
+                for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
+                    mergedEvents.eventList[k][noteProps] = recordedEvents.eventList[i][noteProps]; 
+                k++;
+                i++;
+            } 
+            else {
+                for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
+                    mergedEvents.eventList[k][noteProps] = storedEvents.eventList[j][noteProps]; 
+                k++;
+                j++;
             }
         }
+	//} 
+    while (i < recordedEvents.used) {
+        for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
+            mergedEvents.eventList[k][noteProps] = recordedEvents.eventList[i][noteProps]; 
+        k++;
+        i++;
     }
+    while (j < storedEvents.used) {
+        for (size_t noteProps = 0; noteProps < amountOfProps; noteProps++)
+            mergedEvents.eventList[k][noteProps] = storedEvents.eventList[j][noteProps]; 
+        k++;
+        j++;
+    }
+    return mergedEvents;
+} 
+
+
+
+EventList clearSequence(EventList events)
+{
+    events.used = 0;
+
     for (uint8_t note = 0; note < 248; note++) {
-        for (size_t noteProp = 0; noteProp < 4; noteProp++) {
-            events.recordedEvents[note][noteProp] = 0;
+        for (size_t noteProp = 0; noteProp < events.amountOfProps; noteProp++) {
+            events.eventList[note][noteProp] = 0;
         }
     }
     return events;

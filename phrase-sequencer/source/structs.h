@@ -102,28 +102,29 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct EventList {
-    //recordedEvents[0] = midiNote
-    //recordedEvents[1] = note On/Off 
-    //recordedEvents[2] = recordedPosition
-    //recordedEvents[3] = calculated noteLength
     //eventList[0] = midiNote
-    //eventList[1] = calculated noteLength
-    //eventList[2] = velocity
-    uint32_t eventList[4][248][3];
-    float    recordedEvents[248][4];
-    size_t   amountRecordedEvents;
+    //eventList[1] = velocity
+    //eventList[2] = note On/Off 
+    //eventList[3] = recordedPosition
+    //eventList[4] = calculated noteLength
+   
+    uint32_t eventList[248][5];
+    size_t   amountOfProps;
     size_t   used;
 } EventList;
 
 typedef struct Data {
 
     int barCounter;
+    int periodCounter;
     bool barNotCounted;
 
-	uint32_t    	       pos;
-	uint32_t   	        period;
-	uint32_t	  h_wavelength;
+	long int pos;
+	uint32_t period;
+    uint32_t recordingPos;
+	uint32_t h_wavelength;
     uint32_t noteOffTimer[16][3];
+    long int recordedFrames;
 
     double  rate;   // Sample rate
     double  frequency;
@@ -134,6 +135,9 @@ typedef struct Data {
     float   *metroOut;
     float   amplitude;
     float   bpm;
+    float   previousBpm;
+    float   recordingBpm;
+    float   previousFactorBpm;
     float   barsize;
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
@@ -144,10 +148,10 @@ typedef struct Data {
     int     prevMod;
     int     prevLatch;
 
-    uint8_t  velocity;
-    float    beatInMeasure;
-    float    division;
-
+    uint8_t velocity;
+    float   beatInMeasure;
+    float   division;
+    long int fullRecordingLength;
     size_t  inputIndex;
     size_t  notesPressed;
     size_t  activeNoteIndex; 
@@ -160,6 +164,7 @@ typedef struct Data {
     uint8_t applyMomentaryFx;
     //resetPhase vars:
     float previousDevision;
+    bool  recordingLengthSet;
     bool  barCounted;
     bool  recordingTriggered;
     bool  recordingEnabled;
@@ -185,7 +190,9 @@ typedef struct Data {
     bool    cleared;
     int     transpose;
 
-    EventList writeEvents;
+    EventList recordedEvents;
+    EventList mergedEvents;
+    EventList storedEvents;
     EventList playEvents;
     AttackReleaseEnum  ARStatus;
 
