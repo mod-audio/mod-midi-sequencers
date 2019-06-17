@@ -53,6 +53,8 @@ typedef enum PortEnum {
     TRANSPOSE,
     SWING,
     RANDOMIZETIMMING,
+    FX_MODE,
+    MOMENTARY_FX
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -100,61 +102,56 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct EventList {
-    //recordedEvents[0] = midiNote
-    //recordedEvents[1] = note On/Off 
-    //recordedEvents[2] = recordedPosition
-    //recordedEvents[3] = calculated noteLength
     //eventList[0] = midiNote
-    //eventList[1] = calculated noteLength
-    //eventList[2] = velocity
-    uint32_t eventList[4][248][3];
-    float    recordedEvents[248][4];
-    size_t   amountRecordedEvents;
+    //eventList[1] = velocity
+    //eventList[2] = note On/Off 
+    //eventList[3] = recordedPosition
+    //eventList[4] = calculated noteLength
+   
+    uint32_t eventList[248][5];
+    size_t   amountOfProps;
     size_t   used;
 } EventList;
 
 typedef struct Data {
 
     int barCounter;
+    int periodCounter;
     bool barNotCounted;
 
-	uint32_t    	       pos;
-	uint32_t   	        period;
-	uint32_t	  h_wavelength;
+	long int pos;
+	uint32_t period;
+    uint32_t recordingPos;
+	uint32_t h_wavelength;
+    uint32_t noteOffTimer[16][3];
+    long int recordedFrames;
 
     double  rate;   // Sample rate
     double  frequency;
     double  nyquist;
-    double  velPhase;
-    double  x1;
     double  phase;
     double  sinePhase;
     double  phaseRecord;
     float   *metroOut;
     float   amplitude;
     float   bpm;
+    float   previousBpm;
+    float   recordingBpm;
+    float   previousFactorBpm;
     float   barsize;
     float   beat;
     float   speed; // Transport speed (usually 0=stop, 1=play)
     float   noteLengthTime[2];
     int     activeNotes;
     int     previousSpeed;
-
     int     modeHandle;
     int     prevMod;
     int     prevLatch;
 
-    int     placementIndex;
-    float   notePlacement[2];
-
-    uint8_t  noteTie;
-    uint8_t  velocity;
-    int      noteStarted[2];
-    uint32_t noteOffTimer[16][3];
-    float    beatInMeasure;
-    float    division;
-
-    size_t  count;
+    uint8_t velocity;
+    float   beatInMeasure;
+    float   division;
+    long int fullRecordingLength;
     size_t  inputIndex;
     size_t  notesPressed;
     size_t  activeNoteIndex; 
@@ -163,10 +160,14 @@ typedef struct Data {
     uint8_t recordingStatus;
     uint8_t barCount;
     uint8_t ARstate;
+    uint8_t prevRecordTrigger; 
+    uint8_t applyMomentaryFx;
     //resetPhase vars:
     float previousDevision;
+    bool  recordingLengthSet;
     bool  barCounted;
     bool  recordingTriggered;
+    bool  recordingEnabled;
     bool  startPreCount;
     bool  recording;
     bool  previousPlaying;
@@ -174,7 +175,6 @@ typedef struct Data {
     bool  alreadyPlaying;
 
     size_t  noteFound;
-    size_t  patternIndex;
     size_t  notePlayed;
     size_t  octaveIndex;
     size_t  noteOffIndex;
@@ -182,17 +182,17 @@ typedef struct Data {
     bool    firstRecordedNote;
     bool    through;
     bool    firstBar;
+    bool    playingEnabled;
     bool    playing;
-    bool    clip;
     bool    trigger;
     bool    triggerSet;
     bool    preCountTrigger;
     bool    cleared;
     int     transpose;
-    int     countTicks;
 
-    const float** pattern[8];
-    EventList writeEvents;
+    EventList recordedEvents;
+    EventList mergedEvents;
+    EventList storedEvents;
     EventList playEvents;
     AttackReleaseEnum  ARStatus;
 
@@ -205,10 +205,9 @@ typedef struct Data {
     const float* latchTranspose;
     const float* swing;
     const float* randomizeTimming;
-    const float* curveDepth;
-    const float* curveLength;
-    const float* curveClip;
     const float* octaveSpread;
+    const float* fxMode;
+    const float* momentaryFx;
 
     const float** recordingLengths[2];
 
