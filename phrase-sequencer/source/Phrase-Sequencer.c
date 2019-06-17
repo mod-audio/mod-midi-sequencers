@@ -157,6 +157,8 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->period              = 0;
     self->h_wavelength        = 0;
     self->barCounter          = 0;
+    self->recordingPos        = 0;
+    self->periodCounter       = 0;
     self->previousDevision    = 12;
     self->prevMod             = 100;
     self->prevLatch           = 100;
@@ -522,22 +524,17 @@ calculateCurrentPlayHeadPos(float bpm, float beatInMeasure, uint8_t division, si
 static EventList 
 renderRecording(Data* self, long int fullRecordingLength)
 {
-    static bool first = true;
     //fullRecordingLength = findClosestBarLength(fullRecordingLength, 16);//TODO remove hardcoded value
     //self->writeEvents.used = fullRecordingLength;
     self->phaseRecord        = 0;
-    self->recording          = false;
+    //self->recording          = false;
     self->recordingTriggered = false;
     self->startPreCount      = false;
     self->recordedEvents     = calculateNoteLength(self->recordedEvents, self->rate, fullRecordingLength);
+    printEventList(self->recordedEvents);
     self->recordedEvents     = quantizeNotes(self->recordedEvents);
-    printEventList(self->storedEvents);
-    if (first) {
-        self->storedEvents       = mergeEvents(self->recordedEvents, self->storedEvents, self->mergedEvents);
-        //first = false;
-    }
+    self->storedEvents       = mergeEvents(self->recordedEvents, self->storedEvents, self->mergedEvents);
     self->playEvents         = copyEvents(self->storedEvents, self->playEvents);
-    printEventList(self->playEvents);
     self->mergedEvents       = clearSequence(self->mergedEvents);
     self->recordedEvents     = clearSequence(self->recordedEvents);
     self->notePlayed         = 0;
@@ -578,19 +575,20 @@ handleBarSyncRecording(Data *self, uint32_t pos)
 {
     //TODO remove all statics later
     int firstLoopLength;
-    static bool countBars          = false;
+    static bool counting           = false;
     static int fullRecordingLength = 0;
     static double frequency        = 0;
 
     //TODO change 3.9 to a procentage of the total size of the bar
     //enable counting of bars right before the of the current bar
     if (self->beatInMeasure > 3.9 && self->startPreCount) {
-          countBars = true;
+          counting = true;
     }
 
     //count amount of bars to record included pre-count
-    if (countBars) {
+    if (counting) {
         self->barCounter = barCounter(self, self->beatInMeasure, self->barCounter);
+        self->recordingPos = periodCounter(self->period, self->recordingPos, self->periodCounter);
         if (self->recordingEnabled) {
             if (self->barCounter > **self->recordingLengths[0]) {
                 self->recordingStatus = 3;
@@ -600,6 +598,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                 self->recordingStatus = 1;
             }
         }
+        self->recordedFrames += 1;
     }
 
     //firstLoopLength = self->recordedEvents.used / 16; //TODO Doesn't work with frames
@@ -630,6 +629,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     //}
 
     RecordEnum recordMode = self->recordingStatus;
+
 
     static int previousRecordingStatus = -1;
 
@@ -667,6 +667,7 @@ handleBarSyncRecording(Data *self, uint32_t pos)
                     self->recordingLengthSet  = true;
                 }
                 self->playEvents = renderRecording(self, self->fullRecordingLength);
+                self->recordedFrames = 0;
                 self->pos        = 0;
                 break;
         }
@@ -674,9 +675,6 @@ handleBarSyncRecording(Data *self, uint32_t pos)
     }
     if (self->playingEnabled && self->playEvents.used > 0) { //
         self->playing = true;
-    }
-    if (!self->recordingLengthSet) {
-        self->recordedFrames += 1;
     }
     metronome(self);
     self->metroOut[pos] = 0.1 * *envelope(self, &self->amplitude) * (float)sinOsc(frequency, &self->sinePhase, self->rate);

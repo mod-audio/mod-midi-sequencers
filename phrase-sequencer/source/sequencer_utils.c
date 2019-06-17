@@ -67,6 +67,17 @@ void metronome(Data *self)
 
 
 
+int periodCounter(uint32_t periodLength, uint32_t periodPos, int periodCounter)
+{
+    if(periodPos < periodLength) {
+        periodPos = 0;
+        periodCounter++;
+    }
+    periodPos++;
+    return periodCounter;
+}
+
+
 //TODO make suitable for all time signatures 
 int barCounter(Data *self, float beatInMeasure, int barCounter)
 {

@@ -26,6 +26,7 @@ float     calculateFrequency(uint8_t bpm, float division);
 float*    envelope(Data *self, float *amplitude);
 void      metronome(Data *self);
 int       barCounter(Data* self, float beatInMeasure, int barCounter);
+int       periodCounter(uint32_t periodLength, uint32_t periodPos, int periodCounter);
 void      resetPhase(Data* self);
 EventList recordNotes(EventList recordedEvents, uint8_t midiNote, uint8_t velocity, uint8_t noteType, long int notePos);
 EventList quantizeNotes(EventList events);

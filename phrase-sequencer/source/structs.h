@@ -116,11 +116,13 @@ typedef struct EventList {
 typedef struct Data {
 
     int barCounter;
+    int periodCounter;
     bool barNotCounted;
 
-	long int    	       pos;
-	uint32_t   	        period;
-	uint32_t	  h_wavelength;
+	long int pos;
+	uint32_t period;
+    uint32_t recordingPos;
+	uint32_t h_wavelength;
     uint32_t noteOffTimer[16][3];
     long int recordedFrames;
 
