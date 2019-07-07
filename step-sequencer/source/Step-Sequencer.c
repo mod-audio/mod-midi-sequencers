@@ -86,6 +86,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->count            = 0;
     self->inputIndex       = 0;
     self->notesPressed     = 0;
+    self->previousFrequency = 0;
     //check this value
     self->prevThrough      = 0;
 
@@ -151,7 +152,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->parameters[14]  = &self->patternVel5Param;
     self->parameters[15]  = &self->patternVel6Param;
     self->parameters[16]  = &self->patternVel7Param;
-    self->parameters[17]  = &self->patternVel8Param;      ;
+    self->parameters[17]  = &self->patternVel8Param;
 
     return self;
 }
@@ -338,7 +339,7 @@ applyLfoToParameters(Data* self)
 
     self->division           = self->variables[1];
     self->noteLength         = self->variables[2];
-    debug_print("note length = %f\n", self->noteLength);
+    //debug_print("note length = %f\n", self->noteLength);
     self->octaveSpread       = self->variables[3];
     self->swing              = self->variables[4];
     self->randomizeTimming   = self->variables[5];
@@ -614,7 +615,7 @@ switchMode(Data* self, const uint32_t outCapacity)
             case RECORD:
                 self->firstRecordedNote = false;
                 self->through           = true; 
-                self->modeHandle              = 6;  
+                self->modeHandle        = 6;  
                 break;
             case PLAY:
 
@@ -767,29 +768,30 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
 {
     applyDifference(self);
     //placement is used to control the amount of swing, the place of the of [0] is static the placement of note [1] can -
-    //be moved  
+    //be moved
     self->notePlacement[1] = self->swing * 0.01;
 
-    if (self->playing && self->firstBar) 
+    if (self->playing && self->firstBar)
     {
-        float offset = applyRandomTiming(self); 
-        if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2) 
-                && !self->trigger && self->playEvents->used > 0) 
-        { 
-            handleNoteOn(self, outCapacity); 
+        float offset = applyRandomTiming(self);
+        if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2)
+                && !self->trigger && self->playEvents->used > 0)
+        {
+            debug_print("check for note at = %f\n", self->beatInMeasure);
+            handleNoteOn(self, outCapacity);
             self->triggerSet = false;
-        } else 
+        } else
         { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
-            if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet) 
+            if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet)
             {
                 self->placementIndex ^= 1;
                 self->trigger = false;
                 //TODO does this trigger has to be reset as well?
-                self->triggerSet = true;    
+                self->triggerSet = true;
             }
         }
-    }  
-    handleNoteOff(self, outCapacity); 
+    }
+    handleNoteOff(self, outCapacity);
 }
 
 
@@ -836,7 +838,7 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     }
-    self->frequency = calculateFrequency(self->bpm, self->divisionRate);
+    self->frequency = calculateFrequency(self->bpm, self->division);
     //halftime speed when frequency goes out of range
     if (self->frequency > self->nyquist)
         self->frequency = self->frequency / 2;

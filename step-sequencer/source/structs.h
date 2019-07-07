@@ -141,6 +141,7 @@ typedef struct Data {
 
     //resetPhase vars:
     float previousDevision;
+    float previousFrequency;
     bool  previousPlaying;
     bool  resetPhase;
 

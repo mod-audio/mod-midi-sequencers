@@ -39,8 +39,8 @@ float remap(float input, float low1, float high1, float low2, float high2)
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-    float rateValues[11] = {7.5,10,15,20,30,40,60,80,120,160.0000000001,240};
-    float frequency = (bpm / rateValues[(int)division]) * 0.5;
+    float rateValues[11] = {0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0};
+    float frequency = ((bpm * rateValues[(int)division]) / 60) * 0.5;
 
     return frequency;
 }
@@ -51,14 +51,14 @@ bool checkDifference(uint8_t (*arrayA) [2], uint8_t (*arrayB) [2], size_t length
 {
     if (lengthA != lengthB) {
         return true;
-    } else {  
+    } else {
         for (size_t index = 0; index < lengthA; index++) {
             for (size_t y = 0; y < 2; y++) {
                 if (arrayA[index] != arrayB[index]) {
                     return true;
-                } 
+                }
                 else if (arrayA[index][y] != arrayB[index][y]) {
-                    return true;    
+                    return true;
                 }
             }
         }
@@ -85,14 +85,57 @@ void copyEvents(Array* eventListA, Array* eventListB)
         for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
             eventListB->eventList[noteIndex][noteMeta] = eventListA->eventList[noteIndex][noteMeta];
         }
-    }   
+    }
 }
 
+//float resetPhaseFunction(Data* self, float division)
+//{
+//    float rateValues[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
+//    float phaseLength = ((60 / self->bpm) / ((rateValues[(int)division] / 2)));
+//    float pos = fmod((60 / self->bpm) * self->beatInMeasure, phaseLength) / phaseLength;
+//    //set notePlacement var;
+//    debug_print(" \n");
+//    debug_print("rateValue = %f\n", rateValues[(int)division]);
+//    debug_print("pos = %f\n", pos);
+//    debug_print("phaseLength = %f\n", phaseLength);
+//    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
+//
+//    return pos;
+//}
+
+
+float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm)
+{
+    float beatsInSeconds = (60 / bpm) * currentBeatPosition;
+    float barLengthMinusNoteLength = beatsInSeconds;
+
+    while (barLengthMinusNoteLength > 0)
+    {
+        barLengthMinusNoteLength -= noteLengthInSeconds;
+    }
+    float phase = (noteLengthInSeconds + barLengthMinusNoteLength) / noteLengthInSeconds;
+
+    if(phase > 0.5)
+        self->placementIndex = 1;
+    else
+        self->placementIndex = 0;
+
+    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
+    debug_print("phase %f\n", phase);
+
+    return phase;
+}
 
 
 void resetPhase(Data *self)
 {
     float velInitVal      = 0.000000009;
+
+    if (self->frequency != self->previousFrequency) {
+        float noteLengthInSeconds = 1.0 / self->frequency;
+        self->phase        = calculateNewPhase(self, noteLengthInSeconds, self->beatInMeasure, self->bpm);
+        self->previousFrequency = self->frequency;
+    }
 
     if (self->beatInMeasure < 0.5 && self->resetPhase) {
 
@@ -101,30 +144,20 @@ void resetPhase(Data *self)
             if (*self->modeParam > 1) {
                 self->velPhase = velInitVal;
                 self->firstBar = true;
-            }  
+            }
             self->previousPlaying = self->playing;
         }
 
-        if (self->division != self->previousDevision) {
-            self->phase        = 0.0;
-            self->velPhase     = velInitVal;
-            self->previousDevision = self->divisionRate; 
-            self->divisionRate     = self->division;  
-        }
         if (self->phase > 0.989 || self->phase < 0.01) {
             self->phase = 0.0;
         }
-
-        //if (self->velPhase > 0.989 || self->velPhase < 0.01) {
-        //  self->velPhase = 0.000000009;
-        //}
 
         self->resetPhase  = false;
 
     } else {
         if (self->beatInMeasure > 0.5) {
             self->resetPhase = true;
-        } 
+        }
     }
 }
 

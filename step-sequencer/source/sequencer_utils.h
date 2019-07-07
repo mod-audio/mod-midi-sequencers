@@ -27,5 +27,6 @@ bool  checkDifference(uint8_t (*arrayA) [2],  uint8_t (*arrayB) [2], size_t leng
 void  insertNote(Array *arr, uint8_t note, uint8_t noteMode);
 void  clearSequence(Array *arr);
 void  copyEvents(Array* eventListA, Array* eventListB);
+float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm);
 void  resetPhase(Data* self);
 #endif //_H_SEQ_UTILS_
