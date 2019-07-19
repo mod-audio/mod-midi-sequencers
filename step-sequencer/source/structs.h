@@ -96,12 +96,20 @@ typedef struct MetroURIs {
     LV2_URID time_speed;
 } MetroURIs;
 
-typedef struct Array {
-    uint8_t eventList[248][2];
-    size_t used;
-} Array;
 
-typedef struct Data {
+typedef struct EventList {
+    uint8_t eventList[248][2];
+    size_t  amountOfProps;
+    size_t  used;
+} EventList;
+
+
+typedef struct MetaData {
+    uint8_t transposeList[248];
+    size_t used;
+} MetaData;
+
+typedef struct StepSeq {
 
     double  rate;   // Sample rate
     double  frequency;
@@ -147,9 +155,11 @@ typedef struct Data {
 
     size_t  patternIndex;
     size_t  notePlayed;
+    size_t  playHead;
     size_t  octaveIndex;
     size_t  noteOffIndex;
     size_t  noteOffSendIndex;
+    bool    recordingMetaData;
     bool    firstRecordedNote;
     bool    through;
     bool    firstBar;
@@ -163,8 +173,9 @@ typedef struct Data {
 
     const float** parameters[18];
     uint8_t velocityPattern[8];
-    Array* writeEvents;
-    Array* playEvents;
+    EventList writeEvents;
+    EventList playEvents;
+    MetaData metaData;
 
     float variables[18];
     float division;         
@@ -220,5 +231,7 @@ typedef struct Data {
     LV2_Atom_Sequence* control;
     MetroURIs          uris;    // Cache of mapped URIDs
 
-} Data;
+} StepSeq;
+
+
 #endif //_H_STRUCTS_
