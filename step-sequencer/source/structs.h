@@ -145,7 +145,8 @@ typedef struct StepSeq {
     uint8_t midiThroughInput[16];
 
     //resetPhase vars:
-    float previousDevision;
+    float previousDivision;
+    float previousBpm;
     float previousFrequency;
     bool  previousPlaying;
     bool  resetPhase;

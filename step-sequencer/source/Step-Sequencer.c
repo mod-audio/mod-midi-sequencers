@@ -64,33 +64,35 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
     uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-    self->rate             = rate;
-    self->nyquist          = rate / 2;
-    self->bpm              = 120.0f;
-    self->beatInMeasure    = 0;
-    self->phase            = 0;
-    self->velPhase         = 0.000000009;
-    self->x1               = 0.00000001;
-    self->velocityLFO      = 0;
-    self->velocity         = 0;
-    self->octaveIndex      = 0;
-    self->noteOffIndex     = 0;
-    self->noteOffSendIndex = 0;
-    self->countTicks       = 0;
-    self->patternIndex     = 0;
-    self->modeHandle       = 0;
-    self->prevMod          = 100;
-    self->prevLatch        = 100;
-    self->count            = 0;
-    self->inputIndex       = 0;
-    self->notesPressed     = 0;
+    self->rate              = rate;
+    self->nyquist           = rate / 2;
+    self->bpm               = 120.0f;
+    self->beatInMeasure     = 0;
+    self->phase             = 0;
+    self->velPhase          = 0.000000009;
+    self->x1                = 0.00000001;
+    self->velocityLFO       = 0;
+    self->velocity          = 0;
+    self->octaveIndex       = 0;
+    self->noteOffIndex      = 0;
+    self->noteOffSendIndex  = 0;
+    self->countTicks        = 0;
+    self->patternIndex      = 0;
+    self->modeHandle        = 0;
+    self->prevMod           = 100;
+    self->prevLatch         = 100;
+    self->count             = 0;
+    self->inputIndex        = 0;
+    self->notesPressed      = 0;
     self->previousFrequency = 0;
+    self->previousDivision  = 0;
+    self->previousBpm       = 0;
     //check this value
-    self->prevThrough      = 0;
+    self->prevThrough       = 0;
 
-    self->placementIndex   = 0;
-    self->notePlacement[0] = 0;
-    self->notePlacement[1] = 0.5;
+    self->placementIndex    = 0;
+    self->notePlacement[0]  = 0;
+    self->notePlacement[1]  = 0.5;
 
     //resetPhase vars:
     self->previousPlaying = false;
@@ -874,11 +876,15 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     }
-    self->frequency = calculateFrequency(self->bpm, self->division);
-    //halftime speed when frequency goes out of range
-    if (self->frequency > self->nyquist)
-        self->frequency = self->frequency / 2;
 
+    if (self->bpm != self->previousBpm || self->division != self->previousDivision) {
+        self->frequency = calculateFrequency(self->bpm, self->division);
+        //halftime speed when frequency goes out of range
+        if (self->frequency > self->nyquist)
+            self->frequency = self->frequency / 2;
+        self->previousDivision = self->division;
+        self->previousBpm = self->bpm;
+    }
 
     // Get the capacity
     const uint32_t outCapacity = handlePorts(self);
