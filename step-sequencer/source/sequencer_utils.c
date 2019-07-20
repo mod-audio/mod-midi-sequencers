@@ -20,6 +20,16 @@
 #include "sequencer_utils.h"
 
 
+float getDivider(int division)
+{
+    float rateValues[11] = {0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0};
+    float divider = rateValues[division];
+
+    return divider;
+}
+
+
+
 float applyRange(float numberToCheck, float min, float max)
 {
     if (numberToCheck < min)
@@ -39,9 +49,8 @@ float remap(float input, float low1, float high1, float low2, float high2)
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-    float rateValues[11] = {0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0};
 
-    float frequency = ((bpm * rateValues[(int)division]) / 60) * 0.5;
+    float frequency = ((bpm * getDivider((int)division)) / 60) * 0.5;
 
     return frequency;
 }
@@ -93,6 +102,50 @@ EventList copyEvents(EventList eventListA, EventList eventListB)
 
 
 
+EventList recordMetaData(EventList metaData, EventList events, uint8_t midiNote)
+{
+    metaData.eventList[metaData.used][0] = midiNote;
+    for (size_t noteMeta = 1; noteMeta < metaData.amountOfProps; noteMeta++) {
+        metaData.eventList[metaData.used][noteMeta] = events.eventList[metaData.used][noteMeta];
+    }
+    metaData.used += 1;
+
+    return metaData;
+}
+
+
+
+EventList renderMetaRecording(EventList metaEvents, EventList currentEvents, uint8_t transpose, float playPos, 
+        size_t notePlayed, float phase, int snapMode, size_t barLimit, size_t metaBegin, int quantizeValue) 
+{
+
+    switch (snapMode) 
+    {
+        case 0: //snap by bar
+            //round the amount of notes that can fir in a bar, I think ceil?
+            if (metaEvents.used < barLimit) {
+                metaEvents.used = barLimit;
+            } else {
+                for (size_t i = metaEvents.used; i < barLimit; i++) { //TODO check this for error by one
+                    for (size_t noteData = 0; noteData < currentEvents.amountOfProps; noteData++) {
+                        metaEvents.eventList[i][noteData] = currentEvents.eventList[i % currentEvents.used][noteData] + transpose;
+                    }
+                }
+            }
+            break;
+        case 1: //snap by note
+            if (phase > 0.5) { //TODO check for error by one and correct phase
+                for (size_t noteData = 0; noteData < currentEvents.amountOfProps; noteData++) {
+                    metaEvents.eventList[metaEvents.used][noteData] = currentEvents.eventList[metaEvents.used % currentEvents.used][noteData] + transpose;
+                }
+            }
+            break;
+    }
+    return metaEvents;
+}
+
+
+
 float calculateNewPhase(StepSeq* self, float noteLengthInSeconds, float currentBeatPosition, float bpm)
 {
     float beatsInSeconds = (60 / bpm) * currentBeatPosition;
@@ -133,6 +186,7 @@ bool checkForFirstBar(StepSeq *self)
 float resetPhase(StepSeq *self)
 {
     if (self->frequency != self->previousFrequency) {
+        self->barLimit = ceil(getDivider(self->division) * 4);
         float noteLengthInSeconds = 1.0 / self->frequency;
         self->phase        = calculateNewPhase(self, noteLengthInSeconds, self->beatInMeasure, self->bpm);
         self->previousFrequency = self->frequency;
@@ -152,20 +206,6 @@ float resetPhase(StepSeq *self)
         }
     }
     return self->phase;
-}
-
-
-
-MetaData recordTranspose(MetaData metaData, uint8_t transposeValue, int playHeadPos, float phase)
-{
-    if (phase > 0.5) {
-        playHeadPos -= 1;
-        playHeadPos = (playHeadPos < 0) ? 0 : playHeadPos;
-    }
-    metaData.transposeList[metaData.used] = transposeValue;
-    metaData.used += 1;
-
-    return metaData;
 }
 
 
