@@ -3,8 +3,8 @@
  *
  *       Filename:  Step-Sequencer.c
  *
- *    Description:  Main file of the MIDI sequencer plugin, I have used some parts of
- *                  the eg-metro lv2 plugin and the mod-midi-switchbox plugin.
+ *    Description:  Main file of the MIDI sequencer plugin, I have used some parts of 
+ *                  the eg-metro lv2 plugin and the mod-midi-switchbox plugin. 
  *
  *        Version:  1.0
  *        Created:  12/24/2018 03:29:18 PM
@@ -16,6 +16,7 @@
  *
  * =====================================================================================
  */
+
 
 #include "sequencer_utils.h"
 #include "oscillators.h"
@@ -32,7 +33,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         const char*               path,
         const LV2_Feature* const* features)
 {
-    StepSeq* self = (StepSeq*)calloc(1, sizeof(StepSeq));
+    Data* self = (Data*)calloc(1, sizeof(Data));
 
     // Get host features
     const LV2_URID_Map* map = NULL;
@@ -64,37 +65,40 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
     uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-    self->rate              = rate;
-    self->nyquist           = rate / 2;
-    self->bpm               = 120.0f;
-    self->beatInMeasure     = 0;
-    self->phase             = 0;
-    self->velPhase          = 0.000000009;
-    self->x1                = 0.00000001;
-    self->velocityLFO       = 0;
-    self->velocity          = 0;
-    self->octaveIndex       = 0;
-    self->noteOffIndex      = 0;
-    self->noteOffSendIndex  = 0;
-    self->countTicks        = 0;
-    self->patternIndex      = 0;
-    self->modeHandle        = 0;
-    self->prevMod           = 100;
-    self->prevLatch         = 100;
-    self->count             = 0;
-    self->inputIndex        = 0;
-    self->notesPressed      = 0;
+    self->rate             = rate;
+    self->nyquist          = rate / 2; 
+    self->bpm              = 120.0f;
+    self->beatInMeasure    = 0;
+    self->divisionRate     = 4;
+    self->phase            = 0;
+    self->velPhase         = 0.000000009;
+    self->x1               = 0.00000001; 
+    self->velocityLFO      = 0;
+    self->velocity         = 0;
+    self->octaveIndex      = 0;
+    self->noteOffIndex     = 0; 
+    self->noteOffSendIndex = 0; 
+    self->playHead         = 0;
+    self->metaBegin        = 0;
+    self->countTicks       = 0;
+    self->patternIndex     = 0;
+    self->modeHandle       = 0;
+    self->prevMod          = 100;
+    self->prevLatch        = 100;
+    self->count            = 0;
+    self->inputIndex       = 0;
+    self->notesPressed     = 0;
     self->previousFrequency = 0;
-    self->previousDivision  = 0;
-    self->previousBpm       = 0;
+    self->metaNote         = 0;
     //check this value
-    self->prevThrough       = 0;
+    self->prevThrough      = 0;
 
-    self->placementIndex    = 0;
-    self->notePlacement[0]  = 0;
-    self->notePlacement[1]  = 0.5;
+    self->placementIndex   = 0;
+    self->notePlacement[0] = 0;
+    self->notePlacement[1] = 0.5;
 
     //resetPhase vars:
+    self->previousDevision = 12;
     self->previousPlaying = false;
     self->resetPhase      = true;
 
@@ -103,6 +107,9 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     }
 
     debug_print("DEBUG MODE\n");
+    //init objects
+    self->writeEvents  = (Array* )malloc(sizeof(Array));
+    self->playEvents   = (Array* )malloc(sizeof(Array));
 
     for (size_t i = 0; i < 4; i++) {
         self->noteOffArr[i] = 0;
@@ -114,26 +121,20 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         }
     }
     //init vars
-    self->metaBegin = 0;
-    self->metaEvents.used  = 0;
-    self->metaEvents.amountOfProps = 2;
-    self->writeEvents.used  = 0;
-    self->writeEvents.amountOfProps = 2;
-    self->playEvents.used   = 0;
-    self->playEvents.amountOfProps = 2;
+    self->writeEvents->used  = 0;
+    self->playEvents->used   = 0;
 
     self->notePlayed  = 0;
-    self->playHead    = 0;
     self->transpose   = 0;
-    self->lfo1        = 0;
-    self->lfo2        = 0;
+    self->lfo1        = 0;  
+    self->lfo2        = 0;  
 
-    self->metaDataRendered  = true;
-    self->recordingMetaData = false;
-    self->firstRecordedNote = false;
+    self->firstRecordedNote = false; 
+    self->metaRecording     = false;
+    self->renderMeta        = false;
     self->trigger           = false;
     self->triggerSet        = false;
-    self->cleared           = true;
+    self->cleared           = true; 
     self->through           = true;
     self->firstBar          = false;
     self->playing           = false;
@@ -163,10 +164,10 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
 
 
-static void
+static void 
 connect_port(LV2_Handle instance, uint32_t port, void* data)
 {
-    StepSeq* self = (StepSeq*)instance;
+    Data* self = (Data*)instance;
 
     switch (port)
     {
@@ -263,10 +264,10 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
         case LFO2DEPTH:
             self->lfo2DepthParam = (const float*)data;
             break;
-        case RECORDMETADATA:
-            self->enableMetaRecordingParam = (const float*)data;
+        case METARECORDING:
+            self->metaRecordingParam = (const float*)data;
             break;
-        case METADATAMODE:
+        case METAMODE:
             self->metaModeParam = (const float*)data;
             break;
     }
@@ -274,17 +275,17 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
 
 
 
-static void
+static void 
 activate(LV2_Handle instance)
 {
 
 }
 
 
-//create a midi message
-static LV2_Atom_MIDI
-createMidiEvent(StepSeq* self, uint8_t status, uint8_t note, uint8_t velocity)
-{
+//create a midi message 
+static LV2_Atom_MIDI 
+createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
+{ 
     LV2_Atom_MIDI msg;
     memset(&msg, 0, sizeof(LV2_Atom_MIDI));
 
@@ -299,10 +300,11 @@ createMidiEvent(StepSeq* self, uint8_t status, uint8_t note, uint8_t velocity)
 }
 
 
-static float
+
+static float     
 getParamMinRange(int param)
 {
-    float maxParamValue[18] =
+    float maxParamValue[18] = 
     {0, 0, 0, 1, 25, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
 
     return maxParamValue[param];
@@ -310,10 +312,10 @@ getParamMinRange(int param)
 
 
 
-static float
+static float 
 getParamMaxRange(int param)
 {
-    float maxParamValue[18] =
+    float maxParamValue[18] = 
     {0, 10, 0.99, 4, 75, 1, 2, 70, 1, 0, 127, 127, 127, 127, 127, 127, 127, 127};
 
     return maxParamValue[param];
@@ -322,7 +324,7 @@ getParamMaxRange(int param)
 
 
 static void
-applyLfoToParameters(StepSeq* self)
+applyLfoToParameters(Data* self)
 {
     size_t amountParam = 18;
     float lfoValue = 0;
@@ -350,7 +352,6 @@ applyLfoToParameters(StepSeq* self)
 
     self->division           = self->variables[1];
     self->noteLength         = self->variables[2];
-    //debug_print("note length = %f\n", self->noteLength);
     self->octaveSpread       = self->variables[3];
     self->swing              = self->variables[4];
     self->randomizeTimming   = self->variables[5];
@@ -370,8 +371,8 @@ applyLfoToParameters(StepSeq* self)
 
 
 
-static void
-update_position(StepSeq* self, const LV2_Atom_Object* obj)
+    static void
+update_position(Data* self, const LV2_Atom_Object* obj)
 {
     const MetroURIs* uris = &self->uris;
 
@@ -380,10 +381,10 @@ update_position(StepSeq* self, const LV2_Atom_Object* obj)
     lv2_atom_object_get(obj,
             uris->time_barBeat, &beat,
             uris->time_beatsPerMinute, &bpm,
-            uris->time_speed, &speed, uris->time_beatsPerBar, &barsize,
+            uris->time_speed, &speed, uris->time_beatsPerBar, &barsize, 
             NULL);
 
-    static int previousSpeed = 0;
+    static int previousSpeed = 0; 
 
     if (bpm && bpm->type == uris->atom_Float) {
         // Tempo changed, update BPM
@@ -396,9 +397,9 @@ update_position(StepSeq* self, const LV2_Atom_Object* obj)
     if (beat && beat->type == uris->atom_Float) {
         const float bar_beats       = ((LV2_Atom_Float*)beat)->body;
         const float beat_beats      = bar_beats - floorf(bar_beats);
-        const float beat_barsize    = ((LV2_Atom_Float*)barsize)->body;
-        self->beatInMeasure = ((LV2_Atom_Float*)beat)->body;
-        self->barsize = beat_barsize;
+        const float beat_barsize    = ((LV2_Atom_Float*)barsize)->body;  
+        self->beatInMeasure = ((LV2_Atom_Float*)beat)->body; 
+        self->barsize = beat_barsize; 
 
         if (self->speed != previousSpeed) {
             self->phase = beat_beats;
@@ -409,8 +410,8 @@ update_position(StepSeq* self, const LV2_Atom_Object* obj)
 
 
 //clear all arrays and set values back to initial state TODO check adding trigger?
-static void
-clearNotes(StepSeq *self, const uint32_t outCapacity)
+    static void
+clearNotes(Data *self, const uint32_t outCapacity)
 {
     //TODO only note offs for notes that are currently being played
     for (size_t mNotes = 0; mNotes < 127; mNotes++) {
@@ -420,19 +421,16 @@ clearNotes(StepSeq *self, const uint32_t outCapacity)
 }
 
 
-static void
-stopSequence(StepSeq* self)
+    static void
+stopSequence(Data* self)
 {
-    clearSequence(self->metaEvents);
     clearSequence(self->writeEvents);
     clearSequence(self->playEvents);
 
-    self->metaBegin          = 0;
-    self->writeEvents.used   = 0;
-    self->playEvents.used    = 0;
+    self->writeEvents->used  = 0;
+    self->playEvents->used   = 0;
     self->activeNotes        = 0;
     self->transpose          = 0;
-    self->metaDataRendered   = true;
     self->firstBar           = false;
     self->trigger            = false;
     self->octaveIndex        = 0;
@@ -445,118 +443,100 @@ stopSequence(StepSeq* self)
     }
 
     self->noteOffIndex     = 0;
-    self->noteOffSendIndex = 0;
+    self->noteOffSendIndex = 0; 
     self->activeNotes      = 0;
     self->cleared          = true;
 }
 
 
 
-static uint32_t
-handlePorts(StepSeq* self)
+    static uint32_t 
+handlePorts(Data* self)
 {
     const uint32_t outCapacity = self->port_events_out1->atom.size;
     // Write an empty Sequence header to the outputs
     lv2_atom_sequence_clear(self->port_events_out1);
     self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
-    return outCapacity;
+    return outCapacity; 
 }
 
 
-
-static EventList 
-applyDifference(EventList play, EventList write)
+    static void
+applyDifference(Data* self)
 {
     static bool different;
     //makes a copy of the event list if the there are new events
-    different = checkDifference(play.eventList, write.eventList, play.used, write.used);
+    different = checkDifference(self->playEvents->eventList, self->writeEvents->eventList, self->playEvents->used, self->writeEvents->used);
 
     if (different)
     {
-        return play = copyEvents(write, play);
+        copyEvents(self->writeEvents, self->playEvents);  
         different = false;
-    } else {
-        return play;
     }
 }
 
 
-
-static float
-applyRandomTiming(float depth)
+    static float
+applyRandomTiming(Data* self)
 {
-    float direction;
-
-    if ((rand() % 2) == 1)
-        direction = 1;
-    else
-        direction = -1;
-        
-    return depth * direction * ((rand() % 50) * 0.06);
+    return *self->randomizeTimmingParam * ((rand() % 100) * 0.003);
 }
 
 
-
-static uint8_t
-octaveHandler(size_t *octaveIndex, int octaveSpread)
+    static uint8_t 
+octaveHandler(Data* self)
 {
-    uint8_t octave = 12 * *octaveIndex;
-    *octaveIndex = (*octaveIndex + 1) % octaveSpread;
+    uint8_t octave = 12 * self->octaveIndex; 
+    self->octaveIndex = (self->octaveIndex + 1) % (int)self->octaveSpread;
 
     return octave;
 }
 
 
-
-static uint8_t*
-velocityHandler(int velocityMode, uint8_t *velocity, float velocityLFO, float curveDepth, 
-        size_t *patternIndex, bool *clip, uint8_t velocityPattern[], int velocityPatternLength)
+    static uint8_t 
+velocityHandler(Data* self)
 {
-    if (velocityMode == 0) {
-        *velocity = 80;
-    } else if (velocityMode == 1) { 
-        *velocity = 127 + (int)floor(((velocityLFO) - 127) * curveDepth);
-    } else if (velocityMode == 2) {
-        *velocity = floor(velocityPattern[*patternIndex]);
+
+    //TODO create function for velocity handling
+    if (self->velocityMode == 0) {
+        self->velocity = 80;
+    } else if (self->velocityMode == 1) { 
+        self->velocity = 127 + (int)floor(((self->velocityLFO) - 127) * self->curveDepth);
+    } else if (self->velocityMode == 2) {
+        self->velocity = floor(self->velocityPattern[self->patternIndex]);
     }
 
-    *patternIndex = (*patternIndex + 1) % velocityPatternLength; 
+    self->patternIndex = (self->patternIndex + 1) % (int)*self->velocityPatternLengthParam; 
 
-    if (*clip)
-        *clip = false;
+    if (self->clip)
+        self->clip = false;
 
-    return velocity;
+    return self->velocity;
 }
 
-
-
-static void
-handleNoteOn(StepSeq* self, const uint32_t outCapacity)
+    static void 
+handleNoteOn(Data* self, const uint32_t outCapacity)
 {
     static bool   alreadyPlaying = false;
     static size_t noteFound      = 0;
     //get octave and velocity
 
-    if ( self->playEvents.eventList[self->notePlayed][0] > 0 && self->playEvents.eventList[self->notePlayed][0] < 128)
+    if ( self->playEvents->eventList[self->notePlayed][0] > 0 && self->playEvents->eventList[self->notePlayed][0] < 128)
     {
-        uint8_t octave = octaveHandler(&self->octaveIndex, (int)self->octaveSpread);
-        uint8_t velocity = *velocityHandler(self->velocityMode, &self->velocity, self->velocityLFO, self->curveDepth, 
-        &self->patternIndex, &self->clip, self->velocityPattern, (int)*self->velocityPatternLengthParam);
-        //uint8_t velocity = velocityHandler(self);
+        uint8_t octave = octaveHandler(self);
+        uint8_t velocity = velocityHandler(self);
 
         //create MIDI note on message
-        uint8_t midiNote = self->playEvents.eventList[self->notePlayed][0] + self->transpose + octave;
+        uint8_t midiNote = self->playEvents->eventList[self->notePlayed][0] + self->transpose + octave;
+        self->metaNote = midiNote;
 
-        if (self->recordingMetaData) {
-            self->metaEvents = recordMetaData(self->metaEvents, self->playEvents, midiNote);
-        }
         //check if note is already playing
         for (size_t i = 0; i < 4; i++) {
-            if ((uint8_t)self->noteOffTimer[i][0] == midiNote) {
+            if ((uint8_t)self->noteOffTimer[i][0] == midiNote) { 
                 self->noteOffTimer[i][1] = 0;
                 alreadyPlaying = true;
-                noteFound = i;
+                noteFound = i; 
             } else {
                 alreadyPlaying = false;
             }
@@ -576,14 +556,14 @@ handleNoteOn(StepSeq* self, const uint32_t outCapacity)
                 self->noteTie = 0;
             }
 
-            if (self->playEvents.eventList[self->notePlayed][1] != 2) {
+            if (self->playEvents->eventList[self->notePlayed][1] != 2) { 
                 self->noteOffTimer[activeNoteIndex][0] = (float)midiNote;
-                activeNoteIndex = (activeNoteIndex + 1) % 4;
+                activeNoteIndex = (activeNoteIndex + 1) % 4; 
             } else {
                 self->noteTie = midiNote;
             }
         } else {
-            activeNoteIndex = (noteFound + 1) % 4;
+            activeNoteIndex = (noteFound + 1) % 4; 
         }
 
         //check for note tie else add to noteOffTimer
@@ -598,18 +578,20 @@ handleNoteOn(StepSeq* self, const uint32_t outCapacity)
     self->cleared = false;
     self->trigger = true;
 
-    //increment sequence index
-    self->notePlayed++;
-    self->notePlayed = (self->notePlayed > (self->playEvents.used - 1)) ? 0 : self->notePlayed;
-    self->playHead++;
-    self->playHead = (self->playHead >= self->barLimit) ? 0 : self->playHead;
     debug_print("self->playHead %li\n", self->playHead);
+    debug_print("self->beatInMeasure =  %f\n", self->beatInMeasure);
+
+    //increment sequence index 
+    self->notePlayed++;
+    self->notePlayed = (self->notePlayed >= self->playEvents->used) ? 0 : self->notePlayed;
+    self->playHead++;
+    self->playHead = self->playHead % self->numNotesInBar;
 }
 
 
 
 static void
-handleNoteOff(StepSeq* self, const uint32_t outCapacity)
+handleNoteOff(Data* self, const uint32_t outCapacity)
 {
     for (int i = 0; i < 4; i++) {
         if (self->noteOffTimer[i][0] > 0) {
@@ -620,18 +602,18 @@ handleNoteOff(StepSeq* self, const uint32_t outCapacity)
                 self->noteOffTimer[i][0] = 0;
                 self->noteOffTimer[i][1] = 0;
             }
-        }
+        }  
     }
 }
 
 
 
-static int
-switchMode(StepSeq* self, const uint32_t outCapacity)
+    static int
+switchMode(Data* self, const uint32_t outCapacity)
 {
     ModeEnum modeStatus    = (int)*self->modeParam;
-    //TODO set normal value
-    if ((int)*self->modeParam != self->prevMod || (int)*self->latchTransposeParam != self->prevLatch)
+    //TODO set normal value 
+    if ((int)*self->modeParam != self->prevMod || (int)*self->latchTransposeParam != self->prevLatch) 
     {
         switch (modeStatus)
         {
@@ -640,31 +622,31 @@ switchMode(StepSeq* self, const uint32_t outCapacity)
                 stopSequence(self);
                 self->playing    = false;
                 self->modeHandle = 0;
-                self->through    = true;
+                self->through    = true; 
                 break;
             case STOP:
                 self->playing    = false;
                 self->modeHandle = 0;
-                self->through    = true;
+                self->through    = true; 
                 self->notePlayed = 0;
                 break;
             case RECORD:
                 self->firstRecordedNote = false;
-                self->through           = true;
-                self->modeHandle        = 6;
+                self->through           = true; 
+                self->modeHandle        = 6;  
                 break;
             case PLAY:
 
-                if (self->writeEvents.used > 0)
+                if (self->writeEvents->used > 0)
                     self->playing = true;
 
-                //set MIDI input through
+                //set MIDI input through 
                 if ((int)*self->latchTransposeParam == 1 && self->playing == true) {
                     self->modeHandle = 3;
                     self->through = false;
-                }
+                } 
                 else if ((int)*self->latchTransposeParam == 0 ) {
-                    self->modeHandle = 5;
+                    self->modeHandle = 5; 
                     self->through = false;
                     self->playing = false;
                     clearNotes(self, outCapacity);
@@ -685,7 +667,7 @@ switchMode(StepSeq* self, const uint32_t outCapacity)
                     self->playing = true;
                 }
                 break;
-            case RECORD_APPEND:
+            case RECORD_APPEND: 
                 self->modeHandle    = 1;
                 self->through = false;
 
@@ -698,7 +680,7 @@ switchMode(StepSeq* self, const uint32_t outCapacity)
                 break;
             case UNDO_LAST:
                 //TODO works but it should be aware of sequence
-                self->writeEvents.used--;
+                self->writeEvents->used--;
                 break;
         }
         self->prevMod = (int)*self->modeParam;
@@ -713,8 +695,8 @@ switchMode(StepSeq* self, const uint32_t outCapacity)
 
 
 
-static void
-handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
+    static void 
+handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
 {
 
     switch (status)
@@ -722,15 +704,16 @@ handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHan
         uint8_t midiNote;
 
         case LV2_MIDI_MSG_NOTE_ON:
-        self->notesPressed++;
+        self->notesPressed++;  
 
         if ((uint8_t)*self->noteModeParam == 0)
             midiNote = 200;
         else
             midiNote = msg[1];
 
-        if (*self->enableMetaRecordingParam == 1) {
-            self->recordingMetaData = true;
+        if (*self->metaRecordingParam == 1) {
+            self->metaRecording = true;
+            self->metaBegin     = self->playHead; //TODO make up clear name
         }
 
         switch (modeHandle)
@@ -738,35 +721,35 @@ handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHan
             case 0:
                 break;
             case 1:
-                self->writeEvents = insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
+                insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
                 self->playing=true;
                 break;
             case 2:
                 //TODO does count needs to be reset?
                 self->playing = true;
-                self->writeEvents.eventList[self->count++ % self->writeEvents.used][0] = midiNote;
-                self->writeEvents.eventList[self->count][1] = (uint8_t)*self->noteModeParam;
+                self->writeEvents->eventList[self->count++ % self->writeEvents->used][0] = midiNote;
+                self->writeEvents->eventList[self->count][1] = (uint8_t)*self->noteModeParam; 
                 break;
             case 3:
                 if (midiNote < 128)
-                    self->transpose = midiNote - self->writeEvents.eventList[0][0];
+                    self->transpose = midiNote - self->writeEvents->eventList[0][0];
                 break;
             case 4:
                 //200 = rest
-                self->writeEvents = insertNote(self->writeEvents, 200, (uint8_t)*self->noteModeParam);
+                insertNote(self->writeEvents, 200, (uint8_t)*self->noteModeParam);
                 break;
             case 5:
                 self->playing = true;
-                self->transpose = midiNote - self->writeEvents.eventList[0][0];
+                self->transpose = midiNote - self->writeEvents->eventList[0][0];
                 break;
             case 6:
                 if (!self->firstRecordedNote) {
                     self->playing = false;
                     stopSequence(self);
-                    self->writeEvents = insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
+                    insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
                     self->firstRecordedNote = true;
                 } else {
-                    self->writeEvents = insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
+                    insertNote(self->writeEvents, midiNote, (uint8_t)*self->noteModeParam);
                 }
                 break;
         }
@@ -774,7 +757,7 @@ handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHan
 
         case LV2_MIDI_MSG_NOTE_OFF:
         self->notesPressed--;
-        if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1) && self->notesPressed == 0 && *self->latchTransposeParam == 0) {
+        if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTransposeParam == 0) {
             //debug_print("self->playing=false");
             self->playing = false;
             self->notePlayed = 0;
@@ -783,19 +766,19 @@ handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHan
         break;
     }
 
-    //MIDI through
+    //MIDI through   
     if (self->through && (int)*self->noteModeParam > 0.0) {
-        self->midiThroughInput[self->inputIndex++ % 16] = msg[1];
+        self->midiThroughInput[self->inputIndex++ % 16] = msg[1]; 
         lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, ev);
         self->prevThrough = 1;
-    }
+    } 
     else if (self->prevThrough == 1) {
         for (size_t i = 0; i < self->inputIndex + 1; i++) {
             //send note off
             //TODO does this need an init value?
             LV2_Atom_MIDI offMsg = createMidiEvent(self, 128, self->midiThroughInput[i], 0);
             lv2_atom_sequence_append_event(self->port_events_out1, outCapacity, (LV2_Atom_Event*)&offMsg);
-        }
+        } 
         self->inputIndex  = 0;
         self->prevThrough = 0;
     }
@@ -803,25 +786,25 @@ handleNotes(StepSeq* self, const uint8_t* const msg, uint8_t status, int modeHan
 
 
 
-static void
-sequenceProcess(StepSeq* self, const uint32_t outCapacity)
+    static void
+sequenceProcess(Data* self, const uint32_t outCapacity)
 {
-    self->playEvents = applyDifference(self->playEvents, self->writeEvents);
+    applyDifference(self);
     //placement is used to control the amount of swing, the place of the of [0] is static the placement of note [1] can -
     //be moved
     self->notePlacement[1] = self->swing * 0.01;
 
     if (self->playing && self->firstBar)
     {
-        float offset = applyRandomTiming(*self->randomizeTimmingParam);
-        if (self->phase >= self->notePlacement[self->placementIndex] + offset && self->phase < (self->notePlacement[self->placementIndex] + 0.2 + offset)
-                && !self->trigger && self->playEvents.used > 0)
+        float offset = applyRandomTiming(self);
+        if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2)
+                && !self->trigger && self->playEvents->used > 0)
         {
             handleNoteOn(self, outCapacity);
             self->triggerSet = false;
         } else
         { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
-            if (self->phase > self->notePlacement[self->placementIndex] + 0.2 + offset && !self->triggerSet)
+            if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet)
             {
                 self->placementIndex ^= 1;
                 self->trigger = false;
@@ -835,9 +818,11 @@ sequenceProcess(StepSeq* self, const uint32_t outCapacity)
 
 
 //sequence the MIDI notes that are written into an array
-static void
-handleEvents(StepSeq* self, const uint32_t outCapacity, int eventsMode)
+static void 
+handleEvents(Data* self, const uint32_t outCapacity)
 {
+    int modeHandle = switchMode(self, outCapacity);
+
     // Read incoming events
     LV2_ATOM_SEQUENCE_FOREACH(self->port_events_in, ev)
     {
@@ -845,17 +830,16 @@ handleEvents(StepSeq* self, const uint32_t outCapacity, int eventsMode)
         {
             const uint8_t* const msg = (const uint8_t*)(ev + 1);
             const uint8_t status = msg[0] & 0xF0;
-            handleNotes(self, msg, status, eventsMode, outCapacity, ev);
+            handleNotes(self, msg, status, modeHandle, outCapacity, ev);
         }
     }
 }
 
 
-
-static void
+    static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
-    StepSeq* self = (StepSeq*)instance;
+    Data* self = (Data*)instance;
     self->port_events_out1->atom.type = self->port_events_in->atom.type;
 
     const MetroURIs* uris = &self->uris;
@@ -876,50 +860,31 @@ run(LV2_Handle instance, uint32_t n_samples)
             }
         }
     }
+    self->frequency = calculateFrequency(self->bpm, self->division);
+    //halftime speed when frequency goes out of range
+    if (self->frequency > self->nyquist)
+        self->frequency = self->frequency / 2;
 
-    if (self->bpm != self->previousBpm || self->division != self->previousDivision) {
-        self->frequency = calculateFrequency(self->bpm, self->division);
-        //halftime speed when frequency goes out of range
-        if (self->frequency > self->nyquist)
-            self->frequency = self->frequency / 2;
-        self->previousDivision = self->division;
-        self->previousBpm = self->bpm;
-    }
 
     // Get the capacity
-    const uint32_t outCapacity = handlePorts(self);
-
-    int eventsMode = switchMode(self, outCapacity);
-
-    handleEvents(self, outCapacity, eventsMode);
-
-    int quantizeValue = 0;
-
-    //if (*self->enableMetaRecordingParam == 1 && self->metaDataRendered) {
-    if (self->recordingMetaData && self->metaDataRendered) {
-        if (self->phase < 0.5) {
-            quantizeValue = round(self->phase * 2);
-        } else if (self-> phase >= 0.5) {
-            quantizeValue = round((self->phase - 0.5) * 2);
-        }
-        self->metaBegin = self->playHead;
-        self->metaDataRendered = false;
-        self->recordingMetaData = true;
-    } else if (*self->enableMetaRecordingParam != 1 && !self->metaDataRendered) {
-        self->recordingMetaData = false;
-        renderMetaRecording(self->metaEvents, self->playEvents, self->transpose, self->playHead, 
-        self->notePlayed, self->phase, *self->metaModeParam, self->barLimit, self->metaBegin, quantizeValue);
-        self->metaDataRendered = true;
-    }
+    const uint32_t outCapacity = handlePorts(self); 
 
     //a phase Oscillator that we use for the tempo of the midi-sequencer
     for (uint32_t pos = 0; pos < n_samples; pos++) {
         applyLfoToParameters(self);
-        self->phase = resetPhase(self);
-        self->phase = *phaseOsc(self->frequency, &self->phase, self->rate);
+        resetPhase(self);
+        self->phase = *phaseOsc(self->frequency, &self->phase, self->rate, self->swing);
         self->velocityLFO = *velOsc(self->frequency, &self->velocityLFO, self->rate, self->velocityCurve, self->curveDepth,
                 self->curveLengthParam, self->curveClip, self);
         sequenceProcess(self, outCapacity);
+    }
+    handleEvents(self, outCapacity);
+    if (self->metaRecording) {
+        insertNote(self->metaEvents, self->metaNote, (uint8_t)*self->noteModeParam);
+        self->renderMeta = true;
+    } else if (!self->metaRecording && self->renderMeta) {
+        renderMetaRecording(self->metaEvents, self->writeEvents, self->metaBegin, self->numNotesInBar);
+        self->renderMeta = false;
     }
 }
 
@@ -946,7 +911,7 @@ static const LV2_Descriptor descriptor = {
 
 
 
-LV2_SYMBOL_EXPORT
+    LV2_SYMBOL_EXPORT
 const LV2_Descriptor* lv2_descriptor(uint32_t index)
 {
     return (index == 0) ? &descriptor : NULL;

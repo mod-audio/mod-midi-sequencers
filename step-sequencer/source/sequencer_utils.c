@@ -19,11 +19,10 @@
 
 #include "sequencer_utils.h"
 
-
 float getDivider(int division)
 {
     float rateValues[11] = {0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0};
-    float divider = rateValues[division];
+    float divider = rateValues[division]; 
 
     return divider;
 }
@@ -49,8 +48,8 @@ float remap(float input, float low1, float high1, float low2, float high2)
 
 float calculateFrequency(uint8_t bpm, float division)
 {
-
-    float frequency = ((bpm * getDivider((int)division)) / 60) * 0.5;
+    float rateValues[11] = {0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0};
+    float frequency = ((bpm * rateValues[(int)division]) / 60) * 0.5;
 
     return frequency;
 }
@@ -78,75 +77,43 @@ bool checkDifference(uint8_t (*arrayA) [2], uint8_t (*arrayB) [2], size_t length
 
 
 
-EventList insertNote(EventList events, uint8_t note, uint8_t noteTie)
+void insertNote(Array *arr, uint8_t note, uint8_t noteTie)
 {
-    events.eventList[events.used][0] = note;
-    events.eventList[events.used][1] = noteTie;
-    events.used = (events.used + 1) % 248;
-
-    return events;
+    arr->eventList[arr->used][0] = note;
+    arr->eventList[arr->used][1] = noteTie;
+    arr->used = (arr->used + 1) % 248;
 }
 
 
 //make copy of events from eventList A to eventList B
-EventList copyEvents(EventList eventListA, EventList eventListB)
+void copyEvents(Array* eventListA, Array* eventListB)
 {
-    eventListB.used = eventListA.used;
-    for (size_t noteIndex = 0; noteIndex < eventListA.used; noteIndex++) {
-        for (size_t noteMeta = 0; noteMeta < eventListA.amountOfProps; noteMeta++) {
-            eventListB.eventList[noteIndex][noteMeta] = eventListA.eventList[noteIndex][noteMeta];
+    eventListB->used = eventListA->used;
+
+    for (size_t noteIndex = 0; noteIndex < eventListA->used; noteIndex++) {
+        for (size_t noteMeta = 0; noteMeta < 2; noteMeta++) {
+            eventListB->eventList[noteIndex][noteMeta] = eventListA->eventList[noteIndex][noteMeta];
         }
     }
-    return eventListB;
 }
 
+//float resetPhaseFunction(Data* self, float division)
+//{
+//    float rateValues[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
+//    float phaseLength = ((60 / self->bpm) / ((rateValues[(int)division] / 2)));
+//    float pos = fmod((60 / self->bpm) * self->beatInMeasure, phaseLength) / phaseLength;
+//    //set notePlacement var;
+//    debug_print(" \n");
+//    debug_print("rateValue = %f\n", rateValues[(int)division]);
+//    debug_print("pos = %f\n", pos);
+//    debug_print("phaseLength = %f\n", phaseLength);
+//    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
+//
+//    return pos;
+//}
 
 
-EventList recordMetaData(EventList metaData, EventList events, uint8_t midiNote)
-{
-    metaData.eventList[metaData.used][0] = midiNote;
-    for (size_t noteMeta = 1; noteMeta < metaData.amountOfProps; noteMeta++) {
-        metaData.eventList[metaData.used][noteMeta] = events.eventList[metaData.used][noteMeta];
-    }
-    metaData.used += 1;
-
-    return metaData;
-}
-
-
-
-EventList renderMetaRecording(EventList metaEvents, EventList currentEvents, uint8_t transpose, float playPos, 
-        size_t notePlayed, float phase, int snapMode, size_t barLimit, size_t metaBegin, int quantizeValue) 
-{
-
-    switch (snapMode) 
-    {
-        case 0: //snap by bar
-            //round the amount of notes that can fir in a bar, I think ceil?
-            if (metaEvents.used < barLimit) {
-                metaEvents.used = barLimit;
-            } else {
-                for (size_t i = metaEvents.used; i < barLimit; i++) { //TODO check this for error by one
-                    for (size_t noteData = 0; noteData < currentEvents.amountOfProps; noteData++) {
-                        metaEvents.eventList[i][noteData] = currentEvents.eventList[i % currentEvents.used][noteData] + transpose;
-                    }
-                }
-            }
-            break;
-        case 1: //snap by note
-            if (phase > 0.5) { //TODO check for error by one and correct phase
-                for (size_t noteData = 0; noteData < currentEvents.amountOfProps; noteData++) {
-                    metaEvents.eventList[metaEvents.used][noteData] = currentEvents.eventList[metaEvents.used % currentEvents.used][noteData] + transpose;
-                }
-            }
-            break;
-    }
-    return metaEvents;
-}
-
-
-
-float calculateNewPhase(StepSeq* self, float noteLengthInSeconds, float currentBeatPosition, float bpm)
+float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm)
 {
     float beatsInSeconds = (60 / bpm) * currentBeatPosition;
     float barLengthMinusNoteLength = beatsInSeconds;
@@ -162,31 +129,19 @@ float calculateNewPhase(StepSeq* self, float noteLengthInSeconds, float currentB
     else
         self->placementIndex = 0;
 
+    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
+    debug_print("phase %f\n", phase);
+
     return phase;
 }
 
 
-
-bool checkForFirstBar(StepSeq *self)
+void resetPhase(Data *self)
 {
     float velInitVal      = 0.000000009;
 
-    if (self->playing != self->previousPlaying) {
-        if (*self->modeParam > 1) {
-            self->velPhase = velInitVal;
-            self->firstBar = true;
-        }
-        self->previousPlaying = self->playing;
-    }
-    return self->firstBar;
-}
-
-
-
-float resetPhase(StepSeq *self)
-{
     if (self->frequency != self->previousFrequency) {
-        self->barLimit = ceil(getDivider(self->division) * 4);
+        self->numNotesInBar = ceil(getDivider(self->division) * 4);
         float noteLengthInSeconds = 1.0 / self->frequency;
         self->phase        = calculateNewPhase(self, noteLengthInSeconds, self->beatInMeasure, self->bpm);
         self->previousFrequency = self->frequency;
@@ -194,10 +149,19 @@ float resetPhase(StepSeq *self)
 
     if (self->beatInMeasure < 0.5 && self->resetPhase) {
 
+        //TODO move elsewhere
+        if (self->playing != self->previousPlaying) {
+            if (*self->modeParam > 1) {
+                self->velPhase = velInitVal;
+                self->firstBar = true;
+            }
+            self->previousPlaying = self->playing;
+        }
+
         if (self->phase > 0.989 || self->phase < 0.01) {
             self->phase = 0.0;
         }
-        self->firstBar = checkForFirstBar(self);
+
         self->resetPhase  = false;
 
     } else {
@@ -205,14 +169,46 @@ float resetPhase(StepSeq *self)
             self->resetPhase = true;
         }
     }
-    return self->phase;
 }
 
 
-
-EventList clearSequence(EventList events)
+//Does this also need to Record the octave control?
+void renderMetaRecording(Array *metaEvents, Array *writeEvents, size_t metaBegin, size_t numNotesInBar)
 {
-    events.used = 0;
+    numNotesInBar = (numNotesInBar > 0) ? numNotesInBar : 1;
+    size_t amountMetaBars = round(metaEvents->used / numNotesInBar);
+    size_t notePos = metaEvents->used - metaBegin;
+    size_t notesToWrite = metaEvents->used;
+    size_t metaIndex = 0;
 
-    return events;
+    while (notesToWrite > 0) {
+        for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) 
+            writeEvents->eventList[notePos][prop] = metaEvents->eventList[metaIndex++][prop];
+        notePos++;
+        notesToWrite--;
+        notePos = (notePos > numNotesInBar * amountMetaBars) ? 0 : notePos;
+    }
+    if (notePos < numNotesInBar * 0.5) {
+        writeEvents->used = writeEvents->used - notePos;
+    } else {
+        while (notePos < numNotesInBar) {
+            for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) 
+                writeEvents->eventList[notePos][prop] = metaEvents->eventList[metaIndex++][prop];
+            notePos++;
+        }
+    }
 }
+
+
+
+void clearSequence(Array *arr)
+{
+    arr->used = 0;
+}
+
+
+//size_t remainer = metaEvents.used % numNotesInBar;
+//size_t preBarNotes = numNoteInBar - metaBegin;
+//size_t toEndOfBar = metaEvents.used - preBarNotes;
+//size_t notesToWrite = metaEvents.used - remainer;
+//size_t recordingLength = notesToWrite;

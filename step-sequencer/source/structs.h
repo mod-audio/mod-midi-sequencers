@@ -38,6 +38,8 @@
 #define debug_print(...) \
     ((void)((DEBUG) ? fprintf(stderr, __VA_ARGS__) : 0))
 
+#define NUM_NOTE_PROPS 2
+
 typedef enum PortEnum {
     PORT_ATOM_IN = 0,
     PORT_ATOM_OUT1,
@@ -70,8 +72,8 @@ typedef enum PortEnum {
     LFO1DEPTH,
     LFO2CONNECT,
     LFO2DEPTH,
-    RECORDMETADATA,
-    METADATAMODE
+    METARECORDING,
+    METAMODE
 } PortEnum;
 
 typedef enum ModeEnum {
@@ -98,15 +100,12 @@ typedef struct MetroURIs {
     LV2_URID time_speed;
 } MetroURIs;
 
+typedef struct Array {
+    uint8_t eventList[248][NUM_NOTE_PROPS];
+    size_t used;
+} Array;
 
-typedef struct EventList {
-    uint8_t eventList[248][2];
-    size_t  amountOfProps;
-    size_t  used;
-} EventList;
-
-
-typedef struct StepSeq {
+typedef struct Data {
 
     double  rate;   // Sample rate
     double  frequency;
@@ -132,6 +131,7 @@ typedef struct StepSeq {
 
     uint8_t noteTie;
     uint8_t velocity;
+    uint8_t metaNote;
     int     noteStarted[2];
     uint8_t noteOffArr[4];
     float   noteOffTimer[4][2];
@@ -145,21 +145,19 @@ typedef struct StepSeq {
     uint8_t midiThroughInput[16];
 
     //resetPhase vars:
-    float previousDivision;
-    float previousBpm;
+    float previousDevision;
     float previousFrequency;
     bool  previousPlaying;
     bool  resetPhase;
 
     size_t  patternIndex;
     size_t  notePlayed;
-    size_t  barLimit;
     size_t  playHead;
+    size_t  numNotesInBar;
+    size_t  metaBegin;
     size_t  octaveIndex;
     size_t  noteOffIndex;
     size_t  noteOffSendIndex;
-    bool    metaDataRendered;
-    bool    recordingMetaData;
     bool    firstRecordedNote;
     bool    through;
     bool    firstBar;
@@ -168,15 +166,16 @@ typedef struct StepSeq {
     bool    trigger;
     bool    triggerSet;
     bool    cleared;
+    bool    metaRecording;
+    bool    renderMeta;
     int     transpose;
     int     countTicks;
 
     const float** parameters[18];
-    uint8_t   velocityPattern[8];
-    size_t    metaBegin;
-    EventList metaEvents;
-    EventList writeEvents;
-    EventList playEvents;
+    uint8_t velocityPattern[8];
+    Array* metaEvents;
+    Array* writeEvents;
+    Array* playEvents;
 
     float variables[18];
     float division;         
@@ -224,7 +223,7 @@ typedef struct StepSeq {
     const float* lfo1DepthParam;
     const float* lfo2ConnectParam;
     const float* lfo2DepthParam;
-    const float* enableMetaRecordingParam;
+    const float* metaRecordingParam;
     const float* metaModeParam;
     const LV2_Atom_Sequence* port_events_in;
     LV2_Atom_Sequence*       port_events_out1;
@@ -234,7 +233,5 @@ typedef struct StepSeq {
     LV2_Atom_Sequence* control;
     MetroURIs          uris;    // Cache of mapped URIDs
 
-} StepSeq;
-
-
+} Data;
 #endif //_H_STRUCTS_
