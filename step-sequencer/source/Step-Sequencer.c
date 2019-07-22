@@ -108,6 +108,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     debug_print("DEBUG MODE\n");
     //init objects
+    self->metaEvents   = (Array* )malloc(sizeof(Array));
     self->writeEvents  = (Array* )malloc(sizeof(Array));
     self->playEvents   = (Array* )malloc(sizeof(Array));
 
@@ -121,6 +122,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
         }
     }
     //init vars
+    self->metaEvents->used  = 0;
     self->writeEvents->used  = 0;
     self->playEvents->used   = 0;
 
@@ -131,6 +133,7 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
 
     self->firstRecordedNote = false; 
     self->metaRecording     = false;
+    self->setMetaBegin      = false;
     self->renderMeta        = false;
     self->trigger           = false;
     self->triggerSet        = false;
@@ -371,7 +374,7 @@ applyLfoToParameters(Data* self)
 
 
 
-    static void
+static void
 update_position(Data* self, const LV2_Atom_Object* obj)
 {
     const MetroURIs* uris = &self->uris;
@@ -410,7 +413,7 @@ update_position(Data* self, const LV2_Atom_Object* obj)
 
 
 //clear all arrays and set values back to initial state TODO check adding trigger?
-    static void
+static void
 clearNotes(Data *self, const uint32_t outCapacity)
 {
     //TODO only note offs for notes that are currently being played
@@ -421,7 +424,8 @@ clearNotes(Data *self, const uint32_t outCapacity)
 }
 
 
-    static void
+
+static void
 stopSequence(Data* self)
 {
     clearSequence(self->writeEvents);
@@ -450,7 +454,7 @@ stopSequence(Data* self)
 
 
 
-    static uint32_t 
+static uint32_t 
 handlePorts(Data* self)
 {
     const uint32_t outCapacity = self->port_events_out1->atom.size;
@@ -462,7 +466,8 @@ handlePorts(Data* self)
 }
 
 
-    static void
+
+static void
 applyDifference(Data* self)
 {
     static bool different;
@@ -477,14 +482,16 @@ applyDifference(Data* self)
 }
 
 
-    static float
+
+static float
 applyRandomTiming(Data* self)
 {
     return *self->randomizeTimmingParam * ((rand() % 100) * 0.003);
 }
 
 
-    static uint8_t 
+
+static uint8_t 
 octaveHandler(Data* self)
 {
     uint8_t octave = 12 * self->octaveIndex; 
@@ -494,7 +501,8 @@ octaveHandler(Data* self)
 }
 
 
-    static uint8_t 
+
+static uint8_t 
 velocityHandler(Data* self)
 {
 
@@ -515,7 +523,9 @@ velocityHandler(Data* self)
     return self->velocity;
 }
 
-    static void 
+
+
+static void 
 handleNoteOn(Data* self, const uint32_t outCapacity)
 {
     static bool   alreadyPlaying = false;
@@ -578,9 +588,6 @@ handleNoteOn(Data* self, const uint32_t outCapacity)
     self->cleared = false;
     self->trigger = true;
 
-    debug_print("self->playHead %li\n", self->playHead);
-    debug_print("self->beatInMeasure =  %f\n", self->beatInMeasure);
-
     //increment sequence index 
     self->notePlayed++;
     self->notePlayed = (self->notePlayed >= self->playEvents->used) ? 0 : self->notePlayed;
@@ -608,7 +615,7 @@ handleNoteOff(Data* self, const uint32_t outCapacity)
 
 
 
-    static int
+static int
 switchMode(Data* self, const uint32_t outCapacity)
 {
     ModeEnum modeStatus    = (int)*self->modeParam;
@@ -695,7 +702,7 @@ switchMode(Data* self, const uint32_t outCapacity)
 
 
 
-    static void 
+static void 
 handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle, uint32_t outCapacity, void* ev)
 {
 
@@ -713,7 +720,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
         if (*self->metaRecordingParam == 1) {
             self->metaRecording = true;
-            self->metaBegin     = self->playHead; //TODO make up clear name
+            self->setMetaBegin  = true; //TODO make up clear name
         }
 
         switch (modeHandle)
@@ -758,7 +765,6 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
         case LV2_MIDI_MSG_NOTE_OFF:
         self->notesPressed--;
         if ((modeHandle == 5 || modeHandle == 2 || modeHandle == 1)&& self->notesPressed == 0 && *self->latchTransposeParam == 0) {
-            //debug_print("self->playing=false");
             self->playing = false;
             self->notePlayed = 0;
             clearNotes(self, outCapacity);
@@ -786,7 +792,7 @@ handleNotes(Data* self, const uint8_t* const msg, uint8_t status, int modeHandle
 
 
 
-    static void
+static void
 sequenceProcess(Data* self, const uint32_t outCapacity)
 {
     applyDifference(self);
@@ -800,8 +806,16 @@ sequenceProcess(Data* self, const uint32_t outCapacity)
         if (self->phase >= self->notePlacement[self->placementIndex] && self->phase < (self->notePlacement[self->placementIndex] + 0.2)
                 && !self->trigger && self->playEvents->used > 0)
         {
+            if(self->setMetaBegin) {
+                self->metaBegin = self->playHead;
+                self->setMetaBegin = false;
+            }
             handleNoteOn(self, outCapacity);
             self->triggerSet = false;
+            if (self->metaRecording) {
+                insertNote(self->metaEvents, self->metaNote, (uint8_t)*self->noteModeParam);
+                self->renderMeta = true;
+            }
         } else
         { //if this is false: (self->phase < 0.2 && !trigger && self->writeEvents->used > 0)
             if (self->phase > self->notePlacement[self->placementIndex] + 0.2 && !self->triggerSet)
@@ -836,7 +850,8 @@ handleEvents(Data* self, const uint32_t outCapacity)
 }
 
 
-    static void 
+
+static void 
 run(LV2_Handle instance, uint32_t n_samples)
 {
     Data* self = (Data*)instance;
@@ -865,7 +880,6 @@ run(LV2_Handle instance, uint32_t n_samples)
     if (self->frequency > self->nyquist)
         self->frequency = self->frequency / 2;
 
-
     // Get the capacity
     const uint32_t outCapacity = handlePorts(self); 
 
@@ -879,11 +893,10 @@ run(LV2_Handle instance, uint32_t n_samples)
         sequenceProcess(self, outCapacity);
     }
     handleEvents(self, outCapacity);
-    if (self->metaRecording) {
-        insertNote(self->metaEvents, self->metaNote, (uint8_t)*self->noteModeParam);
-        self->renderMeta = true;
-    } else if (!self->metaRecording && self->renderMeta) {
-        renderMetaRecording(self->metaEvents, self->writeEvents, self->metaBegin, self->numNotesInBar);
+    if (*self->metaRecordingParam == 0 && self->renderMeta) {
+        self->metaRecording = false;
+        renderMetaRecording(self->metaEvents, self->writeEvents, self->playEvents, self->metaBegin, self->numNotesInBar, 
+                &self->transpose, &self->notePlayed);
         self->renderMeta = false;
     }
 }
@@ -911,7 +924,7 @@ static const LV2_Descriptor descriptor = {
 
 
 
-    LV2_SYMBOL_EXPORT
+LV2_SYMBOL_EXPORT
 const LV2_Descriptor* lv2_descriptor(uint32_t index)
 {
     return (index == 0) ? &descriptor : NULL;

@@ -3,7 +3,7 @@
  *
  *       Filename:  sequencer_utils.h
  *
- *    Description:   
+ *    Description:
  *
  *        Version:  1.0
  *        Created:  12/24/2018 03:39:58 PM
@@ -15,8 +15,8 @@
  *
  * =====================================================================================
  */
-#ifndef _H_SEQ_UTILS_
-#define _H_SEQ_UTILS_
+#ifndef _H_SEQ_UTILS
+#define _H_SEQ_UTILS
 
 #include "structs.h"
 
@@ -30,5 +30,5 @@ void  clearSequence(Array *arr);
 void  copyEvents(Array* eventListA, Array* eventListB);
 float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm);
 void  resetPhase(Data* self);
-void  renderMetaRecording(Array *metaEvents, Array *writeEvents, size_t metaBegin, size_t numNotesInBar);
-#endif //_H_SEQ_UTILS_
+void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, size_t *notePlayed);
+#endif //_H_SEQ_UTILS

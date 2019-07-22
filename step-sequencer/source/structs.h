@@ -131,6 +131,7 @@ typedef struct Data {
 
     uint8_t noteTie;
     uint8_t velocity;
+    uint8_t transpose;
     uint8_t metaNote;
     int     noteStarted[2];
     uint8_t noteOffArr[4];
@@ -158,6 +159,7 @@ typedef struct Data {
     size_t  octaveIndex;
     size_t  noteOffIndex;
     size_t  noteOffSendIndex;
+    bool    setMetaBegin;
     bool    firstRecordedNote;
     bool    through;
     bool    firstBar;
@@ -168,7 +170,6 @@ typedef struct Data {
     bool    cleared;
     bool    metaRecording;
     bool    renderMeta;
-    int     transpose;
     int     countTicks;
 
     const float** parameters[18];

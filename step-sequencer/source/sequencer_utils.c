@@ -97,20 +97,6 @@ void copyEvents(Array* eventListA, Array* eventListB)
     }
 }
 
-//float resetPhaseFunction(Data* self, float division)
-//{
-//    float rateValues[11] = {8, 6, 4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25};
-//    float phaseLength = ((60 / self->bpm) / ((rateValues[(int)division] / 2)));
-//    float pos = fmod((60 / self->bpm) * self->beatInMeasure, phaseLength) / phaseLength;
-//    //set notePlacement var;
-//    debug_print(" \n");
-//    debug_print("rateValue = %f\n", rateValues[(int)division]);
-//    debug_print("pos = %f\n", pos);
-//    debug_print("phaseLength = %f\n", phaseLength);
-//    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
-//
-//    return pos;
-//}
 
 
 float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm)
@@ -128,9 +114,6 @@ float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeat
         self->placementIndex = 1;
     else
         self->placementIndex = 0;
-
-    debug_print("self->beatInMeasure = %f\n", self->beatInMeasure);
-    debug_print("phase %f\n", phase);
 
     return phase;
 }
@@ -173,30 +156,40 @@ void resetPhase(Data *self)
 
 
 //Does this also need to Record the octave control?
-void renderMetaRecording(Array *metaEvents, Array *writeEvents, size_t metaBegin, size_t numNotesInBar)
+void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, size_t *notePlayed)
 {
     numNotesInBar = (numNotesInBar > 0) ? numNotesInBar : 1;
-    size_t amountMetaBars = round(metaEvents->used / numNotesInBar);
-    size_t notePos = metaEvents->used - metaBegin;
-    size_t notesToWrite = metaEvents->used;
+    size_t amountMetaBars = (size_t)roundf((float)metaEvents->used / (float)numNotesInBar);
+    size_t notesToWrite = amountMetaBars * numNotesInBar;
+    size_t notePos = (numNotesInBar * amountMetaBars) - (numNotesInBar - metaBegin); 
+    notePos = (metaBegin < numNotesInBar * amountMetaBars * 0.5) ? notePos % numNotesInBar : notePos;
+    size_t notesRecorded = metaEvents->used;
     size_t metaIndex = 0;
 
-    while (notesToWrite > 0) {
-        for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) 
-            writeEvents->eventList[notePos][prop] = metaEvents->eventList[metaIndex++][prop];
-        notePos++;
-        notesToWrite--;
-        notePos = (notePos > numNotesInBar * amountMetaBars) ? 0 : notePos;
-    }
-    if (notePos < numNotesInBar * 0.5) {
-        writeEvents->used = writeEvents->used - notePos;
-    } else {
-        while (notePos < numNotesInBar) {
-            for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) 
-                writeEvents->eventList[notePos][prop] = metaEvents->eventList[metaIndex++][prop];
-            notePos++;
+    while (notesRecorded > 0) {
+        for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) {
+            writeEvents->eventList[notePos][prop] = metaEvents->eventList[metaIndex][prop];
         }
+        metaIndex++;
+        notePos++;
+        notesRecorded--;
+        notesToWrite--;
+        notePos = (notePos >= numNotesInBar * amountMetaBars) ? 0 : notePos;
+        //barsToWrite = (notePos % numNotesInBar == 0) ? barsToWrite -= 1 : barsToWrite;
     }
+
+    writeEvents->used = metaEvents->used;
+    *notePlayed = notePos;
+
+    while (notesToWrite > 0) {
+            for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) { 
+                writeEvents->eventList[notePos][prop] = playEvents->eventList[notePos % playEvents->used][prop] + *transpose;
+            }
+            notePos++;
+            writeEvents->used++;
+            notesToWrite--;
+    }
+    *transpose = 0;
 }
 
 
