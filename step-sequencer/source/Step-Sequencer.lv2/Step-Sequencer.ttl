@@ -58,8 +58,20 @@ a step sequencer with different record modes, focused on live playing.""" ;
         lv2:name "CvLfo2";
     ] ,
     [
-        a lv2:InputPort, lv2:ControlPort ;
+        a lv2:InputPort, lv2:CVPort;
         lv2:index 5;
+        lv2:symbol "CvLfo3";
+        lv2:name "CvLfo3";
+    ] ,
+    [
+        a lv2:InputPort, lv2:CVPort;
+        lv2:index 6;
+        lv2:symbol "CvLfo4";
+        lv2:name "CvLfo4";
+    ] ,
+    [
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 7;
         lv2:name "notemode" ;
         lv2:symbol "notemode" ;
         lv2:default 1 ;
@@ -72,7 +84,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] ,
     [   
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 6;
+        lv2:index 8;
         lv2:name "mode" ;
         lv2:symbol "mode" ;
         lv2:default 1 ;
@@ -89,7 +101,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 7;
+        lv2:index 9;
         lv2:name "division" ;
         lv2:symbol "division" ;
         lv2:default 8 ;
@@ -110,7 +122,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ],
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 8;
+        lv2:index 10;
         lv2:name "noteLength"  ;
         lv2:symbol "noteLength" ;
         lv2:default 0.3 ;
@@ -119,7 +131,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 9;
+        lv2:index 11;
         lv2:name "octaveSpread"  ;
         lv2:symbol "octaveSpread" ;
         lv2:default 1 ;
@@ -133,7 +145,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 10;
+        lv2:index 12;
         lv2:name "octaveMode"  ;
         lv2:symbol "octaveMode" ;
         lv2:default 0 ;
@@ -147,7 +159,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 11;
+        lv2:index 13;
         lv2:name "playmode" ;
         lv2:symbol "playmode" ;
         lv2:default 1 ;
@@ -160,7 +172,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 12;
+        lv2:index 14;
         lv2:name "swing"  ;
         lv2:symbol "swing" ;
         lv2:default 50 ;
@@ -169,7 +181,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 13;
+        lv2:index 15;
         lv2:name "randomizetimming"  ;
         lv2:symbol "randomizetimming" ;
         lv2:default 0.0 ;
@@ -178,7 +190,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 14;
+        lv2:index 16;
         lv2:name "velocitymode" ;
         lv2:symbol "velocitymode" ;
         lv2:default 0 ;
@@ -191,7 +203,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 15;
+        lv2:index 17;
         lv2:name "velocitycurve"  ;
         lv2:symbol "velocitycurve" ;
         lv2:default 0 ;
@@ -201,7 +213,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 16;
+        lv2:index 18;
         lv2:symbol "curvedepth" ;
         lv2:name "curvedepth" ;
         lv2:default 0.0 ;
@@ -210,7 +222,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ],
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 17;
+        lv2:index 19;
         lv2:symbol "curveClip" ;
         lv2:name "curveClip" ;
         lv2:default 0.0 ;
@@ -220,7 +232,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 18;
+        lv2:index 20;
         lv2:name "curvelength" ;
         lv2:symbol "curvelength" ;
         lv2:default 3 ;
@@ -245,7 +257,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] ,
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 19;
+        lv2:index 21;
         lv2:name "patternlength" ;
         lv2:symbol "patternlength" ;
         lv2:default 4 ;
@@ -263,7 +275,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 20;
+        lv2:index 22;
         lv2:symbol "velocityNote1" ;
         lv2:name "velocityNote1" ;
         lv2:default 60 ;
@@ -272,7 +284,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 21;
+        lv2:index 23;
         lv2:symbol "velocityNote2" ;
         lv2:name "velocityNote2" ;
         lv2:default 60 ;
@@ -281,7 +293,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 22;
+        lv2:index 24;
         lv2:symbol "velocityNote3" ;
         lv2:name "velocityNote3" ;
         lv2:default 60 ;
@@ -290,7 +302,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 23;
+        lv2:index 25;
         lv2:symbol "velocityNote4" ;
         lv2:name "velocityNote4" ;
         lv2:default 60 ;
@@ -299,7 +311,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] ,
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 24;
+        lv2:index 26;
         lv2:symbol "velocityNote5" ;
         lv2:name "velocityNote5" ;
         lv2:default 60 ;
@@ -308,7 +320,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 25;
+        lv2:index 27;
         lv2:symbol "velocityNote6" ;
         lv2:name "velocityNote6" ;
         lv2:default 60 ;
@@ -317,7 +329,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 26;
+        lv2:index 28;
         lv2:symbol "velocityNote7" ;
         lv2:name "velocityNote7" ;
         lv2:default 60 ;
@@ -326,7 +338,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 27;
+        lv2:index 29;
         lv2:symbol "velocityNote8" ;
         lv2:name "velocityNote8" ;
         lv2:default 60 ;
@@ -336,7 +348,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     [ 
         lv2:portProperty lv2:integer ;
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 28;
+        lv2:index 30;
         lv2:name "ConnectLfo1" ;
         lv2:symbol "ConnectLfo1" ;
         lv2:default 0 ;
@@ -365,7 +377,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 29;
+        lv2:index 31;
         lv2:symbol "LFO1depth" ;
         lv2:name "LFO1depth" ;
         lv2:default 0.5;
@@ -376,7 +388,7 @@ a step sequencer with different record modes, focused on live playing.""" ;
 
         lv2:portProperty lv2:integer ;
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 30;
+        lv2:index 32;
         lv2:name "ConnectLfo2" ;
         lv2:symbol "ConnectLfo2" ;
         lv2:default 0 ;
@@ -405,16 +417,96 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ] , 
     [ 
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 31;
+        lv2:index 33;
         lv2:symbol "LFO2depth" ;
         lv2:name "LFO2depth" ;
         lv2:default 0.5;
         lv2:minimum 0.0;
         lv2:maximum 1.0;
     ] ,
+    [ 
+
+        lv2:portProperty lv2:integer ;
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 34;
+        lv2:name "ConnectLfo3" ;
+        lv2:symbol "ConnectLfo3" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 17;
+        lv2:portProperty lv2:enumeration, lv2:integer;
+        lv2:scalePoint [ rdfs:label "none"            ; rdf:value 0  ] ;
+        lv2:scalePoint [ rdfs:label "division"        ; rdf:value 1  ] ;
+        lv2:scalePoint [ rdfs:label "noteLengthParam" ; rdf:value 2  ] ;
+        lv2:scalePoint [ rdfs:label "octaveSpread"    ; rdf:value 3  ] ;
+        lv2:scalePoint [ rdfs:label "octaveMode"      ; rdf:value 4  ] ;
+        lv2:scalePoint [ rdfs:label "swing"           ; rdf:value 5  ] ;
+        lv2:scalePoint [ rdfs:label "randomizeTimming"; rdf:value 6  ] ;
+        lv2:scalePoint [ rdfs:label "velocityMode"    ; rdf:value 7  ] ;
+        lv2:scalePoint [ rdfs:label "velocityCurve"   ; rdf:value 8  ] ;
+        lv2:scalePoint [ rdfs:label "curveDepth"      ; rdf:value 9  ] ;
+        lv2:scalePoint [ rdfs:label "curveClip"       ; rdf:value 10 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel1"     ; rdf:value 11 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel2"     ; rdf:value 12 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel3"     ; rdf:value 13 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel4"     ; rdf:value 14 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel5"     ; rdf:value 15 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel6"     ; rdf:value 16 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel7"     ; rdf:value 17 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel8"     ; rdf:value 18 ] ;
+    ] , 
+    [ 
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 35;
+        lv2:symbol "LFO3depth" ;
+        lv2:name "LFO3depth" ;
+        lv2:default 0.5;
+        lv2:minimum 0.0;
+        lv2:maximum 1.0;
+    ] ,
+    [ 
+
+        lv2:portProperty lv2:integer ;
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 36;
+        lv2:name "ConnectLfo4" ;
+        lv2:symbol "ConnectLfo4" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 17;
+        lv2:portProperty lv2:enumeration, lv2:integer;
+        lv2:scalePoint [ rdfs:label "none"            ; rdf:value 0  ] ;
+        lv2:scalePoint [ rdfs:label "division"        ; rdf:value 1  ] ;
+        lv2:scalePoint [ rdfs:label "noteLengthParam" ; rdf:value 2  ] ;
+        lv2:scalePoint [ rdfs:label "octaveSpread"    ; rdf:value 3  ] ;
+        lv2:scalePoint [ rdfs:label "octaveMode"      ; rdf:value 4  ] ;
+        lv2:scalePoint [ rdfs:label "swing"           ; rdf:value 5  ] ;
+        lv2:scalePoint [ rdfs:label "randomizeTimming"; rdf:value 6  ] ;
+        lv2:scalePoint [ rdfs:label "velocityMode"    ; rdf:value 7  ] ;
+        lv2:scalePoint [ rdfs:label "velocityCurve"   ; rdf:value 8  ] ;
+        lv2:scalePoint [ rdfs:label "curveDepth"      ; rdf:value 9  ] ;
+        lv2:scalePoint [ rdfs:label "curveClip"       ; rdf:value 10 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel1"     ; rdf:value 11 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel2"     ; rdf:value 12 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel3"     ; rdf:value 13 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel4"     ; rdf:value 14 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel5"     ; rdf:value 15 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel6"     ; rdf:value 16 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel7"     ; rdf:value 17 ] ;
+        lv2:scalePoint [ rdfs:label "patternVel8"     ; rdf:value 18 ] ;
+    ] , 
+    [ 
+        a lv2:InputPort, lv2:ControlPort ;
+        lv2:index 37;
+        lv2:symbol "LFO4depth" ;
+        lv2:name "LFO4depth" ;
+        lv2:default 0.5;
+        lv2:minimum 0.0;
+        lv2:maximum 1.0;
+    ] ,
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 32;
+        lv2:index 38;
         lv2:symbol "MetaRecording" ;
         lv2:name "MetaRecording" ;
         lv2:default 0.0 ;
@@ -424,14 +516,14 @@ a step sequencer with different record modes, focused on live playing.""" ;
     ], 
     [
         a lv2:InputPort, lv2:ControlPort ;
-        lv2:index 33;
+        lv2:index 39;
         lv2:name "MetaMode" ;
         lv2:symbol "MetaMode" ;
         lv2:default 0 ;
         lv2:minimum 0 ;
         lv2:maximum 1 ;
         lv2:portProperty lv2:enumeration, lv2:integer;
-        lv2:scalePoint [ rdfs:label "snap by bar"  ; rdf:value  0 ] ;
+        lv2:scalePoint [ rdfs:label "snap by bar"   ; rdf:value  0 ] ;
         lv2:scalePoint [ rdfs:label "snap by note"  ; rdf:value  1 ] ;
     ] ;
     doap:developer [

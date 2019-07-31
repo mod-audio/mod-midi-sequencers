@@ -192,6 +192,12 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
         case CVLFO2:
             self->lfo2PortParam = (const float*)data;
             break;
+        case CVLFO3:
+            self->lfo3PortParam = (const float*)data;
+            break;
+        case CVLFO4:
+            self->lfo4PortParam = (const float*)data;
+            break;
         case NOTEMODE:
             self->noteModeParam = (const float*)data;
             break;
@@ -272,6 +278,18 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
             break;
         case LFO2DEPTH:
             self->lfo2DepthParam = (const float*)data;
+            break;
+        case LFO3CONNECT:
+            self->lfo3ConnectParam = (const float*)data;
+            break;
+        case LFO3DEPTH:
+            self->lfo3DepthParam = (const float*)data;
+            break;
+        case LFO4CONNECT:
+            self->lfo4ConnectParam = (const float*)data;
+            break;
+        case LFO4DEPTH:
+            self->lfo4DepthParam = (const float*)data;
             break;
         case METARECORDING:
             self->metaRecordingParam = (const float*)data;

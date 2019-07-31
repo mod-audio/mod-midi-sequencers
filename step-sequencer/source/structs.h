@@ -46,6 +46,8 @@ typedef enum PortEnum {
     METRO_CONTROL,
     CVLFO1,
     CVLFO2,
+    CVLFO3,
+    CVLFO4,
     NOTEMODE,
     MODE,
     DIVISION,
@@ -73,6 +75,10 @@ typedef enum PortEnum {
     LFO1DEPTH,
     LFO2CONNECT,
     LFO2DEPTH,
+    LFO3CONNECT,
+    LFO3DEPTH,
+    LFO4CONNECT,
+    LFO4DEPTH,
     METARECORDING,
     METAMODE
 } PortEnum;
@@ -202,6 +208,8 @@ typedef struct Data {
     float patternVel8;      
     const float* lfo1PortParam;
     const float* lfo2PortParam;
+    const float* lfo3PortParam;
+    const float* lfo4PortParam;
     const float* noteModeParam;
     const float* modeParam;
     const float* divisionParam;
@@ -229,6 +237,10 @@ typedef struct Data {
     const float* lfo1DepthParam;
     const float* lfo2ConnectParam;
     const float* lfo2DepthParam;
+    const float* lfo3ConnectParam;
+    const float* lfo3DepthParam;
+    const float* lfo4ConnectParam;
+    const float* lfo4DepthParam;
     const float* metaRecordingParam;
     const float* metaModeParam;
     const LV2_Atom_Sequence* port_events_in;
