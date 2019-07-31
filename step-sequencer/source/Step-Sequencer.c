@@ -65,33 +65,34 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     uris->time_beatsPerBar    = map->map(map->handle, LV2_TIME__beatsPerBar);
     uris->time_speed          = map->map(map->handle, LV2_TIME__speed);
 
-    self->rate             = rate;
-    self->nyquist          = rate / 2; 
-    self->bpm              = 120.0f;
-    self->beatInMeasure    = 0;
-    self->divisionRate     = 4;
-    self->phase            = 0;
-    self->velPhase         = 0.000000009;
-    self->x1               = 0.00000001; 
-    self->velocityLFO      = 0;
-    self->velocity         = 0;
-    self->octaveIndex      = 0;
-    self->noteOffIndex     = 0; 
-    self->noteOffSendIndex = 0; 
-    self->playHead         = 0;
-    self->metaBegin        = 0;
-    self->countTicks       = 0;
-    self->patternIndex     = 0;
-    self->modeHandle       = 0;
-    self->prevMod          = 100;
-    self->prevLatch        = 100;
-    self->count            = 0;
-    self->inputIndex       = 0;
-    self->notesPressed     = 0;
-    self->previousFrequency = 0;
-    self->metaNote         = 0;
+    self->rate               = rate;
+    self->nyquist            = rate / 2; 
+    self->bpm                = 120.0f;
+    self->beatInMeasure      = 0;
+    self->divisionRate       = 4;
+    self->phase              = 0;
+    self->velPhase           = 0.000000009;
+    self->x1                 = 0.00000001; 
+    self->velocityLFO        = 0;
+    self->velocity           = 0;
+    self->octaveIndex        = 0;
+    self->noteOffIndex       = 0; 
+    self->noteOffSendIndex   = 0; 
+    self->playHead           = 0;
+    self->metaBegin          = 0;
+    self->countTicks         = 0;
+    self->patternIndex       = 0;
+    self->modeHandle         = 0;
+    self->prevMod            = 100;
+    self->prevLatch          = 100;
+    self->count              = 0;
+    self->inputIndex         = 0;
+    self->notesPressed       = 0;
+    self->previousFrequency  = 0;
+    self->metaNote           = 0;
     //check this value
-    self->prevThrough      = 0;
+    self->prevThrough        = 0;
+    self->previousOctaveMode = 0;
 
     self->placementIndex   = 0;
     self->notePlacement[0] = 0;
@@ -142,25 +143,27 @@ static LV2_Handle instantiate(const LV2_Descriptor*     descriptor,
     self->firstBar          = false;
     self->playing           = false;
     self->clip              = false;
+    self->octaveUp          = true;
 
     self->parameters[0]   = NULL;
     self->parameters[1]   = &self->divisionParam;
     self->parameters[2]   = &self->noteLengthParam;
     self->parameters[3]   = &self->octaveSpreadParam;
-    self->parameters[4]   = &self->swingParam;
-    self->parameters[5]   = &self->randomizeTimmingParam;
-    self->parameters[6]   = &self->velocityModeParam;
-    self->parameters[7]   = &self->velocityCurveParam;
-    self->parameters[8]   = &self->curveDepthParam;
-    self->parameters[9]   = &self->curveClipParam;
-    self->parameters[10]  = &self->patternVel1Param;
-    self->parameters[11]  = &self->patternVel2Param;
-    self->parameters[12]  = &self->patternVel3Param;
-    self->parameters[13]  = &self->patternVel4Param;
-    self->parameters[14]  = &self->patternVel5Param;
-    self->parameters[15]  = &self->patternVel6Param;
-    self->parameters[16]  = &self->patternVel7Param;
-    self->parameters[17]  = &self->patternVel8Param;
+    self->parameters[4]   = &self->octaveModeParam;
+    self->parameters[5]   = &self->swingParam;
+    self->parameters[6]   = &self->randomizeTimmingParam;
+    self->parameters[7]   = &self->velocityModeParam;
+    self->parameters[8]   = &self->velocityCurveParam;
+    self->parameters[9]   = &self->curveDepthParam;
+    self->parameters[10]   = &self->curveClipParam;
+    self->parameters[11]  = &self->patternVel1Param;
+    self->parameters[12]  = &self->patternVel2Param;
+    self->parameters[13]  = &self->patternVel3Param;
+    self->parameters[14]  = &self->patternVel4Param;
+    self->parameters[15]  = &self->patternVel5Param;
+    self->parameters[16]  = &self->patternVel6Param;
+    self->parameters[17]  = &self->patternVel7Param;
+    self->parameters[18]  = &self->patternVel8Param;
 
     return self;
 }
@@ -203,6 +206,9 @@ connect_port(LV2_Handle instance, uint32_t port, void* data)
             break;
         case OCTAVESPREAD:
             self->octaveSpreadParam = (const float*)data;
+            break;
+        case OCTAVEMODE:
+            self->octaveModeParam  = (const float*)data;
             break;
         case TRANSPOSE:
             self->latchTransposeParam = (const float*)data;
@@ -307,8 +313,8 @@ createMidiEvent(Data* self, uint8_t status, uint8_t note, uint8_t velocity)
 static float     
 getParamMinRange(int param)
 {
-    float maxParamValue[18] = 
-    {0, 0, 0, 1, 25, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
+    float maxParamValue[19] = 
+    {0, 0, 0, 1, 0, 25, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0};
 
     return maxParamValue[param];
 }
@@ -318,8 +324,8 @@ getParamMinRange(int param)
 static float 
 getParamMaxRange(int param)
 {
-    float maxParamValue[18] = 
-    {0, 10, 0.99, 4, 75, 1, 2, 70, 1, 0, 127, 127, 127, 127, 127, 127, 127, 127};
+    float maxParamValue[19] = 
+    {0, 10, 0.99, 4, 3, 75, 1, 2, 70, 1, 0, 127, 127, 127, 127, 127, 127, 127, 127};
 
     return maxParamValue[param];
 }
@@ -329,7 +335,7 @@ getParamMaxRange(int param)
 static void
 applyLfoToParameters(Data* self)
 {
-    size_t amountParam = 18;
+    size_t amountParam = 19;
     float lfoValue = 0;
     int param;
 
@@ -351,25 +357,38 @@ applyLfoToParameters(Data* self)
         self->variables[param] = **self->parameters[param] + lfoValue; 
         self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
     }
+    param = (int)*self->lfo3ConnectParam;
+    if (param > 0) {
+        lfoValue = getParamMaxRange(param) * *self->lfo3DepthParam * *self->lfo3PortParam; 
+        self->variables[param] = **self->parameters[param] + lfoValue; 
+        self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
+    }
+    param = (int)*self->lfo4ConnectParam;
+    if (param > 0) {
+        lfoValue = getParamMaxRange(param) * *self->lfo4DepthParam * *self->lfo4PortParam; 
+        self->variables[param] = **self->parameters[param] + lfoValue; 
+        self->variables[param] = applyRange(self->variables[param], getParamMinRange(param), getParamMaxRange(param));
+    }
 
 
     self->division           = self->variables[1];
     self->noteLength         = self->variables[2];
     self->octaveSpread       = self->variables[3];
-    self->swing              = self->variables[4];
-    self->randomizeTimming   = self->variables[5];
-    self->velocityMode       = (int)self->variables[6];
-    self->velocityCurve      = self->variables[7];
-    self->curveDepth         = self->variables[8];
-    self->curveClip          = self->variables[9];
-    self->velocityPattern[0] = (uint8_t)self->variables[10];
-    self->velocityPattern[1] = (uint8_t)self->variables[11];
-    self->velocityPattern[2] = (uint8_t)self->variables[12];
-    self->velocityPattern[3] = (uint8_t)self->variables[13];
-    self->velocityPattern[4] = (uint8_t)self->variables[14];
-    self->velocityPattern[5] = (uint8_t)self->variables[15];
-    self->velocityPattern[6] = (uint8_t)self->variables[16];
-    self->velocityPattern[7] = (uint8_t)self->variables[17];
+    self->octaveMode         = self->variables[4];
+    self->swing              = self->variables[5];
+    self->randomizeTimming   = self->variables[6];
+    self->velocityMode       = (int)self->variables[7];
+    self->velocityCurve      = self->variables[8];
+    self->curveDepth         = self->variables[9];
+    self->curveClip          = self->variables[10];
+    self->velocityPattern[0] = (uint8_t)self->variables[11];
+    self->velocityPattern[1] = (uint8_t)self->variables[12];
+    self->velocityPattern[2] = (uint8_t)self->variables[13];
+    self->velocityPattern[3] = (uint8_t)self->variables[14];
+    self->velocityPattern[4] = (uint8_t)self->variables[15];
+    self->velocityPattern[5] = (uint8_t)self->variables[16];
+    self->velocityPattern[6] = (uint8_t)self->variables[17];
+    self->velocityPattern[7] = (uint8_t)self->variables[18];
 }
 
 
@@ -494,8 +513,61 @@ applyRandomTiming(Data* self)
 static uint8_t 
 octaveHandler(Data* self)
 {
-    uint8_t octave = 12 * self->octaveIndex; 
-    self->octaveIndex = (self->octaveIndex + 1) % (int)self->octaveSpread;
+    uint8_t octave = 0; 
+
+    int octaveMode = self->octaveMode;
+
+    if (octaveMode != self->previousOctaveMode) {
+        if (octaveMode == 1 || octaveMode == 3) {
+            self->octaveIndex = (int)self->octaveSpread;
+        }
+        if (octaveMode >= 2) {
+            self->octaveUp = !self->octaveUp;
+        }
+        self->previousOctaveMode = octaveMode;
+    }
+
+    if (self->octaveSpread > 1) {
+        switch (octaveMode)
+        {
+            case 0:
+                octave = 12 * self->octaveIndex; 
+                self->octaveIndex = (self->octaveIndex + 1) % (int)self->octaveSpread;
+                break;
+            case 1:
+                octave = 12 * self->octaveIndex; 
+                self->octaveIndex--;
+                self->octaveIndex = (self->octaveIndex < 0) ? (int)self->octaveSpread - 1 : self->octaveIndex;
+                debug_print("octave index = %i\n", self->octaveIndex);
+                break;
+            case 2:
+                octave = 12 * self->octaveIndex; 
+
+                if (self->octaveUp) {
+                    debug_print("OCTAVE UP\n");
+                    self->octaveIndex++;
+                    self->octaveUp = (self->octaveIndex >= (int)self->octaveSpread - 1) ? false : true;
+                } else {
+                    debug_print("OCTAVE DOWN\n");
+                    self->octaveIndex--;
+                    self->octaveUp = (self->octaveIndex <= 0) ? true : false;
+                }
+                debug_print("octave index = %i\n", self->octaveIndex);
+                break;
+            case 3:
+                octave = 12 * self->octaveIndex; 
+                if (!self->octaveUp) {
+                    self->octaveIndex--;
+                    self->octaveUp = (self->octaveIndex <= 0) ? true : false;
+                } else {
+                    self->octaveIndex = (self->octaveIndex + 1) % (int)self->octaveSpread;
+                    self->octaveUp = (self->octaveIndex >= (int)self->octaveSpread - 1) ? false : true;
+                }
+                break;
+        }
+    } else {
+        self->octaveIndex = 0;
+    }
 
     return octave;
 }

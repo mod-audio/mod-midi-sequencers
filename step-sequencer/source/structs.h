@@ -51,6 +51,7 @@ typedef enum PortEnum {
     DIVISION,
     NOTELENGTH,
     OCTAVESPREAD,
+    OCTAVEMODE,
     TRANSPOSE,
     SWING,
     RANDOMIZETIMMING,
@@ -125,6 +126,7 @@ typedef struct Data {
     int     modeHandle;
     int     prevMod;
     int     prevLatch;
+    int     previousOctaveMode;
 
     int     placementIndex;
     float   notePlacement[2];
@@ -156,9 +158,11 @@ typedef struct Data {
     size_t  playHead;
     size_t  numNotesInBar;
     size_t  metaBegin;
-    size_t  octaveIndex;
+    int     octaveIndex;
+    size_t  octaveMode;
     size_t  noteOffIndex;
     size_t  noteOffSendIndex;
+    bool    octaveUp;
     bool    setMetaBegin;
     bool    firstRecordedNote;
     bool    through;
@@ -172,13 +176,13 @@ typedef struct Data {
     bool    renderMeta;
     int     countTicks;
 
-    const float** parameters[18];
+    const float** parameters[19];
     uint8_t velocityPattern[8];
     Array* metaEvents;
     Array* writeEvents;
     Array* playEvents;
 
-    float variables[18];
+    float variables[19];
     float division;         
     float noteLength;  
     float octaveSpread;     
@@ -211,6 +215,7 @@ typedef struct Data {
     const float* curveLengthParam;
     const float* curveClipParam;
     const float* octaveSpreadParam;
+    const float* octaveModeParam;
     const float* velocityPatternLengthParam;
     const float* patternVel1Param;
     const float* patternVel2Param;
