@@ -156,7 +156,7 @@ void resetPhase(Data *self)
 
 
 //Does this also need to Record the octave control?
-void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, size_t *notePlayed)
+void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, uint32_t *notePlayed, size_t metaMode)
 {
     numNotesInBar = (numNotesInBar > 0) ? numNotesInBar : 1;
     size_t amountMetaBars = (size_t)roundf((float)metaEvents->used / (float)numNotesInBar);
@@ -181,13 +181,15 @@ void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvent
     writeEvents->used = metaEvents->used;
     *notePlayed = notePos;
 
-    while (notesToWrite > 0) {
+    if (metaMode == 0) {
+        while (notesToWrite > 0) {
             for (unsigned prop = 0; prop < NUM_NOTE_PROPS; prop++) { 
                 writeEvents->eventList[notePos][prop] = playEvents->eventList[notePos % playEvents->used][prop] + *transpose;
             }
             notePos++;
             writeEvents->used++;
             notesToWrite--;
+        }
     }
     *transpose = 0;
 }

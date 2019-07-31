@@ -986,8 +986,9 @@ run(LV2_Handle instance, uint32_t n_samples)
     if (*self->metaRecordingParam == 0 && self->renderMeta) {
         self->metaRecording = false;
         renderMetaRecording(self->metaEvents, self->writeEvents, self->playEvents, self->metaBegin, self->numNotesInBar, 
-                &self->transpose, &self->notePlayed);
+                &self->transpose, &self->notePlayed, (size_t)*self->metaModeParam);
         self->renderMeta = false;
+        clearSequence(self->metaEvents);
     }
 }
 

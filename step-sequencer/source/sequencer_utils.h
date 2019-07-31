@@ -30,5 +30,5 @@ void  clearSequence(Array *arr);
 void  copyEvents(Array* eventListA, Array* eventListB);
 float calculateNewPhase(Data* self, float noteLengthInSeconds, float currentBeatPosition, float bpm);
 void  resetPhase(Data* self);
-void renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, size_t *notePlayed);
+void  renderMetaRecording(Array *metaEvents, Array *writeEvents, Array *playEvents, size_t metaBegin, size_t numNotesInBar, uint8_t *transpose, uint32_t *notePlayed, size_t metaMode);
 #endif //_H_SEQ_UTILS

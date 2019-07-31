@@ -108,8 +108,8 @@ typedef struct MetroURIs {
 } MetroURIs;
 
 typedef struct Array {
-    uint8_t eventList[248][NUM_NOTE_PROPS];
-    size_t used;
+    uint8_t  eventList[1024][NUM_NOTE_PROPS];
+    uint32_t used;
 } Array;
 
 typedef struct Data {
@@ -159,11 +159,11 @@ typedef struct Data {
     bool  previousPlaying;
     bool  resetPhase;
 
-    size_t  patternIndex;
-    size_t  notePlayed;
-    size_t  playHead;
-    size_t  numNotesInBar;
-    size_t  metaBegin;
+    size_t    patternIndex;
+    uint32_t  notePlayed;
+    uint32_t  playHead;
+    size_t    numNotesInBar;
+    uint32_t  metaBegin;
     int     octaveIndex;
     size_t  octaveMode;
     size_t  noteOffIndex;
